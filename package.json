@@ -3,8 +3,6 @@
   "private": true,
   "scripts": {
     "dev": "turbo run dev",
-    "dev:user": "turbo run dev --filter=@bjk/user",
-    "dev:admin": "turbo run dev --filter=@bjk/admin",
     "build": "turbo run build",
     "lint": "turbo run lint && pnpm lint:design",
     "lint:fix": "turbo run lint:fix",

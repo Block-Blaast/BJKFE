@@ -39,8 +39,9 @@ export const RULES = [
       [...line.matchAll(SPACING_RE)]
         .filter((m) => {
           const step = m[1] ?? m[2] ?? m[3];
-          // p-auto, m-auto 처럼 숫자가 아닌 값은 간격 단계가 아니다. (m-px 같은 1px 값은 잡는다)
-          if (step === 'auto') return false;
+          // 숫자 단계(p-7, py-1.5)와 1px 값(m-px)만 간격 스케일이다.
+          // m-auto, space-x-reverse, pb-safe(@utility) 처럼 이름이 붙은 값은 검사하지 않는다.
+          if (!/^(?:\d+(?:\.\d+)?|px)$/.test(step)) return false;
           return !ALLOWED_SPACING.has(step);
         })
         .map((m) => m[0]),

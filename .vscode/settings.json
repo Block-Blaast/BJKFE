@@ -17,8 +17,5 @@
       "pattern": "packages/*/"
     }
   ],
-  "tailwindCSS.experimental.configFile": {
-    "apps/user/src/app/globals.css": "apps/user/src/**",
-    "apps/admin/src/app/globals.css": "apps/admin/src/**"
-  }
+  "tailwindCSS.experimental.configFile": "apps/web/src/app/globals.css"
 }

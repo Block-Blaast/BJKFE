@@ -6,7 +6,8 @@
   "exports": {
     "./client": "./src/client.ts",
     "./queryClient": "./src/queryClient.ts",
-    "./queryKeys": "./src/queryKeys.ts"
+    "./queryKeys": "./src/queryKeys.ts",
+    "./domain/*": "./src/domain/*.ts"
   },
   "scripts": {
     "lint": "eslint .",

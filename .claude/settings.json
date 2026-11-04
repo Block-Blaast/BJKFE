@@ -2,8 +2,6 @@
   "permissions": {
     "allow": [
       "Bash(pnpm dev)",
-      "Bash(pnpm dev:user)",
-      "Bash(pnpm dev:admin)",
       "Bash(pnpm build)",
       "Bash(pnpm lint)",
       "Bash(pnpm lint:fix)",

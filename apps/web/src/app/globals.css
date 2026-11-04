@@ -1,0 +1,7 @@
+@import 'tailwindcss';
+@import '@bjk/ui/styles.css';
+
+/* 하단 고정 UI 가 iOS 홈 인디케이터에 가리지 않게 한다. (layout.tsx 의 viewportFit: 'cover' 와 함께 동작) */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}

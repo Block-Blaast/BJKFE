@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 
-# CodeRabbit 설정 — BJKFE (pnpm + Turborepo 모노레포)
+# CodeRabbit 설정 — BJKFE 발주콕 프론트엔드 (pnpm + Turborepo 모노레포)
 # 프로젝트 규약은 AGENTS.md 와 .claude/rules/ 를 따릅니다. 아래 path_instructions 는 그 규약을 리뷰에 반영하기 위한 요약입니다.
 
 language: ko-KR
@@ -38,7 +38,8 @@ reviews:
         - 기존 "왜" 주석을 근거 없이 지우지 않는다.
     - path: 'apps/**/*.{ts,tsx}'
       instructions: |
-        - apps/user 와 apps/admin 은 서로 import 하지 않는다. 공유가 필요하면 packages/ 로 옮긴다.
+        - 판정·체크 코드(C-01~09)·상태 문자열을 직접 쓰지 않고 @bjk/api/domain/* 상수를 쓴다.
+        - 레이아웃에서 usePathname·params 같은 요청 시점 값을 Suspense 밖에서 읽지 않는다(cacheComponents).
         - 내부 패키지는 `@bjk/*` 이름으로 import 한다. `../../packages/` 상대 경로 금지.
         - 기본은 서버 컴포넌트다. 'use client' 는 상태·이벤트·브라우저 API·Query/Zustand 가 필요한
           작은 컴포넌트에만 붙인다. 페이지 전체를 클라이언트로 만드는 변경을 지적한다.
@@ -55,11 +56,11 @@ reviews:
         - Button·StatusChip·Input·Card 를 앱에서 다시 만들지 않고 @bjk/ui 를 쓰는지 본다. 다크 모드 코드 금지.
         - 동적으로 조각낸 클래스명(`bg-${color}-500`)은 Tailwind 가 감지하지 못한다.
         - 이미지는 next/image, 내부 링크는 next/link 를 쓴다.
-    - path: 'apps/user/**/*.tsx'
+    - path: 'apps/web/src/app/m/**/*.tsx'
       instructions: |
         - 모바일 우선. 기본 클래스가 모바일이고 sm:/md: 로 넓은 화면을 덮어쓴다.
         - hover 에만 의존하는 UI, 44px 미만 터치 대상, h-screen(→ h-dvh) 사용을 지적한다.
-    - path: 'apps/admin/**/*.tsx'
+    - path: 'apps/web/src/app/(desk)/**/*.tsx'
       instructions: |
         - 데스크톱 전용. 모바일 대응 코드는 필요 없다.
         - 목록의 필터·정렬·페이지 상태는 URL 쿼리스트링에 둔다(Zustand 금지).
@@ -106,10 +107,10 @@ knowledge_base:
         applyTo: 'packages/api/**, apps/*/src/hooks/**, apps/*/src/app/**'
       - files: '.claude/rules/design-system.md'
         applyTo: 'apps/*/src/**, packages/ui/**'
-      - files: '.claude/rules/user.md'
-        applyTo: 'apps/user/**'
-      - files: '.claude/rules/admin.md'
-        applyTo: 'apps/admin/**'
+      - files: '.claude/rules/mobile.md'
+        applyTo: 'apps/web/src/app/m/**, apps/web/src/components/mobile/**'
+      - files: '.claude/rules/desk.md'
+        applyTo: 'apps/web/src/app/(desk)/**, apps/web/src/components/desk/**'
   learnings:
     scope: auto
   issues:

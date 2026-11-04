@@ -185,7 +185,7 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
-  apps/admin:
+  apps/web:
     dependencies:
       '@bjk/api':
         specifier: workspace:*
@@ -196,58 +196,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.105.3
         version: 5.105.3(@types/react@19.3.0)(react@19.3.0)
-      next:
-        specifier: 16.4.4
-        version: 16.4.4(@babel/core@7.29.7(supports-color@7.2.0))(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      react:
-        specifier: 19.3.0
-        version: 19.3.0
-      react-dom:
-        specifier: 19.3.0
-        version: 19.3.0(react@19.3.0)
-      zustand:
-        specifier: ^5.0.16
-        version: 5.0.16(@types/react@19.3.0)(react@19.3.0)
-    devDependencies:
-      '@bjk/config':
-        specifier: workspace:*
-        version: link:../../packages/config
-      '@tailwindcss/turbopack':
-        specifier: ^4.3.4
-        version: 4.3.4
-      '@tanstack/react-query-devtools':
-        specifier: ^5.105.3
-        version: 5.105.3(@tanstack/react-query@5.105.3(@types/react@19.3.0)(react@19.3.0))(@types/react@19.3.0)(csstype@3.2.3)(react@19.3.0)
-      '@types/node':
-        specifier: ^20.19.43
-        version: 20.19.43
-      '@types/react':
-        specifier: ^19.3.0
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: ^19.3.0
-        version: 19.3.0(@types/react@19.3.0)
-      eslint:
-        specifier: ^9.39.5
-        version: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)
-      tailwindcss:
-        specifier: ^4.3.4
-        version: 4.3.4
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-
-  apps/user:
-    dependencies:
-      '@bjk/api':
-        specifier: workspace:*
-        version: link:../../packages/api
-      '@bjk/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
-      '@tanstack/react-query':
-        specifier: ^5.105.3
-        version: 5.105.3(@types/react@19.3.0)(react@19.3.0)
+      lucide-react:
+        specifier: ^1.67.0
+        version: 1.67.0(@types/react@19.3.0)(react@19.3.0)
       next:
         specifier: 16.4.4
         version: 16.4.4(@babel/core@7.29.7(supports-color@7.2.0))(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)

@@ -50,7 +50,8 @@ Figma 컴포넌트와 같은 것은 `@bjk/ui/components/*`에 있습니다. 앱�
 | `Card`       | `@bjk/ui/components/Card`       | `variant`: default(그림자)·highlight(브랜드 연한 배경)                                |
 
 - 테두리를 2px로 키울 때는 `border`(1px)에 `ring-1 ring-inset`을 겹쳐 레이아웃이 밀리지 않게 합니다(Input Focus/Error 참고).
-- 토큰·컴포넌트 렌더링은 `apps/user`의 `/design-tokens` 임시 페이지에서 Figma와 대조합니다.
+- 토큰·컴포넌트 렌더링은 `/design-tokens` 임시 페이지에서 Figma와 대조합니다.
+- 숫자 옆에는 계산 기준 시각(`ComputedAt`)을 붙이고, 금액·수량은 `src/utils/format.ts`로 표시합니다(명세서 15장 화면 규칙).
 
 ## 그 밖의 스타일 규칙
 

@@ -1,0 +1,43 @@
+{
+  "name": "@bjk/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "next typegen && tsc --noEmit"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css}": [
+      "prettier --write"
+    ]
+  },
+  "dependencies": {
+    "@bjk/api": "workspace:*",
+    "@bjk/ui": "workspace:*",
+    "@tanstack/react-query": "^5.105.3",
+    "lucide-react": "^1.67.0",
+    "next": "16.4.4",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zustand": "^5.0.16"
+  },
+  "devDependencies": {
+    "@bjk/config": "workspace:*",
+    "@tailwindcss/turbopack": "^4.3.4",
+    "@tanstack/react-query-devtools": "^5.105.3",
+    "@types/node": "^20.19.43",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "tailwindcss": "^4.3.4",
+    "typescript": "^5.9.3"
+  }
+}
