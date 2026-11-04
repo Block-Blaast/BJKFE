@@ -1,32 +1,15 @@
 import { Info, TriangleAlert, CircleAlert, type LucideIcon } from 'lucide-react';
 
-import { CHECK_LEVEL_ORDER, CHECKS, FACTS, type CheckLevel } from '@bjk/api/domain/review';
+import { CHECK_LEVEL_ORDER, CHECKS, type CheckLevel } from '@bjk/api/domain/review';
 import type { ReviewCheck } from '@bjk/api/types/review';
 
 import Tag, { type TagTone } from '@/components/ui/Tag';
-import { formatDate, formatNumber, formatQty, formatWon } from '@/utils/format';
+import { factLabel, formatFact } from '@/utils/facts';
 
 const LEVEL_TAG: Record<CheckLevel, { tone: TagTone; icon: LucideIcon }> = {
   긴급: { tone: 'danger', icon: TriangleAlert },
   경고: { tone: 'warning', icon: CircleAlert },
   정보: { tone: 'neutral', icon: Info },
-};
-
-const formatFact = (key: string, value: number | string, unit: string) => {
-  const kind = FACTS[key]?.kind ?? (typeof value === 'number' ? 'number' : 'text');
-  if (typeof value === 'string') return kind === 'date' ? formatDate(value) : value;
-  switch (kind) {
-    case 'qty':
-      return formatQty(value, unit);
-    case 'won':
-      return formatWon(value);
-    case 'days':
-      return `${formatNumber(value)}일`;
-    case 'months':
-      return `${formatNumber(value)}개월`;
-    default:
-      return formatNumber(value);
-  }
 };
 
 type CheckListProps = {
@@ -57,7 +40,7 @@ const CheckList = ({ checks, unit }: CheckListProps) => {
             <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
               {Object.entries(facts).map(([key, value]) => (
                 <div key={key} className="contents">
-                  <dt className="text-body-sm text-text-secondary">{FACTS[key]?.label ?? key}</dt>
+                  <dt className="text-body-sm text-text-secondary">{factLabel(key)}</dt>
                   <dd className="text-right text-body-sm text-text-body tabular-nums">
                     {formatFact(key, value, unit)}
                   </dd>

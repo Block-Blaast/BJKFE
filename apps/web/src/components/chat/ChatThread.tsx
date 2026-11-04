@@ -104,12 +104,13 @@ const ChatThread = () => {
       partId?: string;
       adjustReason?: AdjustReason;
     }) => confirmPending(pendingId, { part_id: partId, adjust_reason: adjustReason }),
-    // 실사조정이면 장부 검증 항목이 닫히고 브리핑·수신함 숫자가 바뀐다
+    // 재고·원장이 바뀌고, 실사조정이면 장부 검증 항목이 닫히고 브리핑·수신함 숫자가 바뀐다
     onSuccess: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.audits.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.briefing.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.chat.inbox() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.parts.all }),
       ]),
   });
   const cancel = useMutation({ mutationFn: cancelPending });

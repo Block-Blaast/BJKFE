@@ -2,6 +2,7 @@
 // 무효화는 도메인의 `all`로 하면 접두사가 같은 목록·상세가 함께 갱신된다.
 // SSE 이벤트(review.created, review.decided …)도 이 키로 무효화한다.
 import type { AuditListFilters } from './types/audit';
+import type { PartListFilters } from './types/part';
 import type { ReviewListFilters } from './types/review';
 
 const reviewsAll = ['reviews'] as const;
@@ -9,6 +10,7 @@ const briefingAll = ['briefing'] as const;
 const authAll = ['auth'] as const;
 const auditsAll = ['audits'] as const;
 const chatAll = ['chat'] as const;
+const partsAll = ['parts'] as const;
 const mergeAll = ['merge-candidates'] as const;
 
 export const queryKeys = {
@@ -21,6 +23,13 @@ export const queryKeys = {
   // 브리핑은 검토·장부 검증 결과를 모은 것이라, 검토가 결정되면 함께 무효화한다.
   briefing: {
     all: briefingAll,
+  },
+  // 재고가 바뀌는 기록(채팅 확인·실사조정·병합) 뒤에는 parts.all 을 무효화한다
+  parts: {
+    all: partsAll,
+    list: (filters: PartListFilters) => [...partsAll, 'list', filters] as const,
+    detail: (id: string) => [...partsAll, 'detail', id] as const,
+    ledger: (id: string) => [...partsAll, 'ledger', id] as const,
   },
   chat: {
     all: chatAll,

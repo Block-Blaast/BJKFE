@@ -26,6 +26,7 @@ import type { Review, ReviewDecisionInput } from '../types/review';
 import { AUDIT_FIXTURES, MERGE_FIXTURES } from './fixtures/audits';
 import { MOCK_COMPANY, MOCK_INVITES, MOCK_MEMBERS, MOCK_OWNER } from './fixtures/auth';
 import { PART_FIXTURES, type MockPart } from './fixtures/parts';
+import type { Part, StockMovement } from '../types/part';
 import { REVIEW_FIXTURES } from './fixtures/reviews';
 
 const NETWORK_DELAY = 400;
@@ -37,6 +38,82 @@ const WARNING_MULTIPLIER = 5;
 const reviews = new Map(REVIEW_FIXTURES.map((r) => [r.id, structuredClone(r)]));
 const decisions = new Map<string, Review>();
 const stock = new Map(PART_FIXTURES.map((p) => [p.part_id, p.stock]));
+
+// ---- 원장·부품 (F-LEDGER, F-MATCH-03, W-04·05) ----
+// 초기 재고는 엑셀 이관 때 실사조정(ADJUST)으로 들어간다 (F-SETUP-01). 이관 시각은 목업용으로 정했다.
+const IMPORTED_AT = '2026-11-01T09:00:00+09:00';
+const ledger = new Map<string, StockMovement[]>(
+  PART_FIXTURES.map((p) => [
+    p.part_id,
+    p.stock === null
+      ? []
+      : [
+          {
+            id: `mv-init-${p.part_id}`,
+            type: 'ADJUST',
+            qty: p.stock,
+            message: null,
+            reason: '초기 재고 (엑셀 이관)',
+            created_at: IMPORTED_AT,
+          },
+        ],
+  ]),
+);
+const pendingText = new Map<string, string>();
+const mergedInto = new Map<string, string>();
+const dismissedPairs = new Set<string>();
+
+const pairKey = (a: string, b: string) => [a, b].sort().join('|');
+const normalizeSpec = (spec: string | null) =>
+  spec?.toLowerCase().replace(/×/g, 'x').replace(/\s/g, '') ?? null;
+
+const recordMovement = (
+  partId: string,
+  type: StockMovement['type'],
+  qty: number,
+  pendingId: string,
+  reason: StockMovement['reason'] = null,
+) => {
+  ledger.get(partId)?.push({
+    id: `mv-${crypto.randomUUID()}`,
+    type,
+    qty,
+    message: pendingText.get(pendingId) ?? null,
+    reason,
+    created_at: new Date().toISOString(),
+  });
+  pendingText.delete(pendingId);
+};
+
+// 병합 부품은 원장을 고치지 않고 재고 계산 때 대표 부품에 합산한다 (F-LEDGER-02, F-MATCH-03)
+const partView = (p: MockPart): Part => {
+  const merged = PART_FIXTURES.filter((q) => mergedInto.get(q.part_id) === p.part_id);
+  const own = (q: MockPart) => stock.get(q.part_id) ?? 0;
+  const spec = normalizeSpec(p.spec);
+  const hidden = PART_FIXTURES.filter(
+    (q) =>
+      q.part_id !== p.part_id &&
+      spec !== null &&
+      normalizeSpec(q.spec) === spec &&
+      !mergedInto.has(q.part_id) &&
+      !dismissedPairs.has(pairKey(p.part_id, q.part_id)),
+  );
+  return {
+    id: p.part_id,
+    name: p.part_name,
+    spec: p.spec,
+    category: p.category,
+    unit: p.unit,
+    stock: own(p) + merged.reduce((sum, q) => sum + own(q), 0),
+    incoming: p.incoming,
+    hidden_stock: hidden.reduce((sum, q) => sum + own(q), 0),
+    risk: null,
+    location: p.location,
+    supplier: p.supplier,
+    aliases: merged.map((q) => q.part_name),
+    metrics: p.metrics,
+  };
+};
 const pending = new Map<string, Extract<ChatCard, { pending_id: string }>>();
 const seenMessages = new Map<string, ChatTurn>();
 
@@ -204,6 +281,39 @@ const byLoss = (a: Review, b: Review) =>
   (b.risk_if_not_ordered.loss ?? -1) - (a.risk_if_not_ordered.loss ?? -1);
 
 export const handlers = [
+  http.get(ENDPOINTS.parts, async ({ request }) => {
+    await delay(NETWORK_DELAY);
+    const params = new URL(request.url).searchParams;
+    const q = params.get('q')?.trim().toLowerCase();
+    const list = PART_FIXTURES.filter((p) => !mergedInto.has(p.part_id))
+      .map(partView)
+      .filter(
+        (p) =>
+          !q || [p.name, p.spec ?? '', ...p.aliases].some((text) => text.toLowerCase().includes(q)),
+      )
+      .filter((p) => !params.get('category') || p.category === params.get('category'))
+      .filter((p) => !params.get('abc') || p.metrics.abc === params.get('abc'))
+      .filter((p) => !params.get('pattern') || p.metrics.demand_pattern === params.get('pattern'))
+      .filter((p) => !params.get('risk') || p.risk === params.get('risk'))
+      .sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    return HttpResponse.json(list);
+  }),
+
+  http.get(ENDPOINTS.part(':id'), async ({ params }) => {
+    await delay(NETWORK_DELAY);
+    const part = PART_FIXTURES.find((p) => p.part_id === params.id);
+    if (!part) return HttpResponse.json({ message: '부품을 찾을 수 없어요.' }, { status: 404 });
+    return HttpResponse.json(partView(part));
+  }),
+
+  // 최신 기록이 위로
+  http.get(ENDPOINTS.partLedger(':id'), async ({ params }) => {
+    await delay(NETWORK_DELAY);
+    const entries = ledger.get(String(params.id));
+    if (!entries) return HttpResponse.json({ message: '부품을 찾을 수 없어요.' }, { status: 404 });
+    return HttpResponse.json([...entries].reverse());
+  }),
+
   http.get(ENDPOINTS.members, async () => {
     await delay(NETWORK_DELAY);
     return HttpResponse.json(members.map(({ id, name, role }) => ({ id, name, role })));
@@ -257,6 +367,7 @@ export const handlers = [
       return HttpResponse.json({ message: '대표 부품을 골라 주세요.' }, { status: 400 });
     }
     candidate.status = 'merged';
+    for (const p of candidate.parts) if (p.id !== primaryId) mergedInto.set(p.id, primaryId);
     candidate.primary_part_id = primaryId;
     return HttpResponse.json(candidate satisfies MergeCandidate);
   }),
@@ -270,6 +381,7 @@ export const handlers = [
       return HttpResponse.json({ message: '이미 처리된 후보예요.' }, { status: 409 });
     }
     candidate.status = 'dismissed';
+    dismissedPairs.add(pairKey(candidate.parts[0].id, candidate.parts[1].id));
     return HttpResponse.json(candidate);
   }),
 
@@ -480,6 +592,7 @@ export const handlers = [
     const seen = seenMessages.get(input.client_message_id);
     if (seen) return HttpResponse.json(seen);
     const turn = replyToChat(input);
+    if (turn.card && 'pending_id' in turn.card) pendingText.set(turn.card.pending_id, input.text);
     seenMessages.set(input.client_message_id, turn);
     return HttpResponse.json(turn);
   }),
@@ -508,6 +621,13 @@ export const handlers = [
       }
       pending.delete(card.pending_id);
       stock.set(part.part_id, card.qty);
+      recordMovement(
+        part.part_id,
+        'ADJUST',
+        diff,
+        card.pending_id,
+        diff === 0 ? '이상 없음' : (adjustReason ?? null),
+      );
       for (const audit of audits.values()) {
         if (audit.part.id !== part.part_id || audit.status === 'resolved') continue;
         audit.status = 'resolved';
@@ -530,6 +650,12 @@ export const handlers = [
     const before = stock.get(part.part_id);
     const after = before === null || before === undefined ? null : before + sign * card.qty;
     stock.set(part.part_id, card.intent === '실사' ? card.qty : after);
+    recordMovement(
+      part.part_id,
+      card.intent === '입고' ? 'IN' : 'OUT',
+      sign * card.qty,
+      card.pending_id,
+    );
     const left = stock.get(part.part_id);
     const reply =
       left === null || left === undefined

@@ -63,6 +63,7 @@ export const FACTS: Record<string, { label: string; kind: FactKind }> = {
   D95: { label: '기간 필요량 상위 95%', kind: 'qty' },
   D99: { label: '기간 필요량 상위 99%', kind: 'qty' },
   R: { label: '권장 발주량', kind: 'qty' },
+  reorder_point: { label: '재주문점', kind: 'qty' },
   MOQ: { label: '최소 주문 수량', kind: 'qty' },
   LT50: { label: '납기 보통', kind: 'days' },
   LT90: { label: '납기 늦을 때', kind: 'days' },

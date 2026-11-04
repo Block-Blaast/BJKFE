@@ -1,23 +1,25 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 
-import PagePlaceholder from '@/components/ui/PagePlaceholder';
+import PartBrowser from '@/components/desk/PartBrowser';
 
-export const metadata: Metadata = { title: '부품 목록' };
+export const metadata: Metadata = { title: '부품' };
 
-const ELEMENTS = [
-  '검색',
-  '필터: ABC, 수요 유형, 카테고리, 위험도 (URL 쿼리스트링)',
-  '현재 재고·소진 예상일에 계산 기준 시각',
-];
-
+// TODO(W-04): SSE(stock.changed)로 재고 실시간 갱신
 const PartsPage = () => {
   return (
-    <PagePlaceholder
-      specId="W-04"
-      title="부품 목록"
-      description="부품을 찾고 위험한 부품을 걸러봐요. 실시간 갱신(SSE)."
-      elements={ELEMENTS}
-    />
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-h1 text-text-heading">부품</h1>
+        <p className="text-body-md text-text-secondary">
+          재고는 원장 합계이고, 지표는 새벽 배치가 계산한 값이에요.
+        </p>
+      </header>
+      {/* useSearchParams 는 요청 시점 값이라 Suspense 안에서 읽는다 (cacheComponents) */}
+      <Suspense fallback={<p className="text-body-md text-text-secondary">불러오는 중이에요…</p>}>
+        <PartBrowser />
+      </Suspense>
+    </div>
   );
 };
 

@@ -15,7 +15,8 @@
     "./mocks": "./src/mocks/handlers.ts",
     "./briefing": "./src/briefing.ts",
     "./auth": "./src/auth.ts",
-    "./audits": "./src/audits.ts"
+    "./audits": "./src/audits.ts",
+    "./parts": "./src/parts.ts"
   },
   "scripts": {
     "lint": "eslint .",
