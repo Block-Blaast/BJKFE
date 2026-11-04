@@ -111,6 +111,7 @@ const ChatThread = () => {
         queryClient.invalidateQueries({ queryKey: queryKeys.briefing.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.chat.inbox() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.parts.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.activity.all }),
       ]),
   });
   const cancel = useMutation({ mutationFn: cancelPending });

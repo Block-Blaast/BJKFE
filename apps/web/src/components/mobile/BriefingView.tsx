@@ -16,7 +16,7 @@ import { formatDate, formatQty, formatWon } from '@/utils/format';
 const Tile = ({ label, count, note }: { label: string; count: number; note?: string }) => (
   <div className="flex flex-1 flex-col gap-1 rounded-md bg-bg-surface p-4 shadow-card">
     <span className="text-label-sm text-text-secondary">{label}</span>
-    <span className="text-h2 text-text-heading tabular-nums">{count}건</span>
+    <span className="text-h2 text-text-heading">{count}건</span>
     {note ? <span className="text-label-sm text-text-secondary tabular-nums">{note}</span> : null}
   </div>
 );

@@ -11,6 +11,7 @@ const authAll = ['auth'] as const;
 const auditsAll = ['audits'] as const;
 const chatAll = ['chat'] as const;
 const partsAll = ['parts'] as const;
+const activityAll = ['activity'] as const;
 const mergeAll = ['merge-candidates'] as const;
 
 export const queryKeys = {
@@ -32,6 +33,11 @@ export const queryKeys = {
     detail: (id: string) => [...partsAll, 'detail', id] as const,
     ledger: (id: string) => [...partsAll, 'ledger', id] as const,
     forecast: (id: string) => [...partsAll, 'forecast', id] as const,
+  },
+  // 기록·결정이 생기면 activity.all 도 무효화한다 (SSE 연동 전까지)
+  activity: {
+    all: activityAll,
+    today: () => [...activityAll, 'today'] as const,
   },
   chat: {
     all: chatAll,

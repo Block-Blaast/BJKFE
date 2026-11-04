@@ -1,26 +1,20 @@
 import type { Metadata } from 'next';
 
-import PagePlaceholder from '@/components/ui/PagePlaceholder';
+import Dashboard from '@/components/desk/Dashboard';
 
 export const metadata: Metadata = { title: '대시보드' };
 
-const ELEMENTS = [
-  '결품 위험 상위 5 (P_out × L)',
-  '검토 대기',
-  '의심 항목',
-  '묶인 재고 금액',
-  '외부 요인 현황 (해상운임·명절·환율)',
-  '오늘 활동',
-];
-
 const DashboardPage = () => {
   return (
-    <PagePlaceholder
-      specId="W-01"
-      title="대시보드"
-      description="공장 재고와 발주 상황을 한눈에 봐요. 실시간 갱신(SSE)."
-      elements={ELEMENTS}
-    />
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-h1 text-text-heading">대시보드</h1>
+        <p className="text-body-md text-text-secondary">
+          결품 위험, 결정할 검토, 장부 의심 항목을 한눈에 봐요.
+        </p>
+      </header>
+      <Dashboard />
+    </div>
   );
 };
 

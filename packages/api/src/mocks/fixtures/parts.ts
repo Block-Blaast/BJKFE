@@ -37,6 +37,8 @@ const emptyMetrics = (overrides: Partial<PartMetrics> = {}): PartMetrics => ({
   LT90: null,
   t_out: null,
   t_deadline: null,
+  p_out: null,
+  loss: null,
   estimated: false,
   ...overrides,
 });

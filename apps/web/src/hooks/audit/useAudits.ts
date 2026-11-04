@@ -18,6 +18,7 @@ export const useRequestAudit = () => {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.audits.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.briefing.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.activity.all }),
       ]),
   });
 };

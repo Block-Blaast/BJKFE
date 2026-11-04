@@ -12,6 +12,7 @@ export const ENDPOINTS = {
   partLedger: (id: string) => `/api/parts/${id}/ledger`,
   partForecast: (id: string) => `/api/parts/${id}/forecast`,
   members: '/api/members',
+  activityToday: '/api/activity/today',
   audits: '/api/audits',
   auditRequest: (id: string) => `/api/audits/${id}/request`,
   mergeCandidates: '/api/merge-candidates',

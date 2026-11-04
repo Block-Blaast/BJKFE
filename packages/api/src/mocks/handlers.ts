@@ -3,6 +3,7 @@
 import { delay, http, HttpResponse } from 'msw';
 
 import { AUDIT_GRADE_ORDER } from '../domain/audit';
+import { MOVEMENT_TYPES } from '../domain/part';
 import { APPROVAL_ACTIONS } from '../domain/review';
 import { ENDPOINTS } from '../endpoints';
 import type {
@@ -26,6 +27,7 @@ import type { Review, ReviewDecisionInput } from '../types/review';
 import { AUDIT_FIXTURES, MERGE_FIXTURES } from './fixtures/audits';
 import { MOCK_COMPANY, MOCK_INVITES, MOCK_MEMBERS, MOCK_OWNER } from './fixtures/auth';
 import { PART_FIXTURES, type MockPart } from './fixtures/parts';
+import type { Activity } from '../types/activity';
 import type { StockForecast, StockPoint } from '../types/forecast';
 import type { Part, StockMovement } from '../types/part';
 import { REVIEW_FIXTURES } from './fixtures/reviews';
@@ -354,7 +356,81 @@ const byUrgencyThenRecent = (a: Review, b: Review) =>
 const byLoss = (a: Review, b: Review) =>
   (b.risk_if_not_ordered.loss ?? -1) - (a.risk_if_not_ordered.loss ?? -1);
 
+// 오늘 활동 — 별도 기록 없이 현재 상태(원장·검토·실사)에서 오늘 일어난 일을 뽑는다. 다른 화면과 어긋날 수 없다.
+const ORIGIN_TEXT: Record<Review['origin'], string> = {
+  request: '발주 요청',
+  stock_draft: '재고 부족 초안',
+  missed_scan: '놓친 발주',
+};
+
+const todayActivity = (): Activity[] => {
+  const today = kstDate(Date.now());
+  const isToday = (iso: string | null | undefined) => !!iso && kstDate(iso) === today;
+  const events: Activity[] = [];
+
+  for (const p of PART_FIXTURES) {
+    for (const e of ledger.get(p.part_id) ?? []) {
+      if (!isToday(e.created_at)) continue;
+      const qty = `${e.qty > 0 ? '+' : ''}${e.qty}${p.unit}`;
+      events.push({
+        id: e.id,
+        kind: 'movement',
+        text: `${p.part_name} ${MOVEMENT_TYPES[e.type]} ${qty}${e.message ? ` — "${e.message}"` : ''}`,
+        at: e.created_at,
+        href: `/parts/${p.part_id}`,
+      });
+    }
+  }
+  for (const r of reviews.values()) {
+    if (isToday(r.requested_at)) {
+      events.push({
+        id: `rc-${r.id}`,
+        kind: 'review_created',
+        text: `${r.part.name} ${ORIGIN_TEXT[r.origin]} 검토 — ${r.verdict}${r.flags.length ? ` · ${r.flags.join(' · ')}` : ''}`,
+        at: r.requested_at,
+        href: `/reviews/${r.id}`,
+      });
+    }
+    if (r.decision && isToday(r.decision.decided_at)) {
+      events.push({
+        id: `rd-${r.id}`,
+        kind: 'review_decided',
+        text: `${r.part.name} ${APPROVAL_ACTIONS[r.decision.action]}${r.decision.reason ? ` — ${r.decision.reason}` : ''}`,
+        at: r.decision.decided_at,
+        href: `/reviews/${r.id}`,
+      });
+    }
+  }
+  for (const a of audits.values()) {
+    if (a.request && isToday(a.request.requested_at)) {
+      events.push({
+        id: `aq-${a.id}`,
+        kind: 'audit_requested',
+        text: `${a.part.name} 실사 요청 → ${a.request.assignee.name}`,
+        at: a.request.requested_at,
+        href: '/audit',
+      });
+    }
+    if (a.result && isToday(a.result.resolved_at)) {
+      const diff = a.result.counted_qty - a.ledger_qty;
+      events.push({
+        id: `ar-${a.id}`,
+        kind: 'audit_resolved',
+        text: `${a.part.name} 실사 완료 — ${diff === 0 ? '이상 없음' : `차이 ${diff > 0 ? '+' : ''}${diff}${a.part.unit} (${a.result.adjust_reason})`}`,
+        at: a.result.resolved_at,
+        href: '/audit?status=resolved',
+      });
+    }
+  }
+  return events.sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+};
+
 export const handlers = [
+  http.get(ENDPOINTS.activityToday, async () => {
+    await delay(NETWORK_DELAY);
+    return HttpResponse.json(todayActivity());
+  }),
+
   http.get(ENDPOINTS.parts, async ({ request }) => {
     await delay(NETWORK_DELAY);
     const params = new URL(request.url).searchParams;

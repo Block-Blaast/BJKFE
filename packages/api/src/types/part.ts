@@ -17,6 +17,8 @@ export type PartMetrics = {
   LT90: number | null;
   t_out: string | null; // 소진 예상일
   t_deadline: string | null; // 발주 마감일
+  p_out: number | null; // 다음 입고 가능일까지 결품 확률 (F-ANAL-07)
+  loss: number | null; // 결품 시 예상 손실 L (F-ANAL-08)
   // 사용 기록 대신 월 사용 추정치로 계산했는지 — 화면에 "추정치 기반"으로 표시 (F-SETUP-04)
   estimated: boolean;
 };

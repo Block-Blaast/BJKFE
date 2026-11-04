@@ -58,7 +58,7 @@ const Stat = ({
 }) => (
   <div className="flex flex-1 flex-col gap-1 rounded-md bg-bg-surface p-5 shadow-card">
     <span className="text-label-sm text-text-secondary">{label}</span>
-    <span className={`text-h2 tabular-nums ${tone}`}>{value}</span>
+    <span className={`text-h2 ${tone}`}>{value}</span>
   </div>
 );
 
