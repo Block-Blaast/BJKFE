@@ -59,7 +59,10 @@
   --color-orange-700: #a34700;
 
   /* Radius / Shadow */
+  /* 모서리: md 는 입력창·작은 면, xl 은 카드·패널. 알약·원형은 Tailwind 기본 rounded-full (토큰 아님).
+     xl 은 2026-11-05 디자인 개편에서 코드가 먼저 추가했다 — Figma Foundations 반영 필요. */
   --radius-md: 12px;
+  --radius-xl: 20px;
   --shadow-card: 0 4px 12px rgb(16 24 40 / 0.08);
   --shadow-raised: 0 8px 24px rgb(16 24 40 / 0.12);
 
@@ -135,6 +138,9 @@
   --bg-danger-subtle: var(--color-red-50);
   --bg-success-subtle: var(--color-green-50);
   --bg-warning-subtle: var(--color-orange-50);
+  /* 2026-11-05 디자인 개편에서 코드가 먼저 추가한 별칭 (새 값 아님) — Figma 반영 필요 */
+  --bg-canvas: var(--color-gray-200); /* PC 바깥 바탕 — 패널이 떠 보이게 */
+  --bg-inverse: var(--color-gray-900); /* 검정 강조 — 선택된 내비, 아이콘 원 */
 
   --text-heading: var(--color-gray-800);
   --text-body: var(--color-gray-700);
@@ -147,6 +153,7 @@
   --text-danger: var(--color-red-700);
   --text-success: var(--color-green-700);
   --text-warning: var(--color-orange-700);
+  --text-on-inverse: var(--color-gray-0);
 
   --border-default: var(--color-gray-200);
   --border-strong: var(--color-gray-300);
@@ -176,6 +183,8 @@
   --color-bg-danger-subtle: var(--bg-danger-subtle);
   --color-bg-success-subtle: var(--bg-success-subtle);
   --color-bg-warning-subtle: var(--bg-warning-subtle);
+  --color-bg-canvas: var(--bg-canvas);
+  --color-bg-inverse: var(--bg-inverse);
 
   --color-text-heading: var(--text-heading);
   --color-text-body: var(--text-body);
@@ -188,6 +197,7 @@
   --color-text-danger: var(--text-danger);
   --color-text-success: var(--text-success);
   --color-text-warning: var(--text-warning);
+  --color-text-on-inverse: var(--text-on-inverse);
 
   --color-border-default: var(--border-default);
   --color-border-strong: var(--border-strong);

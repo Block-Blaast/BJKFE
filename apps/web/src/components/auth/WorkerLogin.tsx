@@ -50,7 +50,7 @@ const WorkerLogin = ({ companyCode }: WorkerLoginProps) => {
               <button
                 type="button"
                 onClick={() => setMember(m)}
-                className="flex h-14 w-full items-center gap-3 rounded-md bg-bg-surface px-4 text-left shadow-card active:bg-bg-subtle"
+                className="flex h-16 w-full items-center gap-3 rounded-xl bg-bg-surface px-5 text-left shadow-card active:bg-bg-subtle"
               >
                 <UserRound size={20} aria-hidden className="text-text-secondary" />
                 <span className="flex-1 text-label-lg text-text-heading">{m.name}</span>

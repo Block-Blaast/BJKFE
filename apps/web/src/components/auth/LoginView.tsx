@@ -4,6 +4,8 @@ import { QrCode } from 'lucide-react';
 import { useState } from 'react';
 
 import { useDeviceCompanyCode } from '@/hooks/auth/useDeviceCompanyCode';
+import SpotlightIllustration from '@/components/illustration/SpotlightIllustration';
+import Segmented from '@/components/ui/Segmented';
 
 import OwnerLoginForm from './OwnerLoginForm';
 import WorkerLogin from './WorkerLogin';
@@ -19,37 +21,31 @@ const LoginView = () => {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-h1 text-text-heading">발주콕</h1>
-        <p className="text-body-md text-text-secondary">발주의 문제를 콕 짚어드려요.</p>
+      <header className="flex flex-col items-center gap-3 text-center">
+        <SpotlightIllustration className="h-36 w-auto" />
+        <h1 className="text-display text-text-heading">발주콕</h1>
+        <p className="text-body-lg text-text-secondary">발주의 문제를 콕 짚어드려요.</p>
       </header>
 
-      <div className="flex rounded-md bg-bg-subtle p-1" role="tablist" aria-label="로그인 방식">
-        {(
+      <Segmented
+        label="로그인 방식"
+        fill
+        options={
           [
             ['staff', '직원'],
             ['owner', '사장님'],
           ] as const
-        ).map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            role="tab"
-            aria-selected={mode === value}
-            onClick={() => setChosen(value)}
-            className={`h-11 flex-1 rounded-md text-label-md ${mode === value ? 'bg-bg-surface text-text-heading shadow-card' : 'text-text-secondary'}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+        }
+        value={mode}
+        onChange={setChosen}
+      />
 
       {mode === 'owner' ? (
         <OwnerLoginForm />
       ) : companyCode ? (
         <WorkerLogin companyCode={companyCode} />
       ) : (
-        <div className="flex flex-col items-center gap-3 rounded-md bg-bg-surface p-6 text-center shadow-card">
+        <div className="flex flex-col items-center gap-3 rounded-xl bg-bg-surface p-8 text-center shadow-card">
           <QrCode size={32} aria-hidden className="text-icon-brand" />
           <p className="text-body-md text-text-body">
             이 기기는 아직 회사에 연결되지 않았어요.

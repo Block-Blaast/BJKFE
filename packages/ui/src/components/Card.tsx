@@ -17,7 +17,7 @@ const VARIANT_CLASS: Record<CardVariant, string> = {
 const Card = ({ title, children, variant = 'default', className }: CardProps) => {
   return (
     <section
-      className={`flex flex-col gap-2 rounded-md p-6 ${VARIANT_CLASS[variant]} ${className ?? ''}`}
+      className={`flex flex-col gap-2 rounded-xl p-6 ${VARIANT_CLASS[variant]} ${className ?? ''}`}
     >
       {title ? <h3 className="text-h3 text-text-heading">{title}</h3> : null}
       {children ? <div className="text-body-md text-text-body">{children}</div> : null}

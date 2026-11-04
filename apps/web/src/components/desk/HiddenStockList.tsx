@@ -6,6 +6,7 @@ import { useState } from 'react';
 import type { MergeCandidate } from '@bjk/api/types/audit';
 import Button from '@bjk/ui/components/Button';
 
+import EmptyState from '@/components/ui/EmptyState';
 import {
   useDismissMerge,
   useMergeCandidates,
@@ -25,7 +26,7 @@ const CandidateCard = ({ candidate }: { candidate: MergeCandidate }) => {
   const unit = candidate.parts[0].unit;
 
   return (
-    <li className="flex flex-col gap-4 rounded-md bg-bg-surface p-5 shadow-card">
+    <li className="flex flex-col gap-4 rounded-xl bg-bg-surface p-6 shadow-card">
       <div className="flex items-center gap-2">
         <span className="text-label-lg text-text-heading">규격 {candidate.spec}</span>
         <span className="text-body-sm text-text-secondary">{candidate.category}</span>
@@ -132,9 +133,9 @@ const HiddenStockList = () => {
   }
   if (candidates.length === 0) {
     return (
-      <p className="rounded-md bg-bg-surface p-8 text-center text-body-md text-text-secondary shadow-card">
-        중복 의심 부품이 없어요.
-      </p>
+      <EmptyState title="중복 의심 부품이 없어요">
+        규격이 같은데 이름이 다른 부품을 매주 월요일에 찾아요.
+      </EmptyState>
     );
   }
 

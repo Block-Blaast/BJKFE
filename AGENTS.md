@@ -42,7 +42,7 @@ Claude Code에서는 `.claude/hooks/`가 자동으로 차단하지만, 다른 �
 
 - 패키지 매니저는 **pnpm만** 사용합니다. npm(설치·실행 계열), yarn, bun, npx를 쓰지 마세요. (일회성 실행은 `pnpm dlx`)
 - `pnpm-lock.yaml`, `apps/*/next-env.d.ts`는 직접 수정하지 않습니다.
-- 디자인 시스템 규칙: 시맨틱 토큰만, hex·임의값 클래스 금지, 모서리는 `rounded-md`만, 간격은 1/2/3/4/5/6/8/12 단계만. (`.claude/rules/design-system.md`)
+- 디자인 시스템 규칙: 시맨틱 토큰만, hex·임의값 클래스 금지, 모서리는 `rounded-md`·`rounded-xl`·`rounded-full`만, 간격은 1/2/3/4/5/6/8/12 단계만. (`.claude/rules/design-system.md`)
 - `packages/ui/src/tokens.css`의 값은 Figma와 대조된 값입니다. 임의로 바꾸지 말고, 바꿀 때는 `scripts/verify-tokens.mjs`의 기대값도 함께 바꿉니다.
 - `.env`, `.env.local`의 값을 읽거나 커밋하지 않습니다. 새 환경변수는 `apps/web/.env.example`에 키만 추가합니다.
 - 판정·체크 코드·상태 문자열을 화면에 직접 쓰지 않습니다. `@bjk/api/domain/*` 상수를 씁니다.

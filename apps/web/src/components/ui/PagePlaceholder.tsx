@@ -25,7 +25,7 @@ const PagePlaceholder = ({
         <p className="text-body-md text-text-secondary">{description}</p>
       </div>
       {children}
-      <div className="flex flex-col gap-2 rounded-md border border-dashed border-border-strong bg-bg-surface p-5">
+      <div className="flex flex-col gap-2 rounded-xl border border-dashed border-border-strong bg-bg-surface p-6">
         <span className="text-label-md text-text-heading">구현할 요소</span>
         <ul className="flex list-disc flex-col gap-1 pl-5 text-body-sm text-text-body">
           {elements.map((element) => (

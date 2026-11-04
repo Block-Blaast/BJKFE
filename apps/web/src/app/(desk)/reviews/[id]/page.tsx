@@ -1,8 +1,7 @@
-import { ChevronLeft } from 'lucide-react';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { Suspense } from 'react';
 
+import BackLink from '@/components/ui/BackLink';
 import ReviewDetail from '@/components/review/ReviewDetail';
 
 export const metadata: Metadata = { title: '검토 상세' };
@@ -17,13 +16,7 @@ const ReviewBody = async ({ params }: { params: PageProps<'/reviews/[id]'>['para
 const ReviewDetailPage = ({ params }: PageProps<'/reviews/[id]'>) => {
   return (
     <div className="flex flex-col gap-6">
-      <Link
-        href="/reviews"
-        className="flex w-fit items-center gap-1 text-label-md text-text-secondary hover:text-text-heading"
-      >
-        <ChevronLeft size={18} aria-hidden />
-        검토함
-      </Link>
+      <BackLink href="/reviews" label="검토함" />
       <Suspense fallback={null}>
         <ReviewBody params={params} />
       </Suspense>

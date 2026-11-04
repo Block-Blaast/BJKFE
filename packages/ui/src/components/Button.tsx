@@ -32,7 +32,7 @@ const Button = ({
   return (
     <button
       type={type}
-      className={`inline-flex items-center justify-center gap-2 rounded-md transition-colors disabled:cursor-not-allowed ${VARIANT_CLASS[variant]} ${SIZE_CLASS[size]} ${className ?? ''}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-full transition-colors disabled:cursor-not-allowed ${VARIANT_CLASS[variant]} ${SIZE_CLASS[size]} ${className ?? ''}`}
       {...props}
     />
   );

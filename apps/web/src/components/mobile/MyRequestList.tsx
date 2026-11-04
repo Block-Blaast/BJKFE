@@ -7,6 +7,7 @@ import { APPROVAL_ACTIONS } from '@bjk/api/domain/review';
 import Button from '@bjk/ui/components/Button';
 
 import ReviewStatusTag from '@/components/review/ReviewStatusTag';
+import EmptyState from '@/components/ui/EmptyState';
 import { useMyRequests } from '@/hooks/review/useMyRequests';
 import { formatComputedAt, formatQty } from '@/utils/format';
 
@@ -32,16 +33,16 @@ const MyRequestList = () => {
     <div className="flex flex-col gap-4">
       <h1 className="text-h2 text-text-heading">내 요청</h1>
       {requests.length === 0 ? (
-        <p className="rounded-md bg-bg-surface p-6 text-center text-body-md text-text-secondary shadow-card">
-          아직 올린 발주 요청이 없어요. 채팅에서 &quot;V벨트 30개 시켜주세요&quot;처럼 말해 보세요.
-        </p>
+        <EmptyState title="아직 올린 요청이 없어요">
+          채팅에서 &quot;V벨트 30개 시켜주세요&quot;처럼 말해 보세요.
+        </EmptyState>
       ) : (
         <ul className="flex flex-col gap-2">
           {requests.map((request) => (
             <li key={request.id}>
               <Link
                 href={`/m/reviews/${request.id}`}
-                className="flex items-center gap-3 rounded-md bg-bg-surface p-4 shadow-card active:bg-bg-subtle"
+                className="flex items-center gap-3 rounded-xl bg-bg-surface p-5 shadow-card active:bg-bg-subtle"
               >
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
                   <div className="flex items-center justify-between gap-2">

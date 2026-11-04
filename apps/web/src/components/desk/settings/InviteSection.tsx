@@ -37,7 +37,7 @@ const InviteSection = () => {
   if (invite && url) {
     return (
       <div className="flex flex-col items-center gap-4">
-        <div className="rounded-md bg-bg-surface p-4 shadow-card">
+        <div className="rounded-xl bg-bg-surface p-5 shadow-card">
           {/* QR 은 인식률을 위해 진한 글자색 + 흰 배경으로 고정한다 */}
           <QRCodeSVG
             value={url}
@@ -103,7 +103,7 @@ const InviteSection = () => {
               type="button"
               aria-pressed={role === r}
               onClick={() => setRole(r)}
-              className={`h-11 rounded-md border text-label-md ${role === r ? 'border-border-brand bg-bg-brand-subtle text-text-brand' : 'border-border-strong bg-bg-surface text-text-body'}`}
+              className={`h-11 rounded-full border text-label-md ${role === r ? 'border-border-brand bg-bg-brand-subtle text-text-brand' : 'border-border-strong bg-bg-surface text-text-body'}`}
             >
               {ROLE_LABEL[r]}
             </button>

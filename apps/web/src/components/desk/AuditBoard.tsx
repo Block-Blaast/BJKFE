@@ -9,6 +9,9 @@ import type { AuditItem } from '@bjk/api/types/audit';
 import Button from '@bjk/ui/components/Button';
 
 import Tag, { type TagTone } from '@/components/ui/Tag';
+import { PILL_SELECT } from '@/components/ui/controls';
+import EmptyState from '@/components/ui/EmptyState';
+import Segmented from '@/components/ui/Segmented';
 import { useAudits, useCompanyStaff, useRequestAudit } from '@/hooks/audit/useAudits';
 import { apiErrorMessage } from '@/utils/apiError';
 import { formatComputedAt, formatQty } from '@/utils/format';
@@ -18,9 +21,6 @@ const GRADE_TAG: Record<AuditGrade, { tone: TagTone; icon: LucideIcon }> = {
   중간: { tone: 'warning', icon: CircleAlert },
   낮음: { tone: 'neutral', icon: Info },
 };
-
-const SELECT_CLASS =
-  'h-11 rounded-md border border-border-strong bg-bg-surface px-3 text-body-sm text-text-body outline-none focus:border-border-brand';
 
 const RequestForm = ({ audit }: { audit: AuditItem }) => {
   const staff = useCompanyStaff();
@@ -42,7 +42,7 @@ const RequestForm = ({ audit }: { audit: AuditItem }) => {
       </label>
       <select
         id={`assignee-${audit.id}`}
-        className={SELECT_CLASS}
+        className={PILL_SELECT}
         value={assigneeId}
         onChange={(e) => setAssigneeId(e.target.value)}
         disabled={staff.isPending}
@@ -105,28 +105,21 @@ const AuditBoard = () => {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex w-fit rounded-md bg-bg-subtle p-1" role="group" aria-label="상태">
-        {(
+      <Segmented
+        label="상태"
+        options={
           [
             ['active', '처리 전'],
             ['resolved', '처리 완료'],
           ] as const
-        ).map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            aria-pressed={status === value}
-            className={`h-9 rounded-md px-4 text-label-md ${status === value ? 'bg-bg-surface text-text-heading shadow-card' : 'text-text-secondary'}`}
-            onClick={() =>
-              router.replace(value === 'active' ? pathname : `${pathname}?status=resolved`, {
-                scroll: false,
-              })
-            }
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+        }
+        value={status}
+        onChange={(value) =>
+          router.replace(value === 'active' ? pathname : `${pathname}?status=resolved`, {
+            scroll: false,
+          })
+        }
+      />
 
       {isPending ? (
         <p className="text-body-md text-text-secondary">의심 항목을 불러오는 중이에요…</p>
@@ -138,15 +131,19 @@ const AuditBoard = () => {
           </Button>
         </div>
       ) : audits.length === 0 ? (
-        <p className="rounded-md bg-bg-surface p-8 text-center text-body-md text-text-secondary shadow-card">
-          {status === 'active' ? '지금은 의심 항목이 없어요.' : '처리한 항목이 아직 없어요.'}
-        </p>
+        <EmptyState
+          title={status === 'active' ? '지금은 의심 항목이 없어요' : '처리한 항목이 아직 없어요'}
+        >
+          {status === 'active'
+            ? '새벽 배치가 장부와 실물이 다를 만한 부품을 찾으면 여기에 떠요.'
+            : null}
+        </EmptyState>
       ) : (
         <ul className="flex flex-col gap-3">
           {audits.map((audit) => (
             <li
               key={audit.id}
-              className="flex flex-col gap-3 rounded-md bg-bg-surface p-5 shadow-card"
+              className="flex flex-col gap-4 rounded-xl bg-bg-surface p-6 shadow-card"
             >
               <div className="flex flex-wrap items-center gap-3">
                 <Tag {...GRADE_TAG[audit.grade]}>의심 {audit.grade}</Tag>

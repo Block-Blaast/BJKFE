@@ -209,7 +209,17 @@ const DesignTokensPage = () => {
         <div className="flex flex-wrap gap-6">
           <div className="flex flex-col gap-2">
             <div className="h-20 w-24 rounded-md bg-bg-brand-subtle" />
-            <span className="text-label-sm text-text-secondary">radius/md · 12</span>
+            <span className="text-label-sm text-text-secondary">radius/md · 12 (입력·작은 칸)</span>
+          </div>
+          <div className="flex flex-col gap-2">
+            <div className="h-20 w-24 rounded-xl bg-bg-brand-subtle" />
+            <span className="text-label-sm text-text-secondary">radius/xl · 20 (카드)</span>
+          </div>
+          <div className="flex flex-col gap-2">
+            <div className="flex h-20 w-24 items-center">
+              <div className="h-10 w-24 rounded-full bg-bg-brand-subtle" />
+            </div>
+            <span className="text-label-sm text-text-secondary">full (알약·원형)</span>
           </div>
           <div className="flex flex-col gap-2">
             <div className="h-20 w-24 rounded-md bg-bg-surface shadow-card" />

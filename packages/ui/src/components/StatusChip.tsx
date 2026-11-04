@@ -43,7 +43,7 @@ const StatusChip = ({ status, className }: StatusChipProps) => {
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-md px-3 py-1 text-label-sm ${chipClass} ${className ?? ''}`}
+      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-label-sm ${chipClass} ${className ?? ''}`}
     >
       <Icon size={14} aria-hidden className={`shrink-0 ${iconClass}`} />
       {label}

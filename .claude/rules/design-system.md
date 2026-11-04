@@ -17,7 +17,7 @@ paths:
 | 테두리 | `border-border-default`, `border-border-strong`, `border-border-brand`, `ring-border-danger`   |
 | 아이콘 | `text-icon-brand`, `text-icon-danger`, `text-icon-success`, `text-icon-warning`                |
 | 타이포 | `text-display`, `text-h1`~`text-h3`, `text-body-lg/md/sm`, `text-label-lg/md/sm`               |
-| 기타   | `rounded-md`, `shadow-card`, `shadow-raised`                                                   |
+| 기타   | `rounded-md`·`rounded-xl`·`rounded-full`, `shadow-card`, `shadow-raised`                       |
 
 - `bg-bg-*`처럼 이름이 겹치는 것은 의도입니다. Figma 변수명(`--bg-brand`)과 1:1이라 검색이 쉽습니다.
 - 타이포 토큰에 굵기·행간·자간이 들어 있습니다. `font-bold`, `leading-*`, `tracking-*`을 덧붙이지 마세요.
@@ -27,7 +27,11 @@ paths:
 
 1. 컴포넌트에는 **시맨틱 토큰만** 씁니다. 프리미티브(`bg-brand-600`, `text-gray-700`)는 일러스트·장식에만 씁니다. (예외: 8번)
 2. hex 하드코딩, 임의값 클래스(`bg-[#...]`, `p-[13px]`, `w-[60px]`, `rounded-[..]`) 금지. 크기도 기본 스케일(`w-24`, `max-w-md`)을 씁니다.
-3. 모서리는 `rounded-md`(12px) 하나. 한쪽만 둥글게 할 때도 `rounded-t-md`처럼 md만 씁니다.
+3. 모서리는 세 가지만 씁니다 (2026-11-05 디자인 개편).
+   - `rounded-md`(12px): 폼 입력창, 카드 **안에** 들어가는 작은 칸·상자(체크 근거, 병합 후보 칸, 확인 단계 상자)
+   - `rounded-xl`(20px): 카드·패널·섹션 같은 큰 면
+   - `rounded-full`: 버튼·칩·태그·내비·아이콘 버튼·아바타, **필터 선택·한 줄 검색·채팅 입력** 같은 알약·원형
+   - `xl`은 코드가 먼저 추가한 값이라 Figma Foundations에 반영이 필요합니다.
 4. 간격(`p`, `m`, `gap`, `space`)은 **0, 1, 2, 3, 4, 5, 6, 8, 12 단계만** (4/8/12/16/20/24/32/48px, Figma `spacing/N`과 1:1).
 5. `brand-500`(#0E7DFF)은 큰 면·일러스트용입니다. 흰 글씨 배경으로 쓰지 않습니다(대비 3.89). 버튼·링크는 `bg-bg-brand`(brand-600).
 6. gray-400 이하는 텍스트에 쓰지 않습니다. 예외는 disabled(`text-text-disabled`)뿐입니다.
@@ -60,6 +64,17 @@ Figma 컴포넌트와 같은 것은 `@bjk/ui/components/*`에 있습니다. 앱�
 - 차트용 시맨틱 토큰이 없어 시리즈 색에 한해 프리미티브(`var(--color-brand-600)`)를 씁니다. 축·격자·기준선·글자는 시맨틱 토큰(`--border-default`, `--text-secondary`)을 씁니다.
 - 상태색(빨강·주황·초록)은 시리즈 색으로 쓰지 않습니다. 축은 하나만(이중 축 금지), 격자·기준선은 실선, 점선은 예측선에만 씁니다.
 - 범례(시리즈 2개 이상), 호버 툴팁(값 먼저), "표로 보기"를 항상 함께 둡니다. 툴팁에서만 볼 수 있는 값이 있으면 안 됩니다.
+
+## 화면 인상 (2026-11-05 디자인 개편 — 참고: Boltshift 대시보드, Yandex Disk 포스터)
+
+- **떠 있는 흰 카드**: PC는 `bg-bg-canvas`(gray-200) 바탕 → `bg-bg-page`(gray-50) 패널(`rounded-xl`) → 흰 카드(`bg-bg-surface rounded-xl shadow-card`) 3겹입니다. 바탕이 패널보다 확실히 어두워야 패널이 떠 보여요. 카드 사이 간격은 `gap-5`~`gap-6`.
+- **큰 숫자, 굵은 제목**: 핵심 숫자는 `text-display`, 화면 제목은 `text-h1`. 부제는 `text-body-md text-text-secondary` 한 줄.
+- **강조 카드는 한 화면에 하나**: 가장 중요한 숫자 카드만 `bg-bg-brand bg-linear-to-br from-brand-600 via-brand-500 to-brand-300 text-text-on-brand print:text-text-heading`. 참고(Boltshift) 강조 카드를 픽셀로 재 보니 우리 primary `brand-500`에서 `brand-300` 밝기로 빠지는 흐름이라 같은 램프로 재현했습니다. 글씨 배치로 원칙 5를 지킵니다: **라벨은 왼쪽 위(brand-600, 대비 5.2), 가운데(brand-500, 3.9)에는 큰 숫자(`text-display`)만, 오른쪽 아래(brand-300)에는 글씨를 두지 않습니다.** 작은 보조 문구는 흰 칩 안에 넣습니다. 인쇄하면 그라데이션이 빠지므로 글씨를 본문색으로 바꿉니다(원칙 12).
+- **알약 컨트롤**: 내비·필터·버튼은 `rounded-full`. 선택된 내비·탭은 **검정**(`bg-bg-inverse text-text-on-inverse`) — 파랑은 강조 카드·주 버튼에 아껴 써서, 화면의 대비는 파랑 + 검정 두 색으로 만듭니다.
+- **아이콘은 꽉 찬 동그란 칩 안에**: `components/ui/IconCircle` — 흰색(강조 카드 위)·검정·파랑·파랑 그라데이션 네 가지. 연한 바탕 원은 쓰지 않습니다. 한 줄의 카드들은 서로 다른 톤을 섞어 리듬을 줍니다.
+- **공용 부품을 먼저 쓴다** (`src/components/ui/`): 알약 묶음 선택 `Segmented`(선택은 검정), 필터·검색 클래스 `controls.ts`(`PILL_SELECT`, `PILL_SEARCH`), 빈 화면 `EmptyState`(작은 일러스트), 동그란 뒤로 가기 `BackLink`, 아이콘 원 `IconCircle`. 같은 모양을 화면에서 다시 만들지 않습니다.
+- **카드 제목은 `text-h3`**, 카드 안 소제목은 `text-label-lg`.
+- **위트는 브랜드 순간에만**: 빈 화면·로그인·브리핑 머리 같은 곳에서만 파랑+노랑 일러스트(`components/illustration/`)를 씁니다. 데이터 화면에는 넣지 않습니다.
 
 ## 그 밖의 스타일 규칙
 

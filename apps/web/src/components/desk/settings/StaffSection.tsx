@@ -5,6 +5,7 @@ import type { StaffRole } from '@bjk/api/types/company';
 import Button from '@bjk/ui/components/Button';
 
 import { useCompanyStaff } from '@/hooks/audit/useAudits';
+import { PILL_SELECT } from '@/components/ui/controls';
 import { useUpdateMemberRole } from '@/hooks/company/useCompany';
 import { apiErrorMessage } from '@/utils/apiError';
 
@@ -40,7 +41,7 @@ const StaffSection = () => {
                 <span className="sr-only">{member.name} 역할</span>
                 {saving ? '저장 중…' : null}
                 <select
-                  className="h-11 rounded-md border border-border-strong bg-bg-surface px-3 text-body-sm text-text-body outline-none focus:border-border-brand"
+                  className={PILL_SELECT}
                   value={member.role}
                   disabled={saving || member.role === 'owner'}
                   onChange={(e) =>

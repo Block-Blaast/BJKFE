@@ -8,7 +8,7 @@ import StaffSection from '@/components/desk/settings/StaffSection';
 export const metadata: Metadata = { title: '직원·설정' };
 
 const Section = ({ title, children }: { title: string; children: ReactNode }) => (
-  <section className="flex flex-col gap-4 rounded-md bg-bg-surface p-6 shadow-card">
+  <section className="flex flex-col gap-4 rounded-xl bg-bg-surface p-6 shadow-card">
     <h2 className="text-h3 text-text-heading">{title}</h2>
     {children}
   </section>

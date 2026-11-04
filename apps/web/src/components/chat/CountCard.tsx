@@ -23,7 +23,7 @@ const CountCard = ({ card, disabled, onConfirm, onCancel }: CountCardProps) => {
   const same = diff === 0;
 
   return (
-    <div className="flex flex-col gap-3 rounded-md border border-border-default bg-bg-surface p-4">
+    <div className="flex flex-col gap-3 rounded-xl border border-border-default bg-bg-surface p-5">
       <span className="flex items-center gap-1 text-label-md text-text-heading">
         <ClipboardCheck size={16} aria-hidden className="text-icon-brand" />
         실사 · {card.part.part_name}
@@ -49,7 +49,7 @@ const CountCard = ({ card, disabled, onConfirm, onCancel }: CountCardProps) => {
                 type="button"
                 aria-pressed={reason === r}
                 onClick={() => setReason(r)}
-                className={`h-11 rounded-md border text-label-md ${reason === r ? 'border-border-brand bg-bg-brand-subtle text-text-brand' : 'border-border-strong bg-bg-surface text-text-body'} disabled:text-text-disabled`}
+                className={`h-11 rounded-full border text-label-md ${reason === r ? 'border-border-brand bg-bg-brand-subtle text-text-brand' : 'border-border-strong bg-bg-surface text-text-body'} disabled:text-text-disabled`}
               >
                 {r}
               </button>

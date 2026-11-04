@@ -34,7 +34,7 @@ const InviteView = ({ token }: InviteViewProps) => {
   }
   if (inviteQuery.isError) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-md bg-bg-surface p-6 text-center shadow-card">
+      <div className="flex flex-col items-center gap-3 rounded-xl bg-bg-surface p-8 text-center shadow-card">
         <QrCode size={32} aria-hidden className="text-icon-warning" />
         <p className="text-label-lg text-text-heading">이 초대는 쓸 수 없어요.</p>
         <p className="text-body-md text-text-body">

@@ -2,11 +2,14 @@
 
 import {
   ArrowRight,
+  Boxes,
   CircleAlert,
   ClipboardCheck,
+  Coins,
   Inbox,
   Info,
   Package,
+  PackageX,
   TriangleAlert,
   type LucideIcon,
 } from 'lucide-react';
@@ -20,6 +23,7 @@ import type { Part } from '@bjk/api/types/part';
 import { entryLabelOf } from '@/components/review/labels';
 import VerdictTags from '@/components/review/VerdictTags';
 import ComputedAt from '@/components/ui/ComputedAt';
+import IconCircle, { type IconCircleTone } from '@/components/ui/IconCircle';
 import Tag, { type TagTone } from '@/components/ui/Tag';
 import { useTodayActivity } from '@/hooks/activity/useTodayActivity';
 import { useAudits } from '@/hooks/audit/useAudits';
@@ -48,15 +52,15 @@ const Card = ({
   aside?: ReactNode;
   children: ReactNode;
 }) => (
-  <section className="flex flex-col gap-3 rounded-md bg-bg-surface p-5 shadow-card">
-    <div className="flex items-center justify-between gap-2">
-      <h2 className="text-label-lg text-text-heading">{title}</h2>
+  <section className="flex flex-col gap-4 rounded-xl bg-bg-surface p-6 shadow-card">
+    <div className="flex items-center justify-between gap-3">
+      <h2 className="text-h3 text-text-heading">{title}</h2>
       <div className="flex items-center gap-3">
         {aside}
         {href ? (
           <Link
             href={href}
-            className="flex items-center gap-1 text-label-sm text-text-brand hover:text-text-heading"
+            className="flex h-9 items-center gap-1 rounded-full bg-bg-subtle px-4 text-label-sm text-text-body transition-colors hover:bg-bg-brand-subtle hover:text-text-brand"
           >
             전체 보기
             <ArrowRight size={14} aria-hidden />
@@ -73,11 +77,43 @@ const Muted = ({ children }: { children: ReactNode }) => (
 );
 
 // 큰 단독 숫자에는 tabular-nums 를 쓰지 않는다 (dataviz)
-const Stat = ({ label, value, note }: { label: string; value: string; note?: string }) => (
-  <div className="flex flex-1 flex-col gap-1 rounded-md bg-bg-surface p-5 shadow-card">
-    <span className="text-label-sm text-text-secondary">{label}</span>
-    <span className="text-h1 text-text-heading">{value}</span>
-    {note ? <span className="text-label-sm text-text-secondary">{note}</span> : null}
+const Stat = ({
+  label,
+  value,
+  note,
+  icon,
+  hero = false,
+  tone = 'brand',
+}: {
+  label: string;
+  value: string;
+  note?: string;
+  icon: LucideIcon;
+  hero?: boolean;
+  tone?: IconCircleTone;
+}) => (
+  <div
+    className={`flex flex-1 flex-col gap-3 rounded-xl p-6 ${
+      hero
+        ? 'bg-bg-brand bg-linear-to-br from-brand-600 via-brand-500 to-brand-300 text-text-on-brand shadow-raised print:text-text-heading'
+        : 'bg-bg-surface text-text-heading shadow-card'
+    }`}
+  >
+    <div className="flex items-start justify-between gap-3">
+      <span className={`text-label-md ${hero ? '' : 'text-text-secondary'}`}>{label}</span>
+      <IconCircle icon={icon} tone={hero ? 'onHero' : tone} />
+    </div>
+    <span className="text-display">{value}</span>
+    {note ? (
+      <span
+        className={`w-fit rounded-full px-3 py-1 text-label-sm ${hero ? 'bg-bg-surface text-text-brand' : 'bg-bg-subtle text-text-body'}`}
+      >
+        {note}
+      </span>
+    ) : (
+      // 카드 높이를 맞추려고 같은 높이의 빈 줄을 둔다
+      <span className="h-6" aria-hidden />
+    )}
   </div>
 );
 
@@ -130,8 +166,11 @@ const EXTERNAL_FACTORS = [
   { name: '환율', effect: '수입 부품에 단가 상승 위험을 표시해요' },
 ];
 
+const ROW = 'border-t border-border-default first:border-t-0';
+
 // 대시보드 (W-01). 다른 화면과 같은 쿼리를 써서, 승인·실사·기록이 생기면 함께 갱신된다.
 // 카드마다 따로 불러와서 하나가 실패해도 나머지는 보인다.
+// 왼쪽(결품 위험·오늘 활동)과 오른쪽(검토·의심·외부 요인)을 독립 열로 쌓아, 카드 높이가 달라도 빈틈이 생기지 않게 한다.
 // TODO(W-01): SSE(stock.changed, review.created, review.decided, audit.flagged)로 실시간 갱신
 const Dashboard = () => {
   const reviews = useReviews({ status: 'pending' });
@@ -147,204 +186,224 @@ const Dashboard = () => {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex gap-4">
+      <header className="flex items-end justify-between gap-6">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-h1 text-text-heading">오늘의 발주 현황</h1>
+          <p className="text-body-md text-text-secondary">
+            결품 위험, 결정할 검토, 장부 의심 항목을 한눈에 봐요.
+          </p>
+        </div>
+        {computedAt ? (
+          <span className="flex h-11 items-center gap-2 rounded-full bg-bg-surface px-5 text-label-sm text-text-secondary shadow-card">
+            지표 <ComputedAt at={computedAt} />
+          </span>
+        ) : null}
+      </header>
+
+      <div className="flex gap-5">
         <Stat
+          hero
+          icon={Inbox}
           label="결정 대기 검토"
           value={reviews.data ? `${reviews.data.length}건` : EMPTY}
           note={urgent ? `긴급 ${urgent}건` : undefined}
         />
         <Stat
+          icon={ClipboardCheck}
+          tone="inverse"
           label="의심 항목"
           value={audits.data ? `${audits.data.length}건` : EMPTY}
           note={highAudits ? `높음 ${highAudits}건` : undefined}
         />
         <Stat
+          icon={PackageX}
+          tone="gradient"
           label="결품 위험 부품"
           value={risk ? `${risk.items.length}종` : EMPTY}
           note={risk && !risk.byPriority ? '소진 예상일이 있는 부품' : undefined}
         />
         <Stat
+          icon={Coins}
           label="묶인 재고 금액"
           value={value ? (value.priced ? formatWon(value.total) : EMPTY) : EMPTY}
           note={value ? `단가 등록 ${value.priced}/${value.all}종 기준` : undefined}
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
-        <Card
-          title="결품 위험 상위 5"
-          href="/parts"
-          aside={computedAt ? <ComputedAt at={computedAt} /> : null}
-        >
-          {parts.isPending ? (
-            <Muted>불러오는 중이에요…</Muted>
-          ) : parts.isError ? (
-            <Muted>부품을 불러오지 못했어요.</Muted>
-          ) : risk!.items.length === 0 ? (
-            <Muted>소진이 예상되는 부품이 없어요.</Muted>
-          ) : (
-            <>
-              <table className="w-full text-body-sm tabular-nums">
-                <thead className="text-label-sm text-text-secondary">
-                  <tr>
-                    <th scope="col" className="py-2 text-left font-medium">
-                      부품
-                    </th>
-                    <th scope="col" className="py-2 text-right font-medium">
-                      현재 재고
-                    </th>
-                    <th scope="col" className="py-2 text-right font-medium">
-                      소진 예상
-                    </th>
-                    <th scope="col" className="py-2 text-right font-medium">
-                      발주 마감
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {risk!.items.slice(0, TOP).map((p) => (
-                    <tr key={p.id} className="border-t border-border-default">
-                      <td className="py-2">
-                        <Link
-                          href={`/parts/${p.id}`}
-                          className="text-label-md text-text-heading hover:text-text-brand"
-                        >
-                          {p.name}
-                        </Link>
-                      </td>
-                      <td className="py-2 text-right text-text-body">
-                        {formatQty(p.stock, p.unit)}
-                      </td>
-                      <td className="py-2 text-right text-text-body">
-                        {p.metrics.t_out ? formatDate(p.metrics.t_out) : EMPTY}
-                      </td>
-                      <td className="py-2 text-right text-text-body">
-                        {p.metrics.t_deadline ? formatDate(p.metrics.t_deadline) : EMPTY}
-                      </td>
+      <div className="grid grid-cols-5 items-start gap-5">
+        <div className="col-span-3 flex flex-col gap-5">
+          <Card title="결품 위험 상위 5" href="/parts">
+            {parts.isPending ? (
+              <Muted>불러오는 중이에요…</Muted>
+            ) : parts.isError ? (
+              <Muted>부품을 불러오지 못했어요.</Muted>
+            ) : risk!.items.length === 0 ? (
+              <Muted>소진이 예상되는 부품이 없어요.</Muted>
+            ) : (
+              <>
+                <table className="w-full text-body-sm tabular-nums">
+                  <thead className="text-label-sm text-text-secondary">
+                    <tr>
+                      <th scope="col" className="py-2 text-left font-medium">
+                        부품
+                      </th>
+                      <th scope="col" className="py-2 text-right font-medium">
+                        현재 재고
+                      </th>
+                      <th scope="col" className="py-2 text-right font-medium">
+                        소진 예상
+                      </th>
+                      <th scope="col" className="py-2 text-right font-medium">
+                        발주 마감
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              {!risk!.byPriority ? (
-                <Muted>
-                  결품 확률 × 예상 손실(우선순위)이 아직 계산 전이라 소진 예상일이 이른 순이에요.
-                </Muted>
-              ) : null}
-            </>
-          )}
-        </Card>
+                  </thead>
+                  <tbody>
+                    {risk!.items.slice(0, TOP).map((p) => (
+                      <tr key={p.id} className="border-t border-border-default">
+                        <td className="py-3">
+                          <Link
+                            href={`/parts/${p.id}`}
+                            className="flex items-center gap-3 text-label-md text-text-heading hover:text-text-brand"
+                          >
+                            <span className="flex size-9 items-center justify-center rounded-full bg-bg-subtle text-text-secondary">
+                              <Boxes size={16} aria-hidden />
+                            </span>
+                            {p.name}
+                          </Link>
+                        </td>
+                        <td className="py-3 text-right text-text-body">
+                          {formatQty(p.stock, p.unit)}
+                        </td>
+                        <td className="py-3 text-right text-text-body">
+                          {p.metrics.t_out ? formatDate(p.metrics.t_out) : EMPTY}
+                        </td>
+                        <td className="py-3 text-right text-text-heading">
+                          {p.metrics.t_deadline ? formatDate(p.metrics.t_deadline) : EMPTY}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {!risk!.byPriority ? (
+                  <Muted>
+                    결품 확률 × 예상 손실(우선순위)이 아직 계산 전이라 소진 예상일이 이른 순이에요.
+                  </Muted>
+                ) : null}
+              </>
+            )}
+          </Card>
 
-        <Card title="결정 대기 검토" href="/reviews">
-          {reviews.isPending ? (
-            <Muted>불러오는 중이에요…</Muted>
-          ) : reviews.isError ? (
-            <Muted>검토를 불러오지 못했어요.</Muted>
-          ) : reviews.data.length === 0 ? (
-            <Muted>결정을 기다리는 검토가 없어요.</Muted>
-          ) : (
-            <ul className="flex flex-col">
-              {reviews.data.slice(0, TOP).map((r) => (
-                <li key={r.id} className="border-t border-border-default first:border-t-0">
-                  <Link
-                    href={`/reviews/${r.id}`}
-                    className="flex items-center justify-between gap-3 py-2 hover:bg-bg-page"
-                  >
-                    <span className="flex flex-col">
-                      <span className="text-label-md text-text-heading">{r.part.name}</span>
-                      <span className="text-label-sm text-text-secondary">{entryLabelOf(r)}</span>
-                    </span>
-                    <VerdictTags verdict={r.verdict} flags={r.flags} />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-
-        <Card title="의심 항목" href="/audit">
-          {audits.isPending ? (
-            <Muted>불러오는 중이에요…</Muted>
-          ) : audits.isError ? (
-            <Muted>의심 항목을 불러오지 못했어요.</Muted>
-          ) : audits.data.length === 0 ? (
-            <Muted>지금은 의심 항목이 없어요.</Muted>
-          ) : (
-            <ul className="flex flex-col">
-              {audits.data.slice(0, TOP).map((a) => (
-                <li
-                  key={a.id}
-                  className="flex items-center justify-between gap-3 border-t border-border-default py-2 first:border-t-0"
-                >
-                  <span className="flex flex-col">
-                    <span className="text-label-md text-text-heading">{a.part.name}</span>
-                    <span className="text-label-sm text-text-secondary">
-                      {a.status === 'requested' ? `실사 요청됨 · ${a.reason}` : a.reason}
-                    </span>
-                  </span>
-                  <Tag {...GRADE_TAG[a.grade]}>{a.grade}</Tag>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-
-        <Card title="외부 요인 현황">
-          <ul className="flex flex-col">
-            {EXTERNAL_FACTORS.map((f) => (
-              <li
-                key={f.name}
-                className="flex items-center justify-between gap-3 border-t border-border-default py-2 first:border-t-0"
-              >
-                <span className="flex flex-col">
-                  <span className="text-label-md text-text-heading">{f.name}</span>
-                  <span className="text-label-sm text-text-secondary">{f.effect}</span>
-                </span>
-                <span className="text-label-sm text-text-secondary">수집 전</span>
-              </li>
-            ))}
-          </ul>
-          <Muted>새벽 배치가 외부 지표를 모으면 위험도(정상·주의·높음)가 표시돼요.</Muted>
-        </Card>
-      </div>
-
-      <Card title="오늘 활동">
-        {activity.isPending ? (
-          <Muted>불러오는 중이에요…</Muted>
-        ) : activity.isError ? (
-          <Muted>활동을 불러오지 못했어요.</Muted>
-        ) : activity.data.length === 0 ? (
-          <Muted>오늘은 아직 기록이 없어요.</Muted>
-        ) : (
-          <ol className="flex flex-col">
-            {activity.data.map((event) => {
-              const Icon = ACTIVITY_ICON[event.kind];
-              const body = (
-                <>
-                  <span className="w-12 shrink-0 text-label-sm text-text-secondary tabular-nums">
-                    {timeFormat.format(new Date(event.at))}
-                  </span>
-                  <Icon size={16} aria-hidden className="shrink-0 text-text-secondary" />
-                  <span className="text-body-sm text-text-body">{event.text}</span>
-                </>
-              );
-              return (
-                <li key={event.id} className="border-t border-border-default first:border-t-0">
-                  {event.href ? (
+          <Card title="오늘 활동">
+            {activity.isPending ? (
+              <Muted>불러오는 중이에요…</Muted>
+            ) : activity.isError ? (
+              <Muted>활동을 불러오지 못했어요.</Muted>
+            ) : activity.data.length === 0 ? (
+              <Muted>오늘은 아직 기록이 없어요.</Muted>
+            ) : (
+              <ol className="flex flex-col">
+                {activity.data.map((event) => {
+                  const Icon = ACTIVITY_ICON[event.kind];
+                  const body = (
+                    <>
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-bg-subtle text-text-secondary">
+                        <Icon size={16} aria-hidden />
+                      </span>
+                      <span className="flex-1 text-body-sm text-text-body">{event.text}</span>
+                      <span className="shrink-0 text-label-sm text-text-secondary tabular-nums">
+                        {timeFormat.format(new Date(event.at))}
+                      </span>
+                    </>
+                  );
+                  return (
+                    <li key={event.id} className={ROW}>
+                      {event.href ? (
+                        <Link
+                          href={event.href}
+                          className="flex items-center gap-3 py-3 hover:text-text-brand"
+                        >
+                          {body}
+                        </Link>
+                      ) : (
+                        <div className="flex items-center gap-3 py-3">{body}</div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </Card>
+        </div>
+        <div className="col-span-2 flex flex-col gap-5">
+          <Card title="결정 대기 검토" href="/reviews">
+            {reviews.isPending ? (
+              <Muted>불러오는 중이에요…</Muted>
+            ) : reviews.isError ? (
+              <Muted>검토를 불러오지 못했어요.</Muted>
+            ) : reviews.data.length === 0 ? (
+              <Muted>결정을 기다리는 검토가 없어요.</Muted>
+            ) : (
+              <ul className="flex flex-col">
+                {reviews.data.slice(0, TOP).map((r) => (
+                  <li key={r.id} className={ROW}>
                     <Link
-                      href={event.href}
-                      className="flex items-center gap-3 py-2 hover:bg-bg-page"
+                      href={`/reviews/${r.id}`}
+                      className="flex items-center justify-between gap-3 py-3 hover:text-text-brand"
                     >
-                      {body}
+                      <span className="flex flex-col">
+                        <span className="text-label-md text-text-heading">{r.part.name}</span>
+                        <span className="text-label-sm text-text-secondary">{entryLabelOf(r)}</span>
+                      </span>
+                      <VerdictTags verdict={r.verdict} flags={r.flags} />
                     </Link>
-                  ) : (
-                    <div className="flex items-center gap-3 py-2">{body}</div>
-                  )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card title="의심 항목" href="/audit">
+            {audits.isPending ? (
+              <Muted>불러오는 중이에요…</Muted>
+            ) : audits.isError ? (
+              <Muted>의심 항목을 불러오지 못했어요.</Muted>
+            ) : audits.data.length === 0 ? (
+              <Muted>지금은 의심 항목이 없어요.</Muted>
+            ) : (
+              <ul className="flex flex-col">
+                {audits.data.slice(0, TOP).map((a) => (
+                  <li key={a.id} className={`flex items-center justify-between gap-3 py-3 ${ROW}`}>
+                    <span className="flex flex-col">
+                      <span className="text-label-md text-text-heading">{a.part.name}</span>
+                      <span className="text-label-sm text-text-secondary">
+                        {a.status === 'requested' ? `실사 요청됨 · ${a.reason}` : a.reason}
+                      </span>
+                    </span>
+                    <Tag {...GRADE_TAG[a.grade]}>{a.grade}</Tag>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card title="외부 요인">
+            <ul className="flex flex-col">
+              {EXTERNAL_FACTORS.map((f) => (
+                <li key={f.name} className={`flex items-center justify-between gap-3 py-3 ${ROW}`}>
+                  <span className="flex flex-col">
+                    <span className="text-label-md text-text-heading">{f.name}</span>
+                    <span className="text-label-sm text-text-secondary">{f.effect}</span>
+                  </span>
+                  <span className="rounded-full bg-bg-subtle px-3 py-1 text-label-sm text-text-secondary">
+                    수집 전
+                  </span>
                 </li>
-              );
-            })}
-          </ol>
-        )}
-      </Card>
+              ))}
+            </ul>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };

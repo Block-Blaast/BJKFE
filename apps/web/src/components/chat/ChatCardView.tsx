@@ -52,7 +52,7 @@ const ChatCardView = ({ card, resolved, busy, onConfirm, onCancel }: ChatCardVie
 
   if (card.type === 'unregistered') {
     return (
-      <div className="flex flex-col gap-2 rounded-md border border-border-default bg-bg-surface p-4">
+      <div className="flex flex-col gap-2 rounded-xl border border-border-default bg-bg-surface p-5">
         <span className="flex items-center gap-1 text-label-md text-text-warning">
           <PackagePlus size={16} aria-hidden className="text-icon-warning" />
           미등록 부품
@@ -67,7 +67,7 @@ const ChatCardView = ({ card, resolved, busy, onConfirm, onCancel }: ChatCardVie
 
   if (card.type === 'select') {
     return (
-      <div className="flex flex-col gap-3 rounded-md border border-border-default bg-bg-surface p-4">
+      <div className="flex flex-col gap-3 rounded-xl border border-border-default bg-bg-surface p-5">
         <span className="flex items-center gap-1 text-label-md text-text-heading">
           <CircleHelp size={16} aria-hidden className="text-icon-brand" />
           {card.intent} · {card.part_text} {formatQty(card.qty, card.unit)} — 어떤 부품인가요?
@@ -95,7 +95,7 @@ const ChatCardView = ({ card, resolved, busy, onConfirm, onCancel }: ChatCardVie
   const isWarning = card.type === 'warning';
   return (
     <div
-      className={`flex flex-col gap-3 rounded-md border bg-bg-surface p-4 ${isWarning ? 'border-border-danger' : 'border-border-default'}`}
+      className={`flex flex-col gap-3 rounded-xl border bg-bg-surface p-5 ${isWarning ? 'border-border-danger' : 'border-border-default'}`}
     >
       {isWarning ? (
         <span className="flex items-center gap-1 text-label-md text-text-danger">

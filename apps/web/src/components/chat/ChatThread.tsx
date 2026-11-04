@@ -185,7 +185,7 @@ const ChatThread = () => {
         {shown.map((message) =>
           message.role === 'user' ? (
             <li key={message.id} className="flex flex-col items-end gap-1">
-              <p className="max-w-4/5 rounded-md bg-bg-brand px-4 py-3 text-body-md whitespace-pre-line text-text-on-brand">
+              <p className="max-w-4/5 rounded-xl rounded-br-md bg-bg-brand px-4 py-3 text-body-md whitespace-pre-line text-text-on-brand">
                 {message.text}
               </p>
               {message.status === 'sending' ? (
@@ -203,7 +203,7 @@ const ChatThread = () => {
             </li>
           ) : (
             <li key={message.id} className="flex flex-col items-start gap-2">
-              <p className="max-w-4/5 rounded-md border border-border-default bg-bg-surface px-4 py-3 text-body-md whitespace-pre-line text-text-body">
+              <p className="max-w-4/5 rounded-xl rounded-bl-md bg-bg-surface px-4 py-3 text-body-md whitespace-pre-line text-text-body shadow-card">
                 {message.text}
               </p>
               {message.card ? (
@@ -237,7 +237,7 @@ const ChatThread = () => {
             <button
               key={label}
               type="button"
-              className="h-11 shrink-0 rounded-md bg-bg-brand-subtle px-4 text-label-md text-text-brand active:bg-bg-brand-subtle-hover"
+              className="h-11 shrink-0 rounded-full bg-bg-brand-subtle px-4 text-label-md text-text-brand active:bg-bg-brand-subtle-hover"
               onClick={() => insertPhrase(text)}
             >
               {label}
@@ -262,13 +262,13 @@ const ChatThread = () => {
             placeholder="예: V벨트 2개 씀"
             autoComplete="off"
             enterKeyHint="send"
-            className="h-12 min-w-0 flex-1 rounded-md border border-border-strong bg-bg-surface px-4 text-body-md text-text-body outline-none placeholder:text-text-placeholder focus:border-border-brand focus:ring-1 focus:ring-border-brand focus:ring-inset"
+            className="h-12 min-w-0 flex-1 rounded-full border border-border-strong bg-bg-surface px-5 text-body-md text-text-body outline-none placeholder:text-text-placeholder focus:border-border-brand focus:ring-1 focus:ring-border-brand focus:ring-inset"
           />
           <button
             type="submit"
             aria-label="보내기"
             disabled={!draft.trim()}
-            className="flex size-12 shrink-0 items-center justify-center rounded-md bg-bg-brand text-text-on-brand disabled:bg-bg-disabled disabled:text-text-disabled"
+            className="flex size-12 shrink-0 items-center justify-center rounded-full bg-bg-brand text-text-on-brand disabled:bg-bg-disabled disabled:text-text-disabled"
           >
             <SendHorizontal size={20} aria-hidden />
           </button>

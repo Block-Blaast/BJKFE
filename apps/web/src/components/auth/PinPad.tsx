@@ -60,7 +60,7 @@ const PinPad = ({
           {Array.from({ length }, (_, i) => (
             <span
               key={i}
-              className={`size-4 rounded-md border-2 ${i < value.length ? 'border-border-brand bg-bg-brand' : 'border-border-strong bg-bg-surface'}`}
+              className={`size-4 rounded-full border-2 ${i < value.length ? 'border-border-brand bg-bg-brand' : 'border-border-strong bg-bg-surface'}`}
             />
           ))}
         </div>
@@ -80,7 +80,7 @@ const PinPad = ({
               disabled={disabled}
               aria-label={key === 'back' ? '지우기' : key}
               onClick={() => press(key)}
-              className="flex h-16 items-center justify-center rounded-md bg-bg-surface text-h2 text-text-heading tabular-nums shadow-card active:bg-bg-subtle disabled:text-text-disabled"
+              className="flex h-16 items-center justify-center rounded-full bg-bg-surface text-h2 text-text-heading tabular-nums shadow-card active:bg-bg-subtle disabled:text-text-disabled"
             >
               {key === 'back' ? <Delete size={24} aria-hidden /> : key}
             </button>

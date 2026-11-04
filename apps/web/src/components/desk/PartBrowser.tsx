@@ -18,11 +18,10 @@ import {
 import type { PartListFilters } from '@bjk/api/types/part';
 import Button from '@bjk/ui/components/Button';
 
+import { PILL_SEARCH, PILL_SELECT } from '@/components/ui/controls';
+import EmptyState from '@/components/ui/EmptyState';
 import { useParts } from '@/hooks/part/useParts';
 import { formatComputedAt, formatDate, formatQty } from '@/utils/format';
-
-const SELECT_CLASS =
-  'h-11 rounded-md border border-border-strong bg-bg-surface px-3 text-body-sm text-text-body outline-none focus:border-border-brand';
 
 const pick = <T extends string>(value: string | null, allowed: readonly T[]) =>
   value !== null && (allowed as readonly string[]).includes(value) ? (value as T) : undefined;
@@ -68,7 +67,7 @@ const PartBrowser = () => {
     <label className="flex items-center gap-2 text-label-md text-text-body">
       {label}
       <select
-        className={SELECT_CLASS}
+        className={PILL_SELECT}
         value={filters[key] ?? ''}
         onChange={(e) => update({ [key]: e.target.value || undefined })}
       >
@@ -102,7 +101,7 @@ const PartBrowser = () => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="이름·규격·별칭"
-            className="h-11 w-60 rounded-md border border-border-strong bg-bg-surface px-3 text-body-sm text-text-body outline-none placeholder:text-text-placeholder focus:border-border-brand"
+            className={`${PILL_SEARCH} w-64`}
           />
           <Button type="submit" variant="secondary" aria-label="검색">
             <Search size={16} aria-hidden />
@@ -143,13 +142,11 @@ const PartBrowser = () => {
           </Button>
         </div>
       ) : parts.length === 0 ? (
-        <p className="rounded-md bg-bg-surface p-8 text-center text-body-md text-text-secondary shadow-card">
-          조건에 맞는 부품이 없어요.
-        </p>
+        <EmptyState title="조건에 맞는 부품이 없어요">검색어나 필터를 바꿔 보세요.</EmptyState>
       ) : (
-        <div className="overflow-hidden rounded-md bg-bg-surface shadow-card">
+        <div className="overflow-hidden rounded-xl bg-bg-surface shadow-card">
           <table className="w-full text-body-sm">
-            <thead className="bg-bg-subtle text-label-sm text-text-secondary">
+            <thead className="bg-bg-page text-label-sm text-text-secondary">
               <tr>
                 {[
                   '부품',

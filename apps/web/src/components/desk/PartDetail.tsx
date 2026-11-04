@@ -1,6 +1,6 @@
 'use client';
 
-import { CircleHelp } from 'lucide-react';
+import { CircleHelp, Layers, Package, Truck, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { DEMAND_PATTERNS, MOVEMENT_TYPES } from '@bjk/api/domain/part';
@@ -10,6 +10,7 @@ import Button from '@bjk/ui/components/Button';
 import ForecastPanel from '@/components/charts/ForecastPanel';
 import Tag from '@/components/ui/Tag';
 import ComputedAt from '@/components/ui/ComputedAt';
+import IconCircle, { type IconCircleTone } from '@/components/ui/IconCircle';
 import { usePart, usePartForecast, usePartLedger } from '@/hooks/part/useParts';
 import { factLabel, formatFact } from '@/utils/facts';
 import { formatComputedAt, formatDate, formatQty, formatWon } from '@/utils/format';
@@ -38,29 +39,48 @@ const Section = ({
   aside?: ReactNode;
   children: ReactNode;
 }) => (
-  <section className="flex flex-col gap-3 rounded-md bg-bg-surface p-5 shadow-card">
+  <section className="flex flex-col gap-4 rounded-xl bg-bg-surface p-6 shadow-card">
     <div className="flex items-center justify-between gap-2">
-      <h2 className="text-label-lg text-text-heading">{title}</h2>
+      <h2 className="text-h3 text-text-heading">{title}</h2>
       {aside}
     </div>
     {children}
   </section>
 );
 
+// 강조 카드는 한 화면에 하나 — 현재 재고(S). 큰 단독 숫자에는 tabular-nums 를 쓰지 않는다.
 const Stat = ({
   label,
   value,
-  tone = 'text-text-heading',
+  icon,
+  tone,
+  warn = false,
 }: {
   label: string;
   value: string;
-  tone?: string;
-}) => (
-  <div className="flex flex-1 flex-col gap-1 rounded-md bg-bg-surface p-5 shadow-card">
-    <span className="text-label-sm text-text-secondary">{label}</span>
-    <span className={`text-h2 ${tone}`}>{value}</span>
-  </div>
-);
+  icon: LucideIcon;
+  tone: IconCircleTone;
+  warn?: boolean;
+}) => {
+  const hero = tone === 'onHero';
+  return (
+    <div
+      className={`flex flex-1 items-start justify-between gap-3 rounded-xl p-6 ${
+        hero
+          ? 'bg-bg-brand bg-linear-to-br from-brand-600 via-brand-500 to-brand-300 text-text-on-brand shadow-raised print:text-text-heading'
+          : 'bg-bg-surface shadow-card'
+      }`}
+    >
+      <div className="flex flex-col gap-2">
+        <span className={`text-label-md ${hero ? '' : 'text-text-secondary'}`}>{label}</span>
+        <span className={`text-h1 ${hero ? '' : warn ? 'text-text-warning' : 'text-text-heading'}`}>
+          {value}
+        </span>
+      </div>
+      <IconCircle icon={icon} tone={tone} />
+    </div>
+  );
+};
 
 const Ledger = ({ id, unit }: { id: string; unit: string }) => {
   const { data: entries, isPending, isError, refetch } = usePartLedger(id);
@@ -160,9 +180,16 @@ const PartDetail = ({ id }: PartDetailProps) => {
         </p>
       </header>
 
-      <div className="flex gap-4">
-        <Stat label="현재 재고 (S)" value={formatQty(part.stock, part.unit)} />
+      <div className="flex gap-5">
         <Stat
+          label="현재 재고 (S)"
+          value={formatQty(part.stock, part.unit)}
+          icon={Package}
+          tone="onHero"
+        />
+        <Stat
+          icon={Truck}
+          tone="brand"
           label="입고 예정 (O)"
           value={
             part.incoming
@@ -171,9 +198,11 @@ const PartDetail = ({ id }: PartDetailProps) => {
           }
         />
         <Stat
+          icon={Layers}
+          tone="inverse"
           label="숨은 재고 (H)"
           value={part.hidden_stock > 0 ? formatQty(part.hidden_stock, part.unit) : EMPTY}
-          tone={part.hidden_stock > 0 ? 'text-text-warning' : 'text-text-heading'}
+          warn={part.hidden_stock > 0}
         />
       </div>
 
@@ -243,7 +272,7 @@ const PartDetail = ({ id }: PartDetailProps) => {
                 {part.aliases.map((alias) => (
                   <li
                     key={alias}
-                    className="rounded-md bg-bg-subtle px-3 py-1 text-label-sm text-text-body"
+                    className="rounded-full bg-bg-subtle px-3 py-1 text-label-sm text-text-body"
                   >
                     {alias}
                   </li>

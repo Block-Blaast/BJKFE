@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-// 임시 — Figma 에 판정·등급 배지 디자인이 아직 없어 Status Chip 규격(px-3 py-1, label-sm, 아이콘 14px)을 따랐다.
+// 임시 — Figma 에 판정·등급 배지 디자인이 아직 없어 Status Chip 규격(알약, px-3 py-1, label-sm, 아이콘 14px)을 따랐다.
 // 디자인이 나오면 @bjk/ui 로 옮기고 교체한다.
 export type TagTone = 'brand' | 'danger' | 'success' | 'warning' | 'neutral';
 
@@ -24,7 +24,7 @@ const Tag = ({ tone, icon: Icon, children }: TagProps) => {
   const { chip, icon } = TONE_CLASS[tone];
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-md px-3 py-1 text-label-sm whitespace-nowrap ${chip}`}
+      className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-label-sm whitespace-nowrap ${chip}`}
     >
       <Icon size={14} aria-hidden className={`shrink-0 ${icon}`} />
       {children}

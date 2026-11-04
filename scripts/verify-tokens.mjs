@@ -63,6 +63,9 @@ const SEMANTIC = {
   'bg-danger-subtle': 'red-50',
   'bg-success-subtle': 'green-50',
   'bg-warning-subtle': 'orange-50',
+  // 코드가 먼저 추가 (2026-11-05 디자인 개편) — Figma 반영 필요
+  'bg-canvas': 'gray-200',
+  'bg-inverse': 'gray-900',
   'text-heading': 'gray-800',
   'text-body': 'gray-700',
   'text-secondary': 'gray-500',
@@ -74,6 +77,7 @@ const SEMANTIC = {
   'text-danger': 'red-700',
   'text-success': 'green-700',
   'text-warning': 'orange-700',
+  'text-on-inverse': 'gray-0',
   'border-default': 'gray-200',
   'border-strong': 'gray-300',
   'border-brand': 'brand-600',
@@ -86,6 +90,8 @@ const SEMANTIC = {
 
 const OTHER = {
   '--radius-md': '12px',
+  // 코드가 먼저 추가 (2026-11-05 디자인 개편) — Figma Foundations 반영 필요
+  '--radius-xl': '20px',
   '--shadow-card': '0 4px 12px rgb(16 24 40 / 0.08)',
   '--shadow-raised': '0 8px 24px rgb(16 24 40 / 0.12)',
 };

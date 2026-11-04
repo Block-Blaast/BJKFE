@@ -25,9 +25,9 @@ const ForecastPanel = ({ query }: ForecastPanelProps) => {
   const { data: forecast, isPending, isError, refetch } = query;
 
   return (
-    <section className="flex flex-col gap-3 rounded-md bg-bg-surface p-5 shadow-card">
+    <section className="flex flex-col gap-4 rounded-xl bg-bg-surface p-6 shadow-card">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-label-lg text-text-heading">재고 추이와 예측</h2>
+        <h2 className="text-h3 text-text-heading">재고 추이와 예측</h2>
         <div className="flex items-center gap-2">
           {forecast?.is_mock ? (
             <Tag tone="neutral" icon={FlaskConical}>

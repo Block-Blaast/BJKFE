@@ -17,8 +17,8 @@ import OrderComparison from './OrderComparison';
 import VerdictTags from './VerdictTags';
 
 const Section = ({ title, children }: { title: string; children: ReactNode }) => (
-  <section className="flex flex-col gap-3 rounded-md bg-bg-surface p-5 shadow-card">
-    <h2 className="text-label-lg text-text-heading">{title}</h2>
+  <section className="flex flex-col gap-4 rounded-xl bg-bg-surface p-6 shadow-card">
+    <h2 className="text-h3 text-text-heading">{title}</h2>
     {children}
   </section>
 );

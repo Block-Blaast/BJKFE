@@ -15,13 +15,13 @@ export const RULES = [
   },
   {
     id: 'radius',
-    message: '모서리는 rounded-md 하나만 씁니다 (한쪽만 둥글게 할 때도 rounded-t-md 처럼 md)',
-    // `rounded-md`, `rounded-t-md` 는 패턴 끝의 (?![\w-]) 때문에 매치되지 않는다.
-    // 걸리는 것은 크기 없는 `rounded`/`rounded-t` 와 md 외 크기(sm, lg, full, none …)뿐이다.
+    message: '모서리는 rounded-md(입력창)·rounded-xl(카드)·rounded-full(알약·원형)만 씁니다',
+    // 허용 크기(md, xl, full)는 아래 목록에 없어서 매치되지 않는다.
+    // 걸리는 것은 크기 없는 `rounded`/`rounded-t` 와 그 밖의 크기(sm, lg, 2xl, none …)뿐이다.
     find: (line) =>
       [
         ...line.matchAll(
-          /(?<![\w-])rounded(?:-(?:[trblse]|tl|tr|bl|br|ss|se|es|ee))?(?:-(?:none|xs|sm|lg|xl|2xl|3xl|4xl|full))?(?![\w-])/g,
+          /(?<![\w-])rounded(?:-(?:[trblse]|tl|tr|bl|br|ss|se|es|ee))?(?:-(?:none|xs|sm|lg|2xl|3xl|4xl))?(?![\w-])/g,
         ),
       ].map((m) => m[0]),
   },
