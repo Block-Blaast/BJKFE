@@ -6,12 +6,13 @@
     "dev:user": "turbo run dev --filter=@bjk/user",
     "dev:admin": "turbo run dev --filter=@bjk/admin",
     "build": "turbo run build",
-    "lint": "turbo run lint",
+    "lint": "turbo run lint && pnpm lint:design",
     "lint:fix": "turbo run lint:fix",
     "typecheck": "turbo run typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky"
+    "prepare": "husky",
+    "lint:design": "node scripts/lint-design.mjs && node scripts/verify-tokens.mjs"
   },
   "devDependencies": {
     "husky": "^9.1.7",
@@ -24,6 +25,9 @@
   "packageManager": "pnpm@12.16.1",
   "lint-staged": {
     "*.{json,md,css,yml,yaml}": [
+      "prettier --write"
+    ],
+    "scripts/**/*.mjs": [
       "prettier --write"
     ]
   }

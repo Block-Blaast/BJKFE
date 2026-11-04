@@ -10,11 +10,21 @@
   "overrides": [
     {
       "files": "apps/user/**",
-      "options": { "tailwindStylesheet": "./apps/user/src/app/globals.css" }
+      "options": {
+        "tailwindStylesheet": "./apps/user/src/app/globals.css"
+      }
     },
     {
       "files": "apps/admin/**",
-      "options": { "tailwindStylesheet": "./apps/admin/src/app/globals.css" }
+      "options": {
+        "tailwindStylesheet": "./apps/admin/src/app/globals.css"
+      }
+    },
+    {
+      "files": "packages/ui/**",
+      "options": {
+        "tailwindStylesheet": "./apps/user/src/app/globals.css"
+      }
     }
   ]
 }

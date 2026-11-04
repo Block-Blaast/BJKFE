@@ -3,6 +3,7 @@
 // exit 2 = 차단, stderr가 Claude에게 사유로 전달된다. 스크립트 오류는 exit 1로 끝나 차단하지 않는다(fail-open).
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const input = JSON.parse(readFileSync(0, 'utf8'));
 const { tool_name: tool, tool_input: args = {} } = input;
@@ -43,29 +44,29 @@ if (tool === 'MultiEdit') {
 // 적용할 수 없는 편집은 도구가 스스로 실패하므로 여기서는 통과시킨다.
 if (after === null) process.exit(0);
 
-const appMatch = rel.match(/^apps\/([^/]+)\/src\/.+\.[jt]sx$/);
-if (appMatch) {
-  const stylesheet = `apps/${appMatch[1]}/src/app/globals.css`;
-  const patterns = [
-    /(?<![\w-])-?(?:p[xytblrse]?|m[xytblrse]?|gap(?:-[xy])?|space-[xy]|rounded(?:-(?:[tblrse]|tl|tr|bl|br|ss|se|es|ee))?|text|bg|leading|tracking)-\[[^\]\s]+\]/g,
-    /(?<![\w-])(?:border(?:-[xytblrse])?|ring|outline|fill|stroke|shadow|divide|placeholder|decoration)-\[(?:#|rgba?\(|hsla?\()[^\]\s]*\]/g,
-  ];
+// 디자인 시스템 금지 패턴(scripts/design-rules.mjs)을 `pnpm lint` 와 같은 기준으로 검사한다.
+// 편집으로 "새로 생긴" 위반만 막는다.
+const { findViolations, isDesignChecked } = await import(
+  pathToFileURL(path.join(projectDir, 'scripts/design-rules.mjs')).href
+);
+if (isDesignChecked(rel)) {
+  const key = (v) => `${v.rule}:${v.match}`;
   const tally = (text) => {
     const counts = new Map();
-    for (const re of patterns) {
-      for (const [m] of text.matchAll(re)) counts.set(m, (counts.get(m) ?? 0) + 1);
-    }
+    for (const v of findViolations(text)) counts.set(key(v), (counts.get(key(v)) ?? 0) + 1);
     return counts;
   };
   const prev = tally(before);
+  const byKey = new Map(findViolations(after).map((v) => [key(v), v]));
   const added = [...tally(after)]
-    .filter(([cls, n]) => n > (prev.get(cls) ?? 0))
-    .map(([cls]) => cls);
+    .filter(([k, n]) => n > (prev.get(k) ?? 0))
+    .map(([k]) => byKey.get(k));
   if (added.length) {
     block(
-      `간격·반경·색·폰트 크기에 임의값을 쓸 수 없습니다: ${added.join(', ')}\n` +
-        `Tailwind 기본 스케일(\`p-4\`, \`rounded-md\`, \`text-sm\`)이나 \`${stylesheet}\`의 \`@theme\` 토큰을 쓰고, ` +
-        '맞는 토큰이 없으면 `@theme`에 먼저 추가하세요. 요소 크기(`w-[60px]`, `h-[...]`)는 허용됩니다.',
+      '디자인 시스템 규칙 위반:\n' +
+        added.map((v) => `- ${v.match} — ${v.message}`).join('\n') +
+        '\n시맨틱 토큰(bg-bg-*, text-text-*, border-border-*), rounded-md, 간격 1/2/3/4/5/6/8/12 단계만 씁니다. ' +
+        '자세한 규칙은 .claude/rules/design-system.md, 토큰은 packages/ui/src/tokens.css 를 보세요.',
     );
   }
 }

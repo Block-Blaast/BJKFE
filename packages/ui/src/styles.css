@@ -1,0 +1,18 @@
+/* 앱의 globals.css 에서 `@import 'tailwindcss';` 바로 다음에 import 한다. */
+@import './tokens.css';
+
+/* 이 패키지 컴포넌트의 클래스도 앱 CSS 에 생성되도록 스캔 대상에 넣는다. */
+@source './components';
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--bg-page);
+    color: var(--text-body);
+    font-family: var(--font-sans);
+  }
+}

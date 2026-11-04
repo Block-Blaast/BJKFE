@@ -4,6 +4,7 @@
 
 - `apps/user`, `apps/admin`: Next 앱. 서로 import 하지 않습니다.
 - `packages/api`: 두 앱이 함께 쓰는 서버 연동 코드. React 컴포넌트·훅(`useQuery` 호출)은 두지 않습니다.
+- `packages/ui`: 디자인 토큰(`src/tokens.css`), 폰트(`src/fonts.ts`), Figma 컴포넌트(`src/components/`). 새 컴포넌트 파일은 `exports`의 `./components/*` 패턴으로 자동 노출됩니다.
 - `packages/config`: tsconfig, ESLint 공용 설정.
 - 공유 여부 판단: **두 앱에서 실제로 같은 코드를 쓰게 됐을 때** `packages/`로 옮깁니다. "나중에 쓸 것 같아서" 미리 옮기지 마세요.
 
@@ -13,8 +14,9 @@
   - 라우트 전용 컴포넌트는 해당 라우트 폴더의 `_components/`에 둘 수 있습니다. (`_` 접두사 폴더는 라우팅에서 제외됩니다)
   - URL에 영향 없는 그룹은 `(group)` 폴더를 씁니다.
 - 컴포넌트는 `src/components/` 하위에서 다음 기준으로 분류합니다:
-  - **도메인 무관 공용 UI(디자인 시스템)**: `src/components/ui/`
-    - 예: `Button.tsx`, `Typography.tsx`, `input/TextInput.tsx`
+  - **Figma 디자인 시스템 컴포넌트**(Button·StatusChip·Input·Card)는 `@bjk/ui`에서 가져옵니다. 앱에 다시 만들지 마세요.
+  - **앱 안에서만 쓰는 도메인 무관 UI**: `src/components/ui/`
+    - 예: `PageHeader.tsx`, `layout/BottomTabBar.tsx`
     - 이 폴더 내부는 도메인이 아니라 **UI 종류/성격** 기준으로만 하위 폴더를 나눕니다. (예: `input/`, `feedback/`, `layout/`)
   - **특정 도메인 전용 컴포넌트**: `src/components/<도메인>/`
     - 도메인명으로 `src/components/ui/` **하위에** 폴더를 만들지 마세요.

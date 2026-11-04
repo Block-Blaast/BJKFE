@@ -1,0 +1,208 @@
+/*
+ * BJK 디자인 토큰 — 기준(source of truth): Figma sJfs73BOfgYtBrAB3Xx8si (Foundations)
+ * 이 파일만 hex 값을 가질 수 있다. 값을 바꾸면 scripts/verify-tokens.mjs 의 기대값도 함께 바꾼다.
+ * 다크 모드는 없다(라이트 단일 모드).
+ */
+
+@theme {
+  --color-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --text-*: initial;
+}
+
+/* static: 시맨틱 별칭·토큰 페이지가 var()로만 참조하는 프리미티브도 트리 셰이킹되지 않게 항상 내보낸다. */
+@theme static {
+  /* Primitives — brand */
+  --color-brand-50: #eaf4ff;
+  --color-brand-100: #d3e8ff;
+  --color-brand-200: #a9d2ff;
+  --color-brand-300: #6fb4ff;
+  --color-brand-400: #2f96ff;
+  --color-brand-500: #0e7dff;
+  --color-brand-600: #0a68db;
+  --color-brand-700: #0a53b3;
+  --color-brand-800: #0b4190;
+  --color-brand-900: #0a2f6b;
+
+  /* Primitives — sub (yellow) */
+  --color-sub-50: #fffae3;
+  --color-sub-100: #fef5c1;
+  --color-sub-300: #fde661;
+  --color-sub-500: #fbd725;
+  --color-sub-600: #f0be00;
+  --color-sub-700: #7a5c00;
+  --color-sub-900: #3d2e00;
+
+  /* Primitives — gray (cool) */
+  --color-gray-0: #ffffff;
+  --color-gray-50: #f7f8fa;
+  --color-gray-100: #f1f3f6;
+  --color-gray-200: #e4e7ec;
+  --color-gray-300: #d0d5dd;
+  --color-gray-400: #98a2b3;
+  --color-gray-500: #667085;
+  --color-gray-600: #475467;
+  --color-gray-700: #344054;
+  --color-gray-800: #1d2939;
+  --color-gray-900: #101828;
+
+  /* Primitives — status */
+  --color-red-50: #ffe9ec;
+  --color-red-500: #f2415a;
+  --color-red-700: #b8132f;
+  --color-green-50: #e2f7ea;
+  --color-green-500: #22b573;
+  --color-green-700: #0a7a47;
+  --color-orange-50: #ffebd6;
+  --color-orange-500: #ff8a1f;
+  --color-orange-700: #a34700;
+
+  /* Radius / Shadow */
+  --radius-md: 12px;
+  --shadow-card: 0 4px 12px rgb(16 24 40 / 0.08);
+  --shadow-raised: 0 8px 24px rgb(16 24 40 / 0.12);
+
+  /* Font — --font-pretendard 는 next/font/local 이 <html>에 주입한다 (@bjk/ui/fonts) */
+  --font-sans: var(--font-pretendard), 'Pretendard Variable', 'Noto Sans KR', system-ui, sans-serif;
+
+  /* Typography */
+  --text-display: 40px;
+  --text-display--line-height: 52px;
+  --text-display--letter-spacing: -0.01em;
+  --text-display--font-weight: 700;
+
+  --text-h1: 32px;
+  --text-h1--line-height: 44px;
+  --text-h1--letter-spacing: -0.01em;
+  --text-h1--font-weight: 700;
+
+  --text-h2: 24px;
+  --text-h2--line-height: 34px;
+  --text-h2--letter-spacing: -0.01em;
+  --text-h2--font-weight: 700;
+
+  --text-h3: 20px;
+  --text-h3--line-height: 28px;
+  --text-h3--letter-spacing: 0;
+  --text-h3--font-weight: 700;
+
+  --text-body-lg: 18px;
+  --text-body-lg--line-height: 28px;
+  --text-body-lg--letter-spacing: 0;
+  --text-body-lg--font-weight: 400;
+
+  --text-body-md: 16px;
+  --text-body-md--line-height: 24px;
+  --text-body-md--letter-spacing: 0;
+  --text-body-md--font-weight: 400;
+
+  --text-body-sm: 14px;
+  --text-body-sm--line-height: 20px;
+  --text-body-sm--letter-spacing: 0;
+  --text-body-sm--font-weight: 400;
+
+  --text-label-lg: 16px;
+  --text-label-lg--line-height: 20px;
+  --text-label-lg--letter-spacing: 0;
+  --text-label-lg--font-weight: 500;
+
+  --text-label-md: 14px;
+  --text-label-md--line-height: 20px;
+  --text-label-md--letter-spacing: 0;
+  --text-label-md--font-weight: 500;
+
+  --text-label-sm: 12px;
+  --text-label-sm--line-height: 16px;
+  --text-label-sm--letter-spacing: 0;
+  --text-label-sm--font-weight: 500;
+}
+
+/* Semantic — Figma 코드 구문과 동일한 변수명 (Light 단일 모드) */
+:root {
+  --bg-page: var(--color-gray-50);
+  --bg-surface: var(--color-gray-0);
+  --bg-subtle: var(--color-gray-100);
+  --bg-brand: var(--color-brand-600);
+  --bg-brand-hover: var(--color-brand-700);
+  --bg-brand-pressed: var(--color-brand-800);
+  --bg-brand-subtle: var(--color-brand-50);
+  --bg-brand-subtle-hover: var(--color-brand-100);
+  --bg-brand-subtle-pressed: var(--color-brand-200);
+  --bg-sub: var(--color-sub-500);
+  --bg-sub-subtle: var(--color-sub-50);
+  --bg-disabled: var(--color-gray-200);
+  --bg-danger-subtle: var(--color-red-50);
+  --bg-success-subtle: var(--color-green-50);
+  --bg-warning-subtle: var(--color-orange-50);
+
+  --text-heading: var(--color-gray-800);
+  --text-body: var(--color-gray-700);
+  --text-secondary: var(--color-gray-500);
+  --text-placeholder: var(--color-gray-500);
+  --text-disabled: var(--color-gray-400);
+  --text-on-brand: var(--color-gray-0);
+  --text-brand: var(--color-brand-700);
+  --text-sub: var(--color-sub-700);
+  --text-danger: var(--color-red-700);
+  --text-success: var(--color-green-700);
+  --text-warning: var(--color-orange-700);
+
+  --border-default: var(--color-gray-200);
+  --border-strong: var(--color-gray-300);
+  --border-brand: var(--color-brand-600);
+  --border-danger: var(--color-red-500);
+
+  --icon-brand: var(--color-brand-700);
+  --icon-danger: var(--color-red-700);
+  --icon-success: var(--color-green-700);
+  --icon-warning: var(--color-orange-700);
+}
+
+/* Tailwind 유틸리티용 매핑: bg-bg-brand, text-text-heading, border-border-default, text-icon-danger … */
+@theme inline {
+  --color-bg-page: var(--bg-page);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-bg-brand: var(--bg-brand);
+  --color-bg-brand-hover: var(--bg-brand-hover);
+  --color-bg-brand-pressed: var(--bg-brand-pressed);
+  --color-bg-brand-subtle: var(--bg-brand-subtle);
+  --color-bg-brand-subtle-hover: var(--bg-brand-subtle-hover);
+  --color-bg-brand-subtle-pressed: var(--bg-brand-subtle-pressed);
+  --color-bg-sub: var(--bg-sub);
+  --color-bg-sub-subtle: var(--bg-sub-subtle);
+  --color-bg-disabled: var(--bg-disabled);
+  --color-bg-danger-subtle: var(--bg-danger-subtle);
+  --color-bg-success-subtle: var(--bg-success-subtle);
+  --color-bg-warning-subtle: var(--bg-warning-subtle);
+
+  --color-text-heading: var(--text-heading);
+  --color-text-body: var(--text-body);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-placeholder: var(--text-placeholder);
+  --color-text-disabled: var(--text-disabled);
+  --color-text-on-brand: var(--text-on-brand);
+  --color-text-brand: var(--text-brand);
+  --color-text-sub: var(--text-sub);
+  --color-text-danger: var(--text-danger);
+  --color-text-success: var(--text-success);
+  --color-text-warning: var(--text-warning);
+
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+  --color-border-brand: var(--border-brand);
+  --color-border-danger: var(--border-danger);
+
+  --color-icon-brand: var(--icon-brand);
+  --color-icon-danger: var(--icon-danger);
+  --color-icon-success: var(--icon-success);
+  --color-icon-warning: var(--icon-warning);
+}
+
+@media print {
+  * {
+    box-shadow: none !important;
+    background-image: none !important;
+  }
+}

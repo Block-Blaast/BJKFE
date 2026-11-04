@@ -16,7 +16,8 @@
       "Bash(pnpm --filter * typecheck)",
       "Bash(pnpm exec eslint *)",
       "Bash(pnpm exec prettier *)",
-      "Bash(pnpm turbo run *)"
+      "Bash(pnpm turbo run *)",
+      "Bash(pnpm lint:design)"
     ],
     "deny": ["Read(**/.env)", "Read(**/.env.local)", "Read(**/.env.*.local)"]
   },

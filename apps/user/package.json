@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@bjk/api": "workspace:*",
+    "@bjk/ui": "workspace:*",
     "@tanstack/react-query": "^5.105.3",
     "next": "16.4.4",
     "react": "19.3.0",
