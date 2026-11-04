@@ -1,0 +1,88 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+# CodeRabbit 설정 — BJKFE
+# 프로젝트 규약은 AGENTS.md 와 .claude/rules/ 를 따릅니다. 아래 path_instructions 는 그 규약을 리뷰에 반영하기 위한 요약입니다.
+
+language: ko-KR
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  review_status: true
+  collapse_walkthrough: false
+  changed_files_summary: true
+  sequence_diagrams: true
+  poem: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+
+  path_filters:
+    - '!**/node_modules/**'
+    - '!.next/**'
+    - '!public/**'
+    - '!pnpm-lock.yaml'
+    - '!next-env.d.ts'
+
+  path_instructions:
+    - path: '**/*.{ts,tsx}'
+      instructions: |
+        - 컴포넌트는 화살표 함수(`const Name = () => {}`)로 선언하고 파일 끝에서 `export default Name` 한다.
+        - props 타입은 `<컴포넌트명>Props` 이름의 `type` 으로 선언한다. `any` 지양.
+        - 기본은 서버 컴포넌트다. 'use client' 는 상태·이벤트·브라우저 API·Query/Zustand 가 필요한
+          작은 컴포넌트에만 붙인다. 페이지 전체를 클라이언트로 만드는 변경을 지적한다.
+        - page.tsx 의 params/searchParams 는 Promise 이므로 await 해서 쓴다.
+        - useMemo/useCallback/React.memo 를 근거 없이 남발하지 않는다.
+        - 기존 "왜" 주석을 근거 없이 지우지 않는다.
+    - path: 'src/{api,hooks,types}/**/*.ts'
+      instructions: |
+        - 요청은 src/api/client.ts 의 request 를 거친다. 훅·컴포넌트에서 fetch 직접 호출 금지.
+        - 쿼리 키는 src/api/queryKeys.ts 팩토리만 쓴다. 문자열 배열 직접 사용 금지.
+        - 서버 데이터를 Zustand 스토어에 복사하지 않는다(Query 캐시가 유일한 출처).
+        - 토스트 등 사용자 피드백은 훅의 onError 가 아니라 화면에서 처리한다.
+    - path: 'src/{app,components}/**/*.tsx'
+      instructions: |
+        - 간격/색/반경/폰트 크기에 Tailwind 임의값(`p-[13px]`, `text-[#FF8800]`)을 쓰지 않는다.
+          기본 스케일이나 globals.css 의 @theme 토큰을 쓴다. 요소 크기(`w-[60px]`)는 허용.
+        - 동적으로 조각낸 클래스명(`bg-${color}-500`)은 Tailwind 가 감지하지 못한다.
+        - 도메인 무관 UI 는 src/components/ui/, 도메인 전용은 src/components/<도메인>/ 에 둔다.
+        - 이미지는 next/image, 내부 링크는 next/link 를 쓴다.
+    - path: '**/package.json'
+      instructions: |
+        - 패키지 매니저는 pnpm 만 사용한다. `packageManager` 필드를 유지한다.
+
+  tools:
+    eslint:
+      enabled: true
+    yamllint:
+      enabled: true
+    markdownlint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    actionlint:
+      enabled: true
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - files: '.claude/rules/structure.md'
+        applyTo: '**'
+      - files: '.claude/rules/code-style.md'
+        applyTo: 'src/**/*.ts, src/**/*.tsx, src/**/*.js, src/**/*.jsx'
+      - files: '.claude/rules/api.md'
+        applyTo: 'src/api/**, src/hooks/**, src/types/**, src/app/**'
+      - files: '.claude/rules/design-system.md'
+        applyTo: 'src/app/**, src/components/**'
+  learnings:
+    scope: auto
+  issues:
+    scope: auto

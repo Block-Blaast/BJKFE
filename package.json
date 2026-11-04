@@ -6,11 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "lint:fix": "eslint --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.105.3",
@@ -28,10 +29,21 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.4",
     "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
     "prettier": "^3.9.10",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
-  "packageManager": "pnpm@12.16.1"
+  "packageManager": "pnpm@12.16.1",
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css,yml,yaml}": [
+      "prettier --write"
+    ]
+  }
 }
