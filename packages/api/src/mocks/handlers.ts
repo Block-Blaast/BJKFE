@@ -28,6 +28,13 @@ import { AUDIT_FIXTURES, MERGE_FIXTURES } from './fixtures/audits';
 import { MOCK_COMPANY, MOCK_INVITES, MOCK_MEMBERS, MOCK_OWNER } from './fixtures/auth';
 import { PART_FIXTURES, type MockPart } from './fixtures/parts';
 import type { Activity } from '../types/activity';
+import type {
+  CompanySettings,
+  CreatedInvite,
+  CreateInviteInput,
+  UpdateCompanySettingsInput,
+  UpdateMemberInput,
+} from '../types/company';
 import type { StockForecast, StockPoint } from '../types/forecast';
 import type { Part, StockMovement } from '../types/part';
 import { REVIEW_FIXTURES } from './fixtures/reviews';
@@ -328,7 +335,63 @@ const PIN_MAX_FAILS = 5;
 const PIN_LOCK_MS = 10 * 60 * 1000;
 const members = MOCK_MEMBERS.map((m) => ({ ...m }));
 const pinFails = new Map<string, { count: number; lockedUntil: number }>();
-const usedInvites = new Set<string>();
+const INVITE_TTL_MS = 72 * 60 * 60 * 1000;
+// 초대 토큰 — 고정 목업 + 직원·설정 화면(W-10)에서 새로 만든 것. 일회용, 72시간 (F-AUTH-02)
+const invites = new Map(
+  Object.entries(MOCK_INVITES).map(([token, i]) => [
+    token,
+    {
+      role: i.role,
+      used: i.used,
+      expires_at: new Date(Date.now() + (i.expired ? -1 : 1) * INVITE_TTL_MS).toISOString(),
+    },
+  ]),
+);
+const usableInvite = (token: string) => {
+  const invite = invites.get(token);
+  return invite && !invite.used && Date.parse(invite.expires_at) > Date.now() ? invite : null;
+};
+
+// 회사 설정 — 기본값은 명세서에 적힌 값 (F-REVIEW-04·05, F-ANAL-06, F-MISSED-01, F-NOTI-03)
+let companySettings: CompanySettings = {
+  review: {
+    deadline_days: 5,
+    price_sigma: 2,
+    price_min_ratio: 1.05,
+    price_few_ratio: 1.15,
+    cheaper_ratio: 0.9,
+    supplier_keep_pct: 3,
+    tier_increase_pct: 5,
+    next_order_weeks: 4,
+    service_level: { A: 98, B: 95, C: 90 },
+    missed_p_out_pct: 30,
+    missed_deadline_days: 3,
+  },
+  notifications: { quiet_start: '21:00', quiet_end: '07:00' },
+  updated_at: null,
+};
+
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+// 서버 쪽 최소 검증 — 화면도 같은 범위를 막지만 서버가 최종 판단한다
+const settingsError = ({ review: r, notifications: n }: UpdateCompanySettingsInput) => {
+  const positive = [
+    r.deadline_days,
+    r.price_sigma,
+    r.price_min_ratio,
+    r.price_few_ratio,
+    r.cheaper_ratio,
+    r.next_order_weeks,
+    r.missed_p_out_pct,
+  ];
+  if (positive.some((v) => !Number.isFinite(v) || v <= 0)) return '0보다 큰 값을 입력해 주세요.';
+  if (r.cheaper_ratio >= 1) return '더 싼 공급사 기준은 1보다 작아야 해요.';
+  if (r.price_min_ratio < 1 || r.price_few_ratio < 1) return '단가 이상 배율은 1 이상이어야 해요.';
+  if (Object.values(r.service_level).some((v) => v < 50 || v >= 100)) {
+    return '서비스 수준은 50% 이상 100% 미만이에요.';
+  }
+  if (!HHMM.test(n.quiet_start) || !HHMM.test(n.quiet_end)) return '시간은 HH:mm 형식이에요.';
+  return null;
+};
 const ownerEmails = new Set([MOCK_OWNER.email]);
 
 const authResult = (user: {
@@ -426,6 +489,45 @@ const todayActivity = (): Activity[] => {
 };
 
 export const handlers = [
+  http.get(ENDPOINTS.companySettings, async () => {
+    await delay(NETWORK_DELAY);
+    return HttpResponse.json(companySettings);
+  }),
+
+  http.put(ENDPOINTS.companySettings, async ({ request }) => {
+    await delay(NETWORK_DELAY);
+    const input = (await request.json()) as UpdateCompanySettingsInput;
+    const error = settingsError(input);
+    if (error) return HttpResponse.json({ message: error }, { status: 400 });
+    companySettings = { ...input, updated_at: new Date().toISOString() };
+    return HttpResponse.json(companySettings);
+  }),
+
+  http.post(ENDPOINTS.invites, async ({ request }) => {
+    await delay(NETWORK_DELAY);
+    const { role } = (await request.json()) as CreateInviteInput;
+    if (role !== 'worker' && role !== 'manager') {
+      return HttpResponse.json({ message: '작업자나 관리자만 초대할 수 있어요.' }, { status: 400 });
+    }
+    const token = `inv-${crypto.randomUUID()}`;
+    const expires_at = new Date(Date.now() + INVITE_TTL_MS).toISOString();
+    invites.set(token, { role, used: false, expires_at });
+    return HttpResponse.json({ token, role, expires_at } satisfies CreatedInvite);
+  }),
+
+  // 역할 변경은 작업자 ↔ 관리자만. 사장님 계정은 바꿀 수 없다 (F-AUTH-03)
+  http.patch(ENDPOINTS.member(':id'), async ({ params, request }) => {
+    await delay(NETWORK_DELAY);
+    const member = members.find((m) => m.id === params.id);
+    if (!member) return HttpResponse.json({ message: '직원을 찾을 수 없어요.' }, { status: 404 });
+    const { role } = (await request.json()) as UpdateMemberInput;
+    if (role !== 'worker' && role !== 'manager') {
+      return HttpResponse.json({ message: '작업자나 관리자로만 바꿀 수 있어요.' }, { status: 400 });
+    }
+    member.role = role;
+    return HttpResponse.json({ id: member.id, name: member.name, role: member.role });
+  }),
+
   http.get(ENDPOINTS.activityToday, async () => {
     await delay(NETWORK_DELAY);
     return HttpResponse.json(todayActivity());
@@ -623,23 +725,25 @@ export const handlers = [
   http.get(ENDPOINTS.invite(':token'), async ({ params }) => {
     await delay(NETWORK_DELAY);
     const token = String(params.token);
-    const invite = MOCK_INVITES[token];
-    if (!invite) return HttpResponse.json({ message: '초대를 찾을 수 없어요.' }, { status: 404 });
-    if (invite.used || invite.expired || usedInvites.has(token)) {
+    if (!invites.has(token)) {
+      return HttpResponse.json({ message: '초대를 찾을 수 없어요.' }, { status: 404 });
+    }
+    const invite = usableInvite(token);
+    if (!invite) {
       return HttpResponse.json({ message: '사장님께 새 QR을 요청하세요.' }, { status: 410 });
     }
     return HttpResponse.json({
       role: invite.role,
       company: { name: MOCK_COMPANY.name, code: MOCK_COMPANY.code },
-      expires_at: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
+      expires_at: invite.expires_at,
     });
   }),
 
   http.post(ENDPOINTS.acceptInvite(':token'), async ({ params, request }) => {
     await delay(NETWORK_DELAY);
     const token = String(params.token);
-    const invite = MOCK_INVITES[token];
-    if (!invite || invite.used || invite.expired || usedInvites.has(token)) {
+    const invite = usableInvite(token);
+    if (!invite) {
       return HttpResponse.json({ message: '사장님께 새 QR을 요청하세요.' }, { status: 410 });
     }
     const { name, pin } = (await request.json()) as AcceptInviteInput;
@@ -652,7 +756,7 @@ export const handlers = [
         { status: 409 },
       );
     }
-    usedInvites.add(token);
+    invite.used = true;
     const member = { id: `us-${crypto.randomUUID()}`, name: name.trim(), role: invite.role, pin };
     members.push(member);
     return HttpResponse.json(authResult(member));

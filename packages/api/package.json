@@ -17,7 +17,8 @@
     "./auth": "./src/auth.ts",
     "./audits": "./src/audits.ts",
     "./parts": "./src/parts.ts",
-    "./activity": "./src/activity.ts"
+    "./activity": "./src/activity.ts",
+    "./company": "./src/company.ts"
   },
   "scripts": {
     "lint": "eslint .",
