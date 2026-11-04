@@ -4,3 +4,7 @@ export const PILL_SELECT =
 
 export const PILL_SEARCH =
   'h-11 rounded-full border border-border-default bg-bg-surface px-5 text-body-sm text-text-body shadow-card outline-none placeholder:text-text-placeholder focus:border-border-brand';
+
+// Input 컴포넌트와 같은 높이·모양의 맨 입력칸·선택 (라벨 없이 한 줄에 여러 칸 놓을 때, 표 안)
+export const FIELD =
+  'h-12 rounded-md border border-border-strong bg-bg-surface px-4 text-body-md text-text-body outline-none placeholder:text-text-placeholder focus:border-border-brand disabled:bg-bg-subtle disabled:text-text-disabled';

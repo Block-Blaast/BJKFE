@@ -18,12 +18,13 @@ export const useDecideReview = () => {
     onSuccess: (updated) => {
       queryClient.setQueryData(queryKeys.reviews.detail(updated.id), updated);
     },
-    // 검토함·내 요청·브리핑 숫자가 모두 바뀐다
+    // 검토함·내 요청·브리핑 숫자가 모두 바뀌고, 승인이면 발주 기록(W-09)이 생긴다
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.reviews.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.briefing.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.activity.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.reports.all }),
       ]),
   });
 };

@@ -14,6 +14,8 @@ const partsAll = ['parts'] as const;
 const activityAll = ['activity'] as const;
 const companyAll = ['company'] as const;
 const mergeAll = ['merge-candidates'] as const;
+const setupAll = ['setup'] as const;
+const reportsAll = ['reports'] as const;
 
 export const queryKeys = {
   reviews: {
@@ -54,6 +56,19 @@ export const queryKeys = {
   },
   mergeCandidates: {
     all: mergeAll,
+  },
+  // 설비·공급사를 바꾸면 손실액·납기 계산이 바뀌지만 다시 계산되는 건 새벽 배치라 parts 는 무효화하지 않는다
+  setup: {
+    all: setupAll,
+    equipment: () => [...setupAll, 'equipment'] as const,
+    maintenance: () => [...setupAll, 'maintenance'] as const,
+    suppliers: () => [...setupAll, 'suppliers'] as const,
+  },
+  // 승인이 생기면 reports.all 도 무효화한다 (발주 기록·PDF는 승인 직후 만들어진다)
+  reports: {
+    all: reportsAll,
+    purchaseOrders: () => [...reportsAll, 'purchase-orders'] as const,
+    sim: () => [...reportsAll, 'sim'] as const,
   },
   auth: {
     all: authAll,

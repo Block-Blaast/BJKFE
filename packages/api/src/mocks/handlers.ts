@@ -38,6 +38,7 @@ import type {
 import type { StockForecast, StockPoint } from '../types/forecast';
 import type { Part, StockMovement } from '../types/part';
 import { REVIEW_FIXTURES } from './fixtures/reviews';
+import { recordPurchaseOrder, setupHandlers } from './setup';
 
 const NETWORK_DELAY = 400;
 const PENDING_TTL_MS = 10 * 60 * 1000;
@@ -490,6 +491,7 @@ const todayActivity = (): Activity[] => {
 };
 
 export const handlers = [
+  ...setupHandlers,
   http.get(ENDPOINTS.companySettings, async () => {
     await delay(NETWORK_DELAY);
     return HttpResponse.json(companySettings);
@@ -843,6 +845,7 @@ export const handlers = [
       decided_at: new Date().toISOString(),
     };
     decisions.set(key, structuredClone(review));
+    recordPurchaseOrder(review);
     return HttpResponse.json(review);
   }),
 

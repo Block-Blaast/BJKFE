@@ -21,9 +21,11 @@ export const setRequestGate = (gate: Promise<unknown>) => {
 // 응답 래퍼 형식은 백엔드가 정해지면 여기서 벗긴다. 지금은 JSON 바디를 그대로 돌려준다.
 export const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   if (requestGate) await requestGate;
+  // 파일 업로드(FormData)는 브라우저가 boundary 를 붙인 Content-Type 을 직접 정해야 한다
+  const isForm = init?.body instanceof FormData;
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
+    headers: isForm ? init?.headers : { 'Content-Type': 'application/json', ...init?.headers },
   });
 
   const body: unknown = res.status === 204 ? undefined : await res.json().catch(() => undefined);

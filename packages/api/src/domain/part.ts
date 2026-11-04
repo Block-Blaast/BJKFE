@@ -17,6 +17,20 @@ export type DemandPattern = keyof typeof DEMAND_PATTERNS;
 export const CATEGORIES = ['베어링', 'V벨트·전동벨트', '볼트·너트', '절삭유·윤활유'] as const;
 export type Category = (typeof CATEGORIES)[number];
 
+export const IMPORT_DEPENDENCIES = ['높음', '중간', '낮음'] as const;
+export type ImportDependency = (typeof IMPORT_DEPENDENCIES)[number];
+
+// 카테고리를 정하면 붙는 기본값 (F-SETUP-03 표). HS 코드는 확장용이라 화면에서 참고로만 보여준다.
+export const CATEGORY_DEFAULTS: Record<
+  Category,
+  { importDependency: ImportDependency; factors: string[]; hsCode: string }
+> = {
+  베어링: { importDependency: '높음', factors: ['해상운임', '환율', '명절(춘절)'], hsCode: '8482' },
+  'V벨트·전동벨트': { importDependency: '중간', factors: ['환율', '명절'], hsCode: '4010' },
+  '볼트·너트': { importDependency: '낮음', factors: ['명절(국내)'], hsCode: '7318' },
+  '절삭유·윤활유': { importDependency: '중간', factors: ['환율', '명절'], hsCode: '석유제품군' },
+};
+
 // 외부 요인 위험도 (F-EXT-02: |z| < 1 정상, 1~2 주의, 2 이상 높음)
 export const RISK_LEVELS = ['정상', '주의', '높음'] as const;
 export type RiskLevel = (typeof RISK_LEVELS)[number];

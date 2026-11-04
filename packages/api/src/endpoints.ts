@@ -31,4 +31,15 @@ export const ENDPOINTS = {
   chatInbox: '/api/chat/inbox',
   chatPendingConfirm: (pendingId: string) => `/api/chat/pending/${pendingId}/confirm`,
   chatPendingCancel: (pendingId: string) => `/api/chat/pending/${pendingId}/cancel`,
+  // 기준 정보 (W-08, F-SETUP)
+  partImports: '/api/setup/part-imports',
+  partImportConfirm: (id: string) => `/api/setup/part-imports/${id}/confirm`,
+  equipment: '/api/setup/equipment',
+  maintenance: '/api/setup/maintenance',
+  maintenanceComplete: (id: string) => `/api/setup/maintenance/${id}/complete`,
+  suppliers: '/api/setup/suppliers',
+  supplierPrices: (id: string) => `/api/setup/suppliers/${id}/prices`,
+  // 리포트 (W-09)
+  purchaseOrders: '/api/purchase-orders',
+  simReports: '/api/sim-reports',
 } as const;
