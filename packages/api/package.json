@@ -13,7 +13,8 @@
     "./chat": "./src/chat.ts",
     "./types/*": "./src/types/*.ts",
     "./mocks": "./src/mocks/handlers.ts",
-    "./briefing": "./src/briefing.ts"
+    "./briefing": "./src/briefing.ts",
+    "./auth": "./src/auth.ts"
   },
   "scripts": {
     "lint": "eslint .",

@@ -5,9 +5,17 @@ import { delay, http, HttpResponse } from 'msw';
 import { APPROVAL_ACTIONS } from '../domain/review';
 import { ENDPOINTS } from '../endpoints';
 import type { ChatCard, ChatIntent, ChatTurn, SendChatInput } from '../types/chat';
+import type {
+  AcceptInviteInput,
+  AuthResult,
+  EmailLoginInput,
+  PinLoginInput,
+  SignupInput,
+} from '../types/auth';
 import type { Briefing } from '../types/briefing';
 import type { Review, ReviewDecisionInput } from '../types/review';
 import { AUDIT_FIXTURES } from './fixtures/audits';
+import { MOCK_COMPANY, MOCK_INVITES, MOCK_MEMBERS, MOCK_OWNER } from './fixtures/auth';
 import { PART_FIXTURES, type MockPart } from './fixtures/parts';
 import { REVIEW_FIXTURES } from './fixtures/reviews';
 
@@ -129,6 +137,24 @@ const replyToChat = ({ text }: SendChatInput): ChatTurn => {
   };
 };
 
+// ---- 인증 (F-AUTH-01·02) ----
+const PIN_MAX_FAILS = 5;
+const PIN_LOCK_MS = 10 * 60 * 1000;
+const members = MOCK_MEMBERS.map((m) => ({ ...m }));
+const pinFails = new Map<string, { count: number; lockedUntil: number }>();
+const usedInvites = new Set<string>();
+const ownerEmails = new Set([MOCK_OWNER.email]);
+
+const authResult = (user: {
+  id: string;
+  name: string;
+  role: AuthResult['user']['role'];
+}): AuthResult => ({
+  access_token: `mock-access-${user.id}`,
+  refresh_token: `mock-refresh-${user.id}`,
+  user: { ...user, company: MOCK_COMPANY },
+});
+
 // 긴급 → 최근 요청 순 (W-02: 긴급 건 최상단)
 const byUrgencyThenRecent = (a: Review, b: Review) =>
   Number(b.flags.includes('긴급')) - Number(a.flags.includes('긴급')) ||
@@ -139,6 +165,110 @@ const byLoss = (a: Review, b: Review) =>
   (b.risk_if_not_ordered.loss ?? -1) - (a.risk_if_not_ordered.loss ?? -1);
 
 export const handlers = [
+  http.post(ENDPOINTS.signup, async ({ request }) => {
+    await delay(NETWORK_DELAY);
+    const input = (await request.json()) as SignupInput;
+    if (input.password.length < 8) {
+      return HttpResponse.json({ message: '비밀번호는 8자 이상이어야 해요.' }, { status: 400 });
+    }
+    if (ownerEmails.has(input.email.trim().toLowerCase())) {
+      return HttpResponse.json({ message: '이미 가입된 이메일이에요.' }, { status: 409 });
+    }
+    ownerEmails.add(input.email.trim().toLowerCase());
+    return HttpResponse.json(authResult({ id: 'us-new-owner', name: input.name, role: 'owner' }));
+  }),
+
+  http.post(ENDPOINTS.emailLogin, async ({ request }) => {
+    await delay(NETWORK_DELAY);
+    const { email, password } = (await request.json()) as EmailLoginInput;
+    if (email.trim().toLowerCase() !== MOCK_OWNER.email || password !== MOCK_OWNER.password) {
+      return HttpResponse.json({ message: '이메일 또는 비밀번호가 맞지 않아요.' }, { status: 401 });
+    }
+    return HttpResponse.json(
+      authResult({ id: MOCK_OWNER.id, name: MOCK_OWNER.name, role: 'owner' }),
+    );
+  }),
+
+  http.get(ENDPOINTS.companyMembers(':code'), async ({ params }) => {
+    await delay(NETWORK_DELAY);
+    if (params.code !== MOCK_COMPANY.code) {
+      return HttpResponse.json({ message: '회사를 찾을 수 없어요.' }, { status: 404 });
+    }
+    return HttpResponse.json(members.map(({ id, name, role }) => ({ id, name, role })));
+  }),
+
+  // 연속 5회 실패하면 10분 잠금 (F-AUTH-02). 잠금 응답 코드(423)는 임시 — 백엔드와 맞춘다.
+  http.post(ENDPOINTS.pinLogin, async ({ request }) => {
+    await delay(NETWORK_DELAY);
+    const { user_id: userId, pin } = (await request.json()) as PinLoginInput;
+    const member = members.find((m) => m.id === userId);
+    if (!member) return HttpResponse.json({ message: '직원을 찾을 수 없어요.' }, { status: 404 });
+
+    const fails = pinFails.get(userId) ?? { count: 0, lockedUntil: 0 };
+    if (fails.lockedUntil > Date.now()) {
+      const minutes = Math.ceil((fails.lockedUntil - Date.now()) / 60000);
+      return HttpResponse.json(
+        { message: `PIN을 5번 틀려서 잠겼어요. ${minutes}분 뒤에 다시 시도하세요.` },
+        { status: 423 },
+      );
+    }
+    if (member.pin !== pin) {
+      const count = fails.count + 1;
+      const locked = count >= PIN_MAX_FAILS;
+      pinFails.set(userId, {
+        count: locked ? 0 : count,
+        lockedUntil: locked ? Date.now() + PIN_LOCK_MS : 0,
+      });
+      return locked
+        ? HttpResponse.json({ message: 'PIN을 5번 틀려서 10분 동안 잠겼어요.' }, { status: 423 })
+        : HttpResponse.json(
+            { message: `PIN이 맞지 않아요. (${count}/${PIN_MAX_FAILS})` },
+            { status: 401 },
+          );
+    }
+    pinFails.delete(userId);
+    return HttpResponse.json(authResult(member));
+  }),
+
+  // 만료·사용된 초대는 410 (임시 — 백엔드와 맞춘다)
+  http.get(ENDPOINTS.invite(':token'), async ({ params }) => {
+    await delay(NETWORK_DELAY);
+    const token = String(params.token);
+    const invite = MOCK_INVITES[token];
+    if (!invite) return HttpResponse.json({ message: '초대를 찾을 수 없어요.' }, { status: 404 });
+    if (invite.used || invite.expired || usedInvites.has(token)) {
+      return HttpResponse.json({ message: '사장님께 새 QR을 요청하세요.' }, { status: 410 });
+    }
+    return HttpResponse.json({
+      role: invite.role,
+      company: { name: MOCK_COMPANY.name, code: MOCK_COMPANY.code },
+      expires_at: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
+    });
+  }),
+
+  http.post(ENDPOINTS.acceptInvite(':token'), async ({ params, request }) => {
+    await delay(NETWORK_DELAY);
+    const token = String(params.token);
+    const invite = MOCK_INVITES[token];
+    if (!invite || invite.used || invite.expired || usedInvites.has(token)) {
+      return HttpResponse.json({ message: '사장님께 새 QR을 요청하세요.' }, { status: 410 });
+    }
+    const { name, pin } = (await request.json()) as AcceptInviteInput;
+    if (!/^\d{4}$/.test(pin)) {
+      return HttpResponse.json({ message: 'PIN은 숫자 4자리예요.' }, { status: 400 });
+    }
+    if (members.some((m) => m.name === name.trim())) {
+      return HttpResponse.json(
+        { message: '같은 이름의 직원이 있어요. 구분되게 적어 주세요.' },
+        { status: 409 },
+      );
+    }
+    usedInvites.add(token);
+    const member = { id: `us-${crypto.randomUUID()}`, name: name.trim(), role: invite.role, pin };
+    members.push(member);
+    return HttpResponse.json(authResult(member));
+  }),
+
   http.get(ENDPOINTS.reviews, async ({ request }) => {
     await delay(NETWORK_DELAY);
     const params = new URL(request.url).searchParams;

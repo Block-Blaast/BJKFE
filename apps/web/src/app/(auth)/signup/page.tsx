@@ -1,24 +1,12 @@
 import type { Metadata } from 'next';
 
-import PagePlaceholder from '@/components/ui/PagePlaceholder';
+import SignupForm from '@/components/auth/SignupForm';
 
-export const metadata: Metadata = { title: '사장님 가입' };
+export const metadata: Metadata = { title: '회사 등록' };
 
-const ELEMENTS = [
-  '회사명, 이름, 이메일, 비밀번호(8자 이상)',
-  '이메일 중복 409 처리',
-  '가입 후 기준 정보(W-08)로 안내',
-];
-
+// 가입 후 첫 화면은 기준 정보(W-08) 안내가 맞다 — 역할별 첫 화면을 넣을 때 함께 정한다 TODO(auth)
 const SignupPage = () => {
-  return (
-    <PagePlaceholder
-      specId="F-AUTH-01"
-      title="사장님 가입"
-      description="회사를 만들고 사장님 계정으로 시작해요."
-      elements={ELEMENTS}
-    />
-  );
+  return <SignupForm />;
 };
 
 export default SignupPage;

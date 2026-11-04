@@ -1,6 +1,12 @@
 // 엔드포인트 경로 — 임시. 명세서에 HTTP 경로가 없어서 화면 개발용으로 정했다.
 // 백엔드 OpenAPI 가 나오면 여기만 고친다(목업 핸들러도 이 상수를 쓴다).
 export const ENDPOINTS = {
+  signup: '/api/auth/signup',
+  emailLogin: '/api/auth/login',
+  pinLogin: '/api/auth/pin-login',
+  companyMembers: (companyCode: string) => `/api/companies/${companyCode}/members`,
+  invite: (token: string) => `/api/invites/${token}`,
+  acceptInvite: (token: string) => `/api/invites/${token}/accept`,
   reviews: '/api/reviews',
   myRequests: '/api/me/requests',
   briefing: '/api/briefing',
