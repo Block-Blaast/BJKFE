@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 
 import { pretendard } from '@bjk/ui/fonts';
 
+import MockProvider from '@/providers/mock-provider';
 import QueryProvider from '@/providers/query-provider';
 
 import './globals.css';
@@ -19,7 +20,9 @@ const RootLayout = ({ children }: LayoutProps<'/'>) => {
   return (
     <html lang="ko" className={`${pretendard.variable} h-full`}>
       <body className="flex min-h-full flex-col">
-        <QueryProvider>{children}</QueryProvider>
+        <MockProvider>
+          <QueryProvider>{children}</QueryProvider>
+        </MockProvider>
       </body>
     </html>
   );

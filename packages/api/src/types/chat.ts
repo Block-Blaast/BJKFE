@@ -1,0 +1,45 @@
+// 채팅 기록 — 임시 계약.
+// 명세서 F-CHAT-01(추출 필드)·F-CHAT-02(확인 카드 4종)를 화면 단위로 옮긴 것이고, HTTP 형식은 명세서에 없다.
+// 백엔드 OpenAPI 가 나오면 생성된 타입으로 교체하고, 이 파일을 지운다.
+
+export const CHAT_INTENTS = ['출고', '입고', '실사', '조회', '발주요청', '기타'] as const;
+export type ChatIntent = (typeof CHAT_INTENTS)[number];
+
+export type ChatPartRef = {
+  part_id: string;
+  part_name: string;
+  spec: string | null;
+};
+
+type PendingBase = {
+  // 확인 전에는 서버의 pending_entries 에 있고 10분 뒤 만료된다 (F-CHAT-02)
+  pending_id: string;
+  intent: ChatIntent;
+  qty: number;
+  unit: string;
+  expires_at: string;
+};
+
+export type ChatCard =
+  | (PendingBase & { type: 'confirm'; part: ChatPartRef })
+  | (PendingBase & { type: 'select'; part_text: string; candidates: ChatPartRef[] })
+  | (PendingBase & { type: 'warning'; part: ChatPartRef; past_max: number })
+  | { type: 'unregistered'; intent: ChatIntent; part_text: string; qty: number; unit: string };
+
+export type ChatTurn = {
+  reply: string;
+  card?: ChatCard;
+  // 발주 요청이 검토로 넘어갔을 때 (F-CHAT-04)
+  review_id?: string;
+};
+
+export type SendChatInput = {
+  // 재전송해도 한 번만 기록되도록 프론트가 만든다 (F-LEDGER-01)
+  client_message_id: string;
+  text: string;
+};
+
+export type ConfirmPendingInput = {
+  // 선택 카드에서 고른 부품. 확인·경고 카드는 비운다.
+  part_id?: string;
+};

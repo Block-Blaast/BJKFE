@@ -49,3 +49,33 @@ export const APPROVAL_ACTIONS = {
   reject: '반려',
 } as const;
 export type ApprovalAction = keyof typeof APPROVAL_ACTIONS;
+
+// 근거 숫자의 기호 (F-REVIEW-02). 의견서·근거 표에서 기호 옆에 뜻을 붙여 보여준다.
+export type FactKind = 'qty' | 'won' | 'date' | 'days' | 'months' | 'number' | 'text';
+
+export const FACTS: Record<string, { label: string; kind: FactKind }> = {
+  Q: { label: '요청 수량', kind: 'qty' },
+  S: { label: '현재 재고', kind: 'qty' },
+  O: { label: '입고 예정', kind: 'qty' },
+  H: { label: '숨은 재고', kind: 'qty' },
+  m: { label: '월 소모량', kind: 'qty' },
+  F: { label: '확정 필요량(정비)', kind: 'qty' },
+  D95: { label: '기간 필요량 상위 95%', kind: 'qty' },
+  D99: { label: '기간 필요량 상위 99%', kind: 'qty' },
+  R: { label: '권장 발주량', kind: 'qty' },
+  MOQ: { label: '최소 주문 수량', kind: 'qty' },
+  LT50: { label: '납기 보통', kind: 'days' },
+  LT90: { label: '납기 늦을 때', kind: 'days' },
+  months: { label: '소진까지 걸리는 기간', kind: 'months' },
+  t_out: { label: '소진 예상일', kind: 'date' },
+  t_deadline: { label: '발주 마감일', kind: 'date' },
+  eta: { label: '입고 예정일', kind: 'date' },
+  L: { label: '결품 시 예상 손실', kind: 'won' },
+  unit_price: { label: '요청 단가', kind: 'won' },
+  p_mean: { label: '최근 평균 단가', kind: 'won' },
+  p_sd: { label: '단가 표준편차', kind: 'won' },
+  n: { label: '최근 구매 건수', kind: 'number' },
+  alt_supplier: { label: '더 싼 공급사', kind: 'text' },
+  alt_unit_price: { label: '그 공급사 단가', kind: 'won' },
+  holiday: { label: '납기 중 연휴', kind: 'text' },
+};

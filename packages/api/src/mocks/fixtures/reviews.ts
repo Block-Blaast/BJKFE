@@ -1,0 +1,101 @@
+// 개발용 목업 — 명세서 F-REVIEW-10 예시 4건을 F-REVIEW-07 구조로 옮겼다.
+// 명세서에 없는 값은 비워 두었다(null). 의견서 문장은 F-REVIEW-08 구성 순서를 따라 예시 숫자로만 썼다.
+import type { Review } from '../../types/review';
+
+const COMPUTED_AT = '2026-11-05T03:00:00+09:00';
+
+export const REVIEW_FIXTURES: Review[] = [
+  {
+    id: 'rv-vbelt-a42',
+    status: '검토완료',
+    part: { id: 'pt-vbelt-a42', name: 'V벨트 A-42', unit: '개' },
+    requester: 'worker',
+    verdict: '수정 권고',
+    flags: [],
+    checks: [
+      { code: 'C-01', level: '경고', facts: { S: 2, O: 10, Q: 30, D99: 5 } },
+      { code: 'C-02', level: '경고', facts: { Q: 30, m: 1.5, months: 20 } },
+      { code: 'C-03', level: '경고', facts: { O: 10, eta: '2026-11-08' } },
+      { code: 'C-05', level: '경고', facts: { unit_price: 18000, p_mean: 13000 } },
+      { code: 'C-06', level: '정보', facts: { unit_price: 18000 } },
+    ],
+    original: { qty: 30, supplier: 'A', unit_price: 18000, total: 540000 },
+    proposal: { qty: 0, supplier: null, unit_price: null, total: 0, saving: 540000 },
+    risk_if_not_ordered: { stockout_date: null, equipment: [], loss: 0 },
+    opinion: [
+      '수정 권고 — 이번 발주는 필요하지 않아요.',
+      '현재 재고 2개에 11월 8일 입고 예정 10개가 있어, 대비 기간 필요량(상위 95%) 4개를 이미 넘어요.',
+      '요청한 30개를 더하면 42개로, 넉넉히 잡은 필요량(상위 99%) 5개보다 훨씬 많아요. 월 1.5개씩 쓰면 20개월 치예요.',
+      '요청 단가 18,000원은 최근 평균 13,000원보다 높아요.',
+      '수정안: 발주하지 않음 — 540,000원 절감.',
+    ].join('\n'),
+    snapshot_id: 'snap-vbelt-a42-20261105',
+    computed_at: COMPUTED_AT,
+  },
+  {
+    id: 'rv-bearing-6205zz',
+    status: '검토완료',
+    part: { id: 'pt-bearing-6205zz', name: '볼베어링 6205ZZ', unit: '개' },
+    requester: 'system',
+    verdict: '적정',
+    flags: ['긴급'],
+    checks: [
+      { code: 'C-08', level: '긴급', facts: { t_deadline: '2026-11-09', LT90: 11 } },
+      { code: 'C-09', level: '정보', facts: { LT90: 11 } },
+    ],
+    original: { qty: 10, supplier: '○○베어링상사', unit_price: 18000, total: 180000 },
+    proposal: { qty: 10, supplier: '○○베어링상사', unit_price: 18000, total: 180000, saving: 0 },
+    risk_if_not_ordered: { stockout_date: '2026-11-20', equipment: [], loss: null },
+    opinion: [
+      '적정 · 긴급 — 11월 9일까지 발주해야 해요.',
+      '현재 재고 3개, 11월 20일 정비에 4개가 필요해요. 대비 기간 필요량(상위 95%)은 11개예요.',
+      '해상운임 상승을 반영해 늦을 때 납기를 11일로 잡았어요.',
+      '권장 발주량 8개를 최소 주문 수량에 맞춰 10개로 올리면 초안과 같아요.',
+      '발주하지 않으면 11월 20일께 재고가 바닥나요.',
+    ].join('\n'),
+    snapshot_id: 'snap-bearing-6205zz-20261105',
+    computed_at: COMPUTED_AT,
+  },
+  {
+    id: 'rv-bolt-m8x20',
+    status: '검토완료',
+    part: { id: 'pt-bolt-m8x20', name: '육각볼트 M8×20', unit: '개' },
+    requester: 'worker',
+    verdict: '수정 권고',
+    flags: [],
+    checks: [{ code: 'C-04', level: '경고', facts: { H: 800, S: 40, D95: 120 } }],
+    original: { qty: 50, supplier: null, unit_price: null, total: null },
+    proposal: { qty: 0, supplier: null, unit_price: null, total: 0, saving: null },
+    risk_if_not_ordered: { stockout_date: null, equipment: [], loss: 0 },
+    opinion: [
+      '수정 권고 — 이번 발주는 필요하지 않아요.',
+      '같은 규격(M8×20)이 다른 이름으로 800개 등록돼 있어요. 현재 재고 40개와 합치면 대비 기간 필요량 120개를 넘어요.',
+      '수정안: 발주하지 않음. 두 부품을 하나로 병합하는 것을 권해요.',
+    ].join('\n'),
+    snapshot_id: 'snap-bolt-m8x20-20261105',
+    computed_at: COMPUTED_AT,
+  },
+  {
+    id: 'rv-bearing-6204',
+    status: '검토완료',
+    part: { id: 'pt-bearing-6204', name: '볼베어링 6204', unit: '개' },
+    requester: 'manager',
+    verdict: '수정 권고',
+    flags: [],
+    checks: [
+      { code: 'C-05', level: '경고', facts: { unit_price: 21000, p_mean: 15500, p_sd: 900 } },
+      { code: 'C-06', level: '정보', facts: { alt_supplier: 'B', alt_unit_price: 14800 } },
+    ],
+    original: { qty: 10, supplier: null, unit_price: 21000, total: 210000 },
+    proposal: { qty: 10, supplier: 'B', unit_price: 14800, total: 148000, saving: 62000 },
+    risk_if_not_ordered: { stockout_date: null, equipment: [], loss: null },
+    opinion: [
+      '수정 권고 — 수량은 그대로, 공급사를 바꾸면 62,000원 아낄 수 있어요.',
+      '요청 단가 21,000원은 최근 평균 15,500원(변동폭 900원)보다 크게 높아요.',
+      '공급사 B는 14,800원이고 필요 시점 안에 받을 수 있어요.',
+      '수정안: 10개, 공급사 B — 148,000원 (62,000원 절감).',
+    ].join('\n'),
+    snapshot_id: 'snap-bearing-6204-20261105',
+    computed_at: COMPUTED_AT,
+  },
+];

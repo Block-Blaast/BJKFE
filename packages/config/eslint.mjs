@@ -3,7 +3,14 @@ import nextVitals from 'eslint-config-next/core-web-vitals';
 import nextTs from 'eslint-config-next/typescript';
 import prettier from 'eslint-config-prettier/flat';
 
-const ignores = globalIgnores(['.next/**', 'out/**', 'build/**', 'dist/**', 'next-env.d.ts']);
+const ignores = globalIgnores([
+  '.next/**',
+  'out/**',
+  'build/**',
+  'dist/**',
+  'public/**',
+  'next-env.d.ts',
+]);
 
 // Next 앱용 (apps/*)
 export const nextConfig = [

@@ -22,3 +22,9 @@ const computedAtFormat = new Intl.DateTimeFormat('ko-KR', {
 
 // 예: "11. 5. 03:00"
 export const formatComputedAt = (iso: string) => computedAtFormat.format(new Date(iso));
+
+// 'YYYY-MM-DD' (서버 날짜) → "11월 8일"
+export const formatDate = (ymd: string) => {
+  const [, month, day] = ymd.split('-').map(Number);
+  return `${month}월 ${day}일`;
+};
