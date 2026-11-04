@@ -1,6 +1,7 @@
 ---
 paths:
-  - 'src/**/*.{ts,tsx,js,jsx}'
+  - 'apps/*/src/**/*.{ts,tsx,js,jsx}'
+  - 'packages/*/src/**/*.ts'
 ---
 
 # 코딩 스타일
@@ -25,7 +26,9 @@ paths:
   - 훅·유틸 함수도 화살표 함수(`export const useFoo = () => {}`)로 씁니다.
 
 - 컴포넌트 파일명은 PascalCase(`ProfileCard.tsx`), 훅은 `useXxx.ts`, 그 외는 camelCase입니다. 라우트 폴더는 kebab-case입니다.
-- import 경로는 `@/` 별칭을 씁니다. 같은 폴더 안이 아니라면 `../` 상대 경로를 쓰지 마세요.
+- 앱 안에서는 `@/` 별칭(`apps/<앱>/src/*`)을 씁니다. 같은 폴더 안이 아니라면 `../` 상대 경로를 쓰지 마세요.
+- 내부 패키지는 패키지 이름으로 import 합니다(`@bjk/api/client`). `../../packages/...` 같은 상대 경로는 금지입니다.
+- `packages/*` 안에는 `@/` 별칭이 없습니다. 패키지 내부 import는 상대 경로를 씁니다.
 
 ## 서버 컴포넌트 · 클라이언트 컴포넌트
 

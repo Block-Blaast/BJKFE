@@ -1,9 +1,12 @@
-import { defineConfig, globalIgnores } from 'eslint/config';
+import { globalIgnores } from 'eslint/config';
 import nextVitals from 'eslint-config-next/core-web-vitals';
 import nextTs from 'eslint-config-next/typescript';
 import prettier from 'eslint-config-prettier/flat';
 
-const eslintConfig = defineConfig([
+const ignores = globalIgnores(['.next/**', 'out/**', 'build/**', 'dist/**', 'next-env.d.ts']);
+
+// Next 앱용 (apps/*)
+export const nextConfig = [
   ...nextVitals,
   ...nextTs,
   {
@@ -17,7 +20,8 @@ const eslintConfig = defineConfig([
     },
   },
   prettier,
-  globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts']),
-]);
+  ignores,
+];
 
-export default eslintConfig;
+// React 컴포넌트가 없는 TS 패키지용 (packages/*)
+export const baseConfig = [...nextTs, prettier, ignores];

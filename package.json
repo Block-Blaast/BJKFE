@@ -1,47 +1,28 @@
 {
   "name": "bjkfe",
-  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "dev": "turbo run dev",
+    "dev:user": "turbo run dev --filter=@bjk/user",
+    "dev:admin": "turbo run dev --filter=@bjk/admin",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "typecheck": "turbo run typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit",
     "prepare": "husky"
   },
-  "dependencies": {
-    "@tanstack/react-query": "^5.105.3",
-    "next": "16.4.4",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "zustand": "^5.0.16"
-  },
   "devDependencies": {
-    "@tailwindcss/turbopack": "^4",
-    "@tanstack/react-query-devtools": "^5.105.3",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.4.4",
-    "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
     "prettier": "^3.9.10",
     "prettier-plugin-tailwindcss": "^0.8.1",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "turbo": "^2.11.10",
+    "typescript": "^5.9.3"
   },
   "packageManager": "pnpm@12.16.1",
   "lint-staged": {
-    "*.{js,jsx,ts,tsx,mjs}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
     "*.{json,md,css,yml,yaml}": [
       "prettier --write"
     ]

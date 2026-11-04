@@ -20,7 +20,7 @@ if (rel === 'pnpm-lock.yaml') {
     'pnpm-lock.yaml은 직접 수정할 수 없습니다. `pnpm add`/`pnpm remove`/`pnpm install`로 갱신하세요.',
   );
 }
-if (rel === 'next-env.d.ts') {
+if (/^apps\/[^/]+\/next-env\.d\.ts$/.test(rel)) {
   block('next-env.d.ts는 Next.js가 자동 생성하는 파일입니다. 직접 수정하지 마세요.');
 }
 
@@ -43,7 +43,9 @@ if (tool === 'MultiEdit') {
 // 적용할 수 없는 편집은 도구가 스스로 실패하므로 여기서는 통과시킨다.
 if (after === null) process.exit(0);
 
-if (/^src\/.+\.[jt]sx$/.test(rel)) {
+const appMatch = rel.match(/^apps\/([^/]+)\/src\/.+\.[jt]sx$/);
+if (appMatch) {
+  const stylesheet = `apps/${appMatch[1]}/src/app/globals.css`;
   const patterns = [
     /(?<![\w-])-?(?:p[xytblrse]?|m[xytblrse]?|gap(?:-[xy])?|space-[xy]|rounded(?:-(?:[tblrse]|tl|tr|bl|br|ss|se|es|ee))?|text|bg|leading|tracking)-\[[^\]\s]+\]/g,
     /(?<![\w-])(?:border(?:-[xytblrse])?|ring|outline|fill|stroke|shadow|divide|placeholder|decoration)-\[(?:#|rgba?\(|hsla?\()[^\]\s]*\]/g,
@@ -62,7 +64,7 @@ if (/^src\/.+\.[jt]sx$/.test(rel)) {
   if (added.length) {
     block(
       `간격·반경·색·폰트 크기에 임의값을 쓸 수 없습니다: ${added.join(', ')}\n` +
-        'Tailwind 기본 스케일(`p-4`, `rounded-md`, `text-sm`)이나 `src/app/globals.css`의 `@theme` 토큰을 쓰고, ' +
+        `Tailwind 기본 스케일(\`p-4\`, \`rounded-md\`, \`text-sm\`)이나 \`${stylesheet}\`의 \`@theme\` 토큰을 쓰고, ` +
         '맞는 토큰이 없으면 `@theme`에 먼저 추가하세요. 요소 크기(`w-[60px]`, `h-[...]`)는 허용됩니다.',
     );
   }

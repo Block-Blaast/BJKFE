@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 
-# CodeRabbit 설정 — BJKFE
+# CodeRabbit 설정 — BJKFE (pnpm + Turborepo 모노레포)
 # 프로젝트 규약은 AGENTS.md 와 .claude/rules/ 를 따릅니다. 아래 path_instructions 는 그 규약을 리뷰에 반영하기 위한 요약입니다.
 
 language: ko-KR
@@ -23,37 +23,55 @@ reviews:
 
   path_filters:
     - '!**/node_modules/**'
-    - '!.next/**'
-    - '!public/**'
+    - '!**/.next/**'
+    - '!**/.turbo/**'
+    - '!apps/*/public/**'
     - '!pnpm-lock.yaml'
-    - '!next-env.d.ts'
+    - '!**/next-env.d.ts'
 
   path_instructions:
     - path: '**/*.{ts,tsx}'
       instructions: |
         - 컴포넌트는 화살표 함수(`const Name = () => {}`)로 선언하고 파일 끝에서 `export default Name` 한다.
         - props 타입은 `<컴포넌트명>Props` 이름의 `type` 으로 선언한다. `any` 지양.
+        - useMemo/useCallback/React.memo 를 근거 없이 남발하지 않는다.
+        - 기존 "왜" 주석을 근거 없이 지우지 않는다.
+    - path: 'apps/**/*.{ts,tsx}'
+      instructions: |
+        - apps/user 와 apps/admin 은 서로 import 하지 않는다. 공유가 필요하면 packages/ 로 옮긴다.
+        - 내부 패키지는 `@bjk/*` 이름으로 import 한다. `../../packages/` 상대 경로 금지.
         - 기본은 서버 컴포넌트다. 'use client' 는 상태·이벤트·브라우저 API·Query/Zustand 가 필요한
           작은 컴포넌트에만 붙인다. 페이지 전체를 클라이언트로 만드는 변경을 지적한다.
         - page.tsx 의 params/searchParams 는 Promise 이므로 await 해서 쓴다.
-        - useMemo/useCallback/React.memo 를 근거 없이 남발하지 않는다.
-        - 기존 "왜" 주석을 근거 없이 지우지 않는다.
-    - path: 'src/{api,hooks,types}/**/*.ts'
-      instructions: |
-        - 요청은 src/api/client.ts 의 request 를 거친다. 훅·컴포넌트에서 fetch 직접 호출 금지.
-        - 쿼리 키는 src/api/queryKeys.ts 팩토리만 쓴다. 문자열 배열 직접 사용 금지.
+        - 앱에서 fetch 를 직접 호출하지 않고 @bjk/api 를 거친다.
         - 서버 데이터를 Zustand 스토어에 복사하지 않는다(Query 캐시가 유일한 출처).
         - 토스트 등 사용자 피드백은 훅의 onError 가 아니라 화면에서 처리한다.
-    - path: 'src/{app,components}/**/*.tsx'
+    - path: 'apps/*/src/**/*.tsx'
       instructions: |
         - 간격/색/반경/폰트 크기에 Tailwind 임의값(`p-[13px]`, `text-[#FF8800]`)을 쓰지 않는다.
-          기본 스케일이나 globals.css 의 @theme 토큰을 쓴다. 요소 크기(`w-[60px]`)는 허용.
+          기본 스케일이나 해당 앱 globals.css 의 @theme 토큰을 쓴다. 요소 크기(`w-[60px]`)는 허용.
         - 동적으로 조각낸 클래스명(`bg-${color}-500`)은 Tailwind 가 감지하지 못한다.
-        - 도메인 무관 UI 는 src/components/ui/, 도메인 전용은 src/components/<도메인>/ 에 둔다.
         - 이미지는 next/image, 내부 링크는 next/link 를 쓴다.
+    - path: 'apps/user/**/*.tsx'
+      instructions: |
+        - 모바일 우선. 기본 클래스가 모바일이고 sm:/md: 로 넓은 화면을 덮어쓴다.
+        - hover 에만 의존하는 UI, 44px 미만 터치 대상, h-screen(→ h-dvh) 사용을 지적한다.
+    - path: 'apps/admin/**/*.tsx'
+      instructions: |
+        - 데스크톱 전용. 모바일 대응 코드는 필요 없다.
+        - 목록의 필터·정렬·페이지 상태는 URL 쿼리스트링에 둔다(Zustand 금지).
+        - 삭제 등 되돌릴 수 없는 작업에 확인 단계가 있는지 본다.
+    - path: 'packages/api/**/*.ts'
+      instructions: |
+        - React 컴포넌트·useQuery 호출을 두지 않는다. 호출 함수, 타입, queryKeys, queryOptions 만 둔다.
+        - 쿼리 키는 queryKeys 팩토리만 쓴다. 문자열 배열 직접 사용 금지.
+        - 서버가 주지 않는 값을 반환 타입에 적지 않는다.
+        - 새 파일은 package.json 의 exports 에 등록됐는지 확인한다.
+        - 이 패키지의 변경은 user·admin 두 앱 모두에 영향을 준다.
     - path: '**/package.json'
       instructions: |
-        - 패키지 매니저는 pnpm 만 사용한다. `packageManager` 필드를 유지한다.
+        - 패키지 매니저는 pnpm 만 사용한다. 루트 `packageManager` 필드를 유지한다.
+        - 런타임 의존성은 그것을 쓰는 앱/패키지에 두고, 루트에는 개발 도구만 둔다.
 
   tools:
     eslint:
@@ -77,11 +95,15 @@ knowledge_base:
       - files: '.claude/rules/structure.md'
         applyTo: '**'
       - files: '.claude/rules/code-style.md'
-        applyTo: 'src/**/*.ts, src/**/*.tsx, src/**/*.js, src/**/*.jsx'
+        applyTo: 'apps/*/src/**, packages/*/src/**'
       - files: '.claude/rules/api.md'
-        applyTo: 'src/api/**, src/hooks/**, src/types/**, src/app/**'
+        applyTo: 'packages/api/**, apps/*/src/hooks/**, apps/*/src/app/**'
       - files: '.claude/rules/design-system.md'
-        applyTo: 'src/app/**, src/components/**'
+        applyTo: 'apps/*/src/**'
+      - files: '.claude/rules/user.md'
+        applyTo: 'apps/user/**'
+      - files: '.claude/rules/admin.md'
+        applyTo: 'apps/admin/**'
   learnings:
     scope: auto
   issues:

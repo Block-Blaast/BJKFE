@@ -1,0 +1,23 @@
+{
+  "name": "@bjk/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./eslint": "./eslint.mjs",
+    "./tsconfig/base.json": "./tsconfig/base.json",
+    "./tsconfig/nextjs.json": "./tsconfig/nextjs.json"
+  },
+  "dependencies": {
+    "eslint-config-next": "16.4.4",
+    "eslint-config-prettier": "^10.1.8"
+  },
+  "peerDependencies": {
+    "eslint": "^9"
+  },
+  "lint-staged": {
+    "*.{mjs,json}": [
+      "prettier --write"
+    ]
+  }
+}

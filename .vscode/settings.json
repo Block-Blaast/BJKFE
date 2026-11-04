@@ -8,5 +8,17 @@
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "files.associations": {
     "*.css": "tailwindcss"
+  },
+  "eslint.workingDirectories": [
+    {
+      "pattern": "apps/*/"
+    },
+    {
+      "pattern": "packages/*/"
+    }
+  ],
+  "tailwindCSS.experimental.configFile": {
+    "apps/user/src/app/globals.css": "apps/user/src/**",
+    "apps/admin/src/app/globals.css": "apps/admin/src/**"
   }
 }
