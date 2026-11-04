@@ -1,11 +1,14 @@
 // 쿼리 키 팩토리. 훅에서 문자열 배열을 직접 쓰지 말고 여기에 도메인별로 추가한다.
 // 무효화는 도메인의 `all`로 하면 접두사가 같은 목록·상세가 함께 갱신된다.
 // SSE 이벤트(review.created, review.decided …)도 이 키로 무효화한다.
+import type { AuditListFilters } from './types/audit';
 import type { ReviewListFilters } from './types/review';
 
 const reviewsAll = ['reviews'] as const;
 const briefingAll = ['briefing'] as const;
 const authAll = ['auth'] as const;
+const auditsAll = ['audits'] as const;
+const mergeAll = ['merge-candidates'] as const;
 
 export const queryKeys = {
   reviews: {
@@ -18,8 +21,17 @@ export const queryKeys = {
   briefing: {
     all: briefingAll,
   },
+  audits: {
+    all: auditsAll,
+    list: (filters: AuditListFilters) => [...auditsAll, 'list', filters] as const,
+  },
+  mergeCandidates: {
+    all: mergeAll,
+  },
   auth: {
     all: authAll,
+    // 로그인한 회사의 직원 (실사 담당자 선택 등)
+    companyMembers: () => [...authAll, 'company-members'] as const,
     members: (companyCode: string) => [...authAll, 'members', companyCode] as const,
     invite: (token: string) => [...authAll, 'invite', token] as const,
   },

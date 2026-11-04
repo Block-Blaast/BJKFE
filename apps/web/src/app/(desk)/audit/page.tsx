@@ -1,23 +1,26 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 
-import PagePlaceholder from '@/components/ui/PagePlaceholder';
+import AuditBoard from '@/components/desk/AuditBoard';
 
 export const metadata: Metadata = { title: '장부 검증' };
 
-const ELEMENTS = [
-  '의심 항목과 사유, 등급순 (높음 → 중간 → 낮음, F-AUDIT-01~05)',
-  '[실사 요청] → 담당 작업자 채팅 (F-AUDIT-06)',
-  '처리 결과 (차이·사유, 이상 없음)',
-];
-
+// TODO(W-06): SSE(audit.flagged)로 실시간 갱신. 실사 응답(F-CHAT-05)이 들어오면 항목이 닫힌다.
 const AuditPage = () => {
   return (
-    <PagePlaceholder
-      specId="W-06"
-      title="장부 검증"
-      description="장부와 실물이 다를 것 같은 부품을 찾아 실사로 바로잡아요. 실시간 갱신(SSE)."
-      elements={ELEMENTS}
-    />
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-h1 text-text-heading">장부 검증</h1>
+        <p className="text-body-md text-text-secondary">
+          새벽 배치가 장부와 정비 기록·소모 패턴을 대조해 찾은 의심 품목이에요. 실사를 요청하면 담당
+          작업자에게 채팅으로 물어봐요.
+        </p>
+      </header>
+      {/* useSearchParams 는 요청 시점 값이라 Suspense 안에서 읽는다 (cacheComponents) */}
+      <Suspense fallback={<p className="text-body-md text-text-secondary">불러오는 중이에요…</p>}>
+        <AuditBoard />
+      </Suspense>
+    </div>
   );
 };
 

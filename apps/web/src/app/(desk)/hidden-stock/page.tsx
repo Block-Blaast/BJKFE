@@ -1,23 +1,21 @@
 import type { Metadata } from 'next';
 
-import PagePlaceholder from '@/components/ui/PagePlaceholder';
+import HiddenStockList from '@/components/desk/HiddenStockList';
 
 export const metadata: Metadata = { title: '숨은 재고' };
 
-const ELEMENTS = [
-  '중복 의심 쌍 목록',
-  '규격·재고 비교',
-  '[병합] (대표 부품 선택) / [다른 부품] (F-MATCH-03)',
-];
-
 const HiddenStockPage = () => {
   return (
-    <PagePlaceholder
-      specId="W-07"
-      title="숨은 재고"
-      description="이름만 다르게 등록된 같은 부품을 찾아 합쳐요."
-      elements={ELEMENTS}
-    />
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-h1 text-text-heading">숨은 재고</h1>
+        <p className="text-body-md text-text-secondary">
+          규격은 같은데 이름이 달라 따로 등록된 부품이에요. 합치면 &quot;있는데 또 사는&quot; 발주를
+          막을 수 있어요.
+        </p>
+      </header>
+      <HiddenStockList />
+    </div>
   );
 };
 

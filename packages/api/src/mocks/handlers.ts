@@ -2,6 +2,7 @@
 // 채팅 해석은 몇 가지 문장 패턴만 알아듣는다(실제 추출은 서버의 LLM, F-CHAT-01).
 import { delay, http, HttpResponse } from 'msw';
 
+import { AUDIT_GRADE_ORDER } from '../domain/audit';
 import { APPROVAL_ACTIONS } from '../domain/review';
 import { ENDPOINTS } from '../endpoints';
 import type { ChatCard, ChatIntent, ChatTurn, SendChatInput } from '../types/chat';
@@ -12,9 +13,10 @@ import type {
   PinLoginInput,
   SignupInput,
 } from '../types/auth';
+import type { AuditItem, MergeCandidate, MergeInput, RequestAuditInput } from '../types/audit';
 import type { Briefing } from '../types/briefing';
 import type { Review, ReviewDecisionInput } from '../types/review';
-import { AUDIT_FIXTURES } from './fixtures/audits';
+import { AUDIT_FIXTURES, MERGE_FIXTURES } from './fixtures/audits';
 import { MOCK_COMPANY, MOCK_INVITES, MOCK_MEMBERS, MOCK_OWNER } from './fixtures/auth';
 import { PART_FIXTURES, type MockPart } from './fixtures/parts';
 import { REVIEW_FIXTURES } from './fixtures/reviews';
@@ -155,6 +157,12 @@ const authResult = (user: {
   user: { ...user, company: MOCK_COMPANY },
 });
 
+// ---- 장부 검증·숨은 재고 (F-AUDIT, F-MATCH-03) ----
+const audits = new Map(AUDIT_FIXTURES.map((a) => [a.id, structuredClone(a)]));
+const mergeCandidates = new Map(MERGE_FIXTURES.map((m) => [m.id, structuredClone(m)]));
+const byGrade = (a: AuditItem, b: AuditItem) =>
+  AUDIT_GRADE_ORDER[a.grade] - AUDIT_GRADE_ORDER[b.grade];
+
 // 긴급 → 최근 요청 순 (W-02: 긴급 건 최상단)
 const byUrgencyThenRecent = (a: Review, b: Review) =>
   Number(b.flags.includes('긴급')) - Number(a.flags.includes('긴급')) ||
@@ -165,6 +173,75 @@ const byLoss = (a: Review, b: Review) =>
   (b.risk_if_not_ordered.loss ?? -1) - (a.risk_if_not_ordered.loss ?? -1);
 
 export const handlers = [
+  http.get(ENDPOINTS.members, async () => {
+    await delay(NETWORK_DELAY);
+    return HttpResponse.json(members.map(({ id, name, role }) => ({ id, name, role })));
+  }),
+
+  http.get(ENDPOINTS.audits, async ({ request }) => {
+    await delay(NETWORK_DELAY);
+    const status = new URL(request.url).searchParams.get('status') ?? 'active';
+    const list = [...audits.values()]
+      .filter((a) => (status === 'resolved' ? a.status === 'resolved' : a.status !== 'resolved'))
+      .sort(byGrade);
+    return HttpResponse.json(list);
+  }),
+
+  // 실사 요청 → 담당 작업자 채팅으로 "지금 몇 개 있나요? 장부상 N개예요." (F-AUDIT-06)
+  http.post(ENDPOINTS.auditRequest(':id'), async ({ params, request }) => {
+    await delay(NETWORK_DELAY);
+    const audit = audits.get(String(params.id));
+    if (!audit)
+      return HttpResponse.json({ message: '의심 항목을 찾을 수 없어요.' }, { status: 404 });
+    if (audit.status === 'resolved') {
+      return HttpResponse.json({ message: '이미 처리된 항목이에요.' }, { status: 409 });
+    }
+    const { assignee_id: assigneeId } = (await request.json()) as RequestAuditInput;
+    const assignee = members.find((m) => m.id === assigneeId);
+    if (!assignee) return HttpResponse.json({ message: '담당자를 골라 주세요.' }, { status: 400 });
+    audit.status = 'requested';
+    audit.request = {
+      assignee: { id: assignee.id, name: assignee.name },
+      requested_at: new Date().toISOString(),
+    };
+    return HttpResponse.json(audit);
+  }),
+
+  http.get(ENDPOINTS.mergeCandidates, async () => {
+    await delay(NETWORK_DELAY);
+    return HttpResponse.json([...mergeCandidates.values()]);
+  }),
+
+  // 병합해도 원장은 고치지 않는다 — 다른 쪽에 merged_into 를 두고 재고 계산 때 합산한다 (F-MATCH-03)
+  http.post(ENDPOINTS.merge(':id'), async ({ params, request }) => {
+    await delay(NETWORK_DELAY);
+    const candidate = mergeCandidates.get(String(params.id));
+    if (!candidate)
+      return HttpResponse.json({ message: '병합 후보를 찾을 수 없어요.' }, { status: 404 });
+    if (candidate.status !== 'open') {
+      return HttpResponse.json({ message: '이미 처리된 후보예요.' }, { status: 409 });
+    }
+    const { primary_part_id: primaryId } = (await request.json()) as MergeInput;
+    if (!candidate.parts.some((p) => p.id === primaryId)) {
+      return HttpResponse.json({ message: '대표 부품을 골라 주세요.' }, { status: 400 });
+    }
+    candidate.status = 'merged';
+    candidate.primary_part_id = primaryId;
+    return HttpResponse.json(candidate satisfies MergeCandidate);
+  }),
+
+  http.post(ENDPOINTS.dismissMerge(':id'), async ({ params }) => {
+    await delay(NETWORK_DELAY);
+    const candidate = mergeCandidates.get(String(params.id));
+    if (!candidate)
+      return HttpResponse.json({ message: '병합 후보를 찾을 수 없어요.' }, { status: 404 });
+    if (candidate.status !== 'open') {
+      return HttpResponse.json({ message: '이미 처리된 후보예요.' }, { status: 409 });
+    }
+    candidate.status = 'dismissed';
+    return HttpResponse.json(candidate);
+  }),
+
   http.post(ENDPOINTS.signup, async ({ request }) => {
     await delay(NETWORK_DELAY);
     const input = (await request.json()) as SignupInput;
@@ -307,7 +384,7 @@ export const handlers = [
       pending_reviews: {
         items: open.filter((r) => r.origin !== 'missed_scan').sort(byUrgencyThenRecent),
       },
-      audits: { items: AUDIT_FIXTURES },
+      audits: { items: [...audits.values()].filter((a) => a.status !== 'resolved').sort(byGrade) },
       computed_at: '2026-11-05T07:30:00+09:00',
     };
     return HttpResponse.json(briefing);
