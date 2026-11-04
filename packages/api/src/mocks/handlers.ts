@@ -213,8 +213,9 @@ const findPart = (text: string): MockPart | undefined => {
   return PART_FIXTURES.find((p) => p.keywords.some((k) => normalized.includes(k)));
 };
 
+// "6205 베어링 1개"처럼 규격 번호가 앞에 오므로, 단위가 붙은 숫자를 먼저 찾는다.
 const parseQty = (text: string) => {
-  const match = text.match(/(\d[\d,]*)\s*(개|ea|pcs)?/i);
+  const match = text.match(/(\d[\d,]*)\s*(?:개|ea|pcs)/i) ?? text.match(/(\d[\d,]*)/);
   return match ? Number(match[1].replaceAll(',', '')) : null;
 };
 
