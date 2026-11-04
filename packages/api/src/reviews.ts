@@ -3,7 +3,22 @@ import { queryOptions } from '@tanstack/react-query';
 import { request } from './client';
 import { ENDPOINTS } from './endpoints';
 import { queryKeys } from './queryKeys';
-import type { Review, ReviewDecisionInput } from './types/review';
+import type { Review, ReviewDecisionInput, ReviewListFilters } from './types/review';
+
+const toSearch = ({ status, verdict, urgent, minTotal }: ReviewListFilters) => {
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  if (verdict) params.set('verdict', verdict);
+  if (urgent) params.set('urgent', '1');
+  if (minTotal) params.set('min_total', String(minTotal));
+  const query = params.toString();
+  return query ? `?${query}` : '';
+};
+
+export const getReviews = (filters: ReviewListFilters) =>
+  request<Review[]>(`${ENDPOINTS.reviews}${toSearch(filters)}`);
+
+export const getMyRequests = () => request<Review[]>(ENDPOINTS.myRequests);
 
 export const getReview = (id: string) => request<Review>(ENDPOINTS.review(id));
 
@@ -24,6 +39,16 @@ export const decideReview = (
   });
 
 export const reviewQueries = {
+  list: (filters: ReviewListFilters) =>
+    queryOptions({
+      queryKey: queryKeys.reviews.list(filters),
+      queryFn: () => getReviews(filters),
+    }),
+  mine: () =>
+    queryOptions({
+      queryKey: queryKeys.reviews.mine(),
+      queryFn: getMyRequests,
+    }),
   detail: (id: string) =>
     queryOptions({
       queryKey: queryKeys.reviews.detail(id),

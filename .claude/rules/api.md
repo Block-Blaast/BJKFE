@@ -45,6 +45,13 @@ paths:
 - 채팅 기록은 프론트에서 `client_message_id`(UUID)를 만들어 보냅니다. 재전송해도 서버가 중복을 막습니다.
 - 승인 요청에는 `Idempotency-Key`를 붙이고, 409는 "이미 처리된 요청"으로 안내합니다.
 
+## 목업 (백엔드 연동 전)
+
+- 개발 모드에서 `NEXT_PUBLIC_API_URL`이 없으면 MSW가 API를 대신합니다. 핸들러·고정 데이터는 `packages/api/src/mocks/`, 시작은 `apps/web/src/providers/mock-provider.tsx`.
+- 임시 계약(타입 `packages/api/src/types/`, 경로 `endpoints.ts`)은 명세서 필드를 따릅니다. 명세서에 없는 필드는 `// [추가]`로 표시합니다. OpenAPI가 나오면 생성 타입으로 교체하고 `[추가]` 필드부터 백엔드와 맞춥니다.
+- 목업 데이터는 명세서 예시 값만 씁니다. 명세서에 없는 값은 지어내지 말고 `null`로 둡니다.
+- 화면 렌더링을 막지 않습니다. 워커가 뜰 때까지는 `request()`만 기다립니다(`setRequestGate`).
+
 ## 서버 상태 vs 클라이언트 상태
 
 - 서버에서 온 데이터는 **TanStack Query 캐시가 유일한 출처**입니다. Zustand 스토어에 복사해 두지 마세요.

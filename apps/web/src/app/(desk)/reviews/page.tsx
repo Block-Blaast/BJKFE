@@ -1,23 +1,25 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 
-import PagePlaceholder from '@/components/ui/PagePlaceholder';
+import ReviewInbox from '@/components/desk/ReviewInbox';
 
 export const metadata: Metadata = { title: '검토함' };
 
-const ELEMENTS = [
-  '판정·긴급·금액 필터 (URL 쿼리스트링)',
-  '긴급 건 최상단',
-  '목록 → 검토 상세(W-03)',
-];
-
+// TODO(W-02): SSE(review.created, review.decided)로 목록 실시간 갱신
 const ReviewsPage = () => {
   return (
-    <PagePlaceholder
-      specId="W-02"
-      title="검토함"
-      description="발주 검토 목록이에요. 실시간 갱신(SSE)."
-      elements={ELEMENTS}
-    />
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-h1 text-text-heading">검토함</h1>
+        <p className="text-body-md text-text-secondary">
+          발주 요청과 시스템 초안의 검토 결과예요. 긴급한 건이 맨 위에 와요.
+        </p>
+      </header>
+      {/* useSearchParams 는 요청 시점 값이라 Suspense 안에서 읽는다 (cacheComponents) */}
+      <Suspense fallback={<p className="text-body-md text-text-secondary">불러오는 중이에요…</p>}>
+        <ReviewInbox />
+      </Suspense>
+    </div>
   );
 };
 

@@ -5,7 +5,9 @@ import { delay, http, HttpResponse } from 'msw';
 import { APPROVAL_ACTIONS } from '../domain/review';
 import { ENDPOINTS } from '../endpoints';
 import type { ChatCard, ChatIntent, ChatTurn, SendChatInput } from '../types/chat';
+import type { Briefing } from '../types/briefing';
 import type { Review, ReviewDecisionInput } from '../types/review';
+import { AUDIT_FIXTURES } from './fixtures/audits';
 import { PART_FIXTURES, type MockPart } from './fixtures/parts';
 import { REVIEW_FIXTURES } from './fixtures/reviews';
 
@@ -127,7 +129,60 @@ const replyToChat = ({ text }: SendChatInput): ChatTurn => {
   };
 };
 
+// 긴급 → 최근 요청 순 (W-02: 긴급 건 최상단)
+const byUrgencyThenRecent = (a: Review, b: Review) =>
+  Number(b.flags.includes('긴급')) - Number(a.flags.includes('긴급')) ||
+  Date.parse(b.requested_at) - Date.parse(a.requested_at);
+
+// 예상 손실 큰 순, 손실액 미등록은 뒤로 (F-MISSED-01 우선순위의 화면 표현)
+const byLoss = (a: Review, b: Review) =>
+  (b.risk_if_not_ordered.loss ?? -1) - (a.risk_if_not_ordered.loss ?? -1);
+
 export const handlers = [
+  http.get(ENDPOINTS.reviews, async ({ request }) => {
+    await delay(NETWORK_DELAY);
+    const params = new URL(request.url).searchParams;
+    const status = params.get('status') ?? 'pending';
+    const verdict = params.get('verdict');
+    const urgent = params.get('urgent') === '1';
+    const minTotal = Number(params.get('min_total') ?? 0);
+    const list = [...reviews.values()]
+      .filter((r) => status === 'all' || r.status === '검토완료')
+      .filter((r) => !verdict || r.verdict === verdict)
+      .filter((r) => !urgent || r.flags.includes('긴급'))
+      .filter((r) => !minTotal || (r.original.total ?? 0) >= minTotal)
+      .sort(byUrgencyThenRecent);
+    return HttpResponse.json(list);
+  }),
+
+  // 로그인 연동 전이라 작업자가 올린 요청 전체를 '내 요청'으로 본다
+  http.get(ENDPOINTS.myRequests, async () => {
+    await delay(NETWORK_DELAY);
+    const mine = [...reviews.values()]
+      .filter((r) => r.requester === 'worker')
+      .sort((a, b) => Date.parse(b.requested_at) - Date.parse(a.requested_at));
+    return HttpResponse.json(mine);
+  }),
+
+  http.get(ENDPOINTS.briefing, async () => {
+    await delay(NETWORK_DELAY);
+    const open = [...reviews.values()].filter((r) => r.status === '검토완료');
+    const missed = open.filter((r) => r.origin === 'missed_scan').sort(byLoss);
+    const losses = missed.map((r) => r.risk_if_not_ordered.loss).filter((l) => l !== null);
+    const briefing: Briefing = {
+      missed: {
+        items: missed,
+        loss_total: losses.length ? losses.reduce((a, b) => a + b, 0) : null,
+      },
+      pending_reviews: {
+        items: open.filter((r) => r.origin !== 'missed_scan').sort(byUrgencyThenRecent),
+      },
+      audits: { items: AUDIT_FIXTURES },
+      computed_at: '2026-11-05T07:30:00+09:00',
+    };
+    return HttpResponse.json(briefing);
+  }),
+
   http.get(ENDPOINTS.review(':id'), async ({ params }) => {
     await delay(NETWORK_DELAY);
     const review = reviews.get(String(params.id));
@@ -158,6 +213,11 @@ export const handlers = [
     }
 
     review.status = DECIDED_STATUS[input.action];
+    review.decision = {
+      action: input.action,
+      reason: input.reason?.trim() || null,
+      decided_at: new Date().toISOString(),
+    };
     decisions.set(key, structuredClone(review));
     return HttpResponse.json(review);
   }),

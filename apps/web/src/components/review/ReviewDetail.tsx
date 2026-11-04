@@ -10,16 +10,10 @@ import { useReview } from '@/hooks/review/useReview';
 import { formatDate, formatWon } from '@/utils/format';
 
 import ApprovalActions from './ApprovalActions';
+import { entryLabelOf } from './labels';
 import CheckList from './CheckList';
 import OrderComparison from './OrderComparison';
 import VerdictTags from './VerdictTags';
-
-const REQUESTER_LABEL: Record<Review['requester'], string> = {
-  worker: '작업자 요청',
-  manager: '관리자 요청',
-  owner: '사장님 요청',
-  system: '시스템 초안',
-};
 
 const Section = ({ title, children }: { title: string; children: ReactNode }) => (
   <section className="flex flex-col gap-3 rounded-md bg-bg-surface p-5 shadow-card">
@@ -83,7 +77,7 @@ const ReviewDetail = ({ id, layout }: ReviewDetailProps) => {
 
   const header = (
     <header className="flex flex-col gap-2">
-      <span className="text-label-sm text-text-secondary">{REQUESTER_LABEL[review.requester]}</span>
+      <span className="text-label-sm text-text-secondary">{entryLabelOf(review)}</span>
       <h1 className={`${layout === 'desk' ? 'text-h1' : 'text-h2'} text-text-heading`}>
         {review.part.name}
       </h1>

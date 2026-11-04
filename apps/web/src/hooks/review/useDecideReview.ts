@@ -18,6 +18,11 @@ export const useDecideReview = () => {
     onSuccess: (updated) => {
       queryClient.setQueryData(queryKeys.reviews.detail(updated.id), updated);
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.reviews.all }),
+    // 검토함·내 요청·브리핑 숫자가 모두 바뀐다
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.reviews.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.briefing.all }),
+      ]),
   });
 };

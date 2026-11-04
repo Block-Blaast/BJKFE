@@ -12,7 +12,8 @@
     "./reviews": "./src/reviews.ts",
     "./chat": "./src/chat.ts",
     "./types/*": "./src/types/*.ts",
-    "./mocks": "./src/mocks/handlers.ts"
+    "./mocks": "./src/mocks/handlers.ts",
+    "./briefing": "./src/briefing.ts"
   },
   "scripts": {
     "lint": "eslint .",

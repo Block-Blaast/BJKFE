@@ -33,6 +33,11 @@ export type Review = {
   status: ReviewStatus; // [추가]
   part: { id: string; name: string; unit: string }; // [추가]
   requester: 'worker' | 'manager' | 'owner' | 'system'; // [추가] 시스템 초안이면 'system'
+  // [추가] 검토에 들어온 입구 (F-NOTI-01): 직원 요청 / 기록 중 재고 부족 초안 / 아침 스캔의 놓친 발주
+  origin: 'request' | 'stock_draft' | 'missed_scan';
+  requested_at: string; // [추가]
+  // [추가] 승인·반려 결과. 요청자 화면(M-03)에 사유를 보여준다.
+  decision: { action: ApprovalAction; reason: string | null; decided_at: string } | null;
   verdict: Verdict;
   flags: ReviewFlag[];
   checks: ReviewCheck[];
@@ -53,4 +58,12 @@ export type ReviewDecisionInput = {
   action: ApprovalAction;
   // 반려는 필수, 원안 승인은 선택 (F-APPROVAL-01)
   reason?: string;
+};
+
+// 검토함(W-02) 필터 — URL 쿼리스트링과 1:1 (desk.md)
+export type ReviewListFilters = {
+  status?: 'pending' | 'all'; // pending = 결정 대기(검토완료)
+  verdict?: Verdict;
+  urgent?: boolean;
+  minTotal?: number; // 원안 총액 하한(원)
 };
