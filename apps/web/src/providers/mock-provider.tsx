@@ -12,11 +12,13 @@ const SHOULD_MOCK = process.env.NODE_ENV === 'development' && !process.env.NEXT_
 // - typeof window: 서버 번들에서는 이 분기가 지워져 msw/browser 를 해석하지 않는다(node: null).
 // - SHOULD_MOCK: 프로덕션에서는 false 로 고정돼 msw 청크가 생기지 않는다.
 if (SHOULD_MOCK && typeof window !== 'undefined') {
-  setRequestGate(
-    import('@/mocks/browser').then(({ worker }) =>
-      worker.start({ onUnhandledFrame: 'bypass', quiet: true }),
-    ),
+  // 핫 리로드로 이 모듈이 다시 실행돼도 워커는 탭당 한 번만 시작한다.
+  // 두 번 시작하면 MSW 가 WebSocket 전역을 다시 바꾸려다 "already replaced" 에러를 낸다.
+  const tab = window as Window & { __bjkMockReady?: Promise<unknown> };
+  tab.__bjkMockReady ??= import('@/mocks/browser').then(({ worker }) =>
+    worker.start({ onUnhandledFrame: 'bypass', quiet: true }),
   );
+  setRequestGate(tab.__bjkMockReady);
 }
 
 type MockProviderProps = {

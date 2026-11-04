@@ -1,6 +1,7 @@
 // 채팅 기록 — 임시 계약.
 // 명세서 F-CHAT-01(추출 필드)·F-CHAT-02(확인 카드 4종)를 화면 단위로 옮긴 것이고, HTTP 형식은 명세서에 없다.
 // 백엔드 OpenAPI 가 나오면 생성된 타입으로 교체하고, 이 파일을 지운다.
+import type { AdjustReason } from '../domain/audit';
 
 export const CHAT_INTENTS = ['출고', '입고', '실사', '조회', '발주요청', '기타'] as const;
 export type ChatIntent = (typeof CHAT_INTENTS)[number];
@@ -21,6 +22,8 @@ type PendingBase = {
 };
 
 export type ChatCard =
+  // 실사 응답 (F-CHAT-05): 장부와 차이를 보여주고, 차이가 있으면 사유를 고르게 한다
+  | (PendingBase & { type: 'count'; part: ChatPartRef; ledger_qty: number })
   | (PendingBase & { type: 'confirm'; part: ChatPartRef })
   | (PendingBase & { type: 'select'; part_text: string; candidates: ChatPartRef[] })
   | (PendingBase & { type: 'warning'; part: ChatPartRef; past_max: number })
@@ -42,4 +45,13 @@ export type SendChatInput = {
 export type ConfirmPendingInput = {
   // 선택 카드에서 고른 부품. 확인·경고 카드는 비운다.
   part_id?: string;
+  // 실사 카드에서 장부와 차이가 있을 때 고른 사유 (F-CHAT-05)
+  adjust_reason?: AdjustReason;
+};
+
+// 사람이 아니라 시스템이 작업자에게 먼저 보내는 메시지 — 실사 요청(F-AUDIT-06) 등
+export type ChatInboxItem = {
+  id: string;
+  text: string;
+  created_at: string;
 };

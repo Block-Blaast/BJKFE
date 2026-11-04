@@ -19,6 +19,7 @@ export const ENDPOINTS = {
   review: (id: string) => `/api/reviews/${id}`,
   reviewDecision: (id: string) => `/api/reviews/${id}/decision`,
   chatMessages: '/api/chat/messages',
+  chatInbox: '/api/chat/inbox',
   chatPendingConfirm: (pendingId: string) => `/api/chat/pending/${pendingId}/confirm`,
   chatPendingCancel: (pendingId: string) => `/api/chat/pending/${pendingId}/cancel`,
 } as const;

@@ -1,12 +1,14 @@
 'use client';
 
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { SendHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
 import { ApiError } from '@bjk/api/client';
-import { cancelPending, confirmPending, sendChatMessage } from '@bjk/api/chat';
+import { cancelPending, chatQueries, confirmPending, sendChatMessage } from '@bjk/api/chat';
+import type { AdjustReason } from '@bjk/api/domain/audit';
+import { queryKeys } from '@bjk/api/queryKeys';
 import type { ChatCard, ChatTurn } from '@bjk/api/types/chat';
 
 import ChatCardView from './ChatCardView';
@@ -52,13 +54,22 @@ const errorText = (error: unknown) => {
 // TODO: LLM 오류가 반복되면 폼 입력으로 전환 (F-CHAT-01), 실사 요청 메시지 (F-CHAT-05)
 const ChatThread = () => {
   const [messages, setMessages] = useState<Message[]>([GREETING]);
+  const queryClient = useQueryClient();
+  // 시스템이 먼저 보낸 메시지(실사 요청 등)는 인사말 바로 다음에 보여준다 (F-AUDIT-06)
+  const inbox = useQuery(chatQueries.inbox());
+  const inboxMessages: Message[] = (inbox.data ?? []).map((item) => ({
+    id: item.id,
+    role: 'bot',
+    text: item.text,
+  }));
+  const shown = [messages[0], ...inboxMessages, ...messages.slice(1)];
   const [draft, setDraft] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLLIElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' });
-  }, [messages.length]);
+  }, [shown.length]);
 
   const appendBotTurn = (turn: ChatTurn) =>
     setMessages((prev) => [
@@ -84,8 +95,22 @@ const ChatThread = () => {
 
   const send = useMutation({ mutationFn: sendChatMessage });
   const confirm = useMutation({
-    mutationFn: ({ pendingId, partId }: { pendingId: string; partId?: string }) =>
-      confirmPending(pendingId, { part_id: partId }),
+    mutationFn: ({
+      pendingId,
+      partId,
+      adjustReason,
+    }: {
+      pendingId: string;
+      partId?: string;
+      adjustReason?: AdjustReason;
+    }) => confirmPending(pendingId, { part_id: partId, adjust_reason: adjustReason }),
+    // 실사조정이면 장부 검증 항목이 닫히고 브리핑·수신함 숫자가 바뀐다
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.audits.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.briefing.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.chat.inbox() }),
+      ]),
   });
   const cancel = useMutation({ mutationFn: cancelPending });
 
@@ -112,10 +137,14 @@ const ChatThread = () => {
     deliver(id, text);
   };
 
-  const handleConfirm = (messageId: string, card: ChatCard, partId?: string) => {
+  const handleConfirm = (
+    messageId: string,
+    card: ChatCard,
+    input: { partId?: string; adjustReason?: AdjustReason },
+  ) => {
     if (card.type === 'unregistered') return;
     confirm.mutate(
-      { pendingId: card.pending_id, partId },
+      { pendingId: card.pending_id, ...input },
       {
         onSuccess: (turn) => {
           resolveCard(messageId);
@@ -151,7 +180,7 @@ const ChatThread = () => {
   return (
     <div className="-mx-4 -my-6 flex min-h-0 flex-1 flex-col">
       <ol className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4" aria-live="polite">
-        {messages.map((message) =>
+        {shown.map((message) =>
           message.role === 'user' ? (
             <li key={message.id} className="flex flex-col items-end gap-1">
               <p className="max-w-4/5 rounded-md bg-bg-brand px-4 py-3 text-body-md whitespace-pre-line text-text-on-brand">
@@ -181,7 +210,7 @@ const ChatThread = () => {
                     card={message.card}
                     resolved={Boolean(message.cardResolved)}
                     busy={busy}
-                    onConfirm={(partId) => handleConfirm(message.id, message.card!, partId)}
+                    onConfirm={(input) => handleConfirm(message.id, message.card!, input)}
                     onCancel={() => handleCancel(message.id, message.card!)}
                   />
                 </div>

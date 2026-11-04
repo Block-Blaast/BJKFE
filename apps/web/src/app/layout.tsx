@@ -18,7 +18,8 @@ export const viewport: Viewport = {
 
 const RootLayout = ({ children }: LayoutProps<'/'>) => {
   return (
-    <html lang="ko" className={`${pretendard.variable} h-full`}>
+    // 브라우저 확장(HWP 뷰어 등)이 <html> 에 속성을 붙여 하이드레이션 경고가 난다. <html> 속성 차이만 무시한다.
+    <html lang="ko" className={`${pretendard.variable} h-full`} suppressHydrationWarning>
       <body className="flex min-h-full flex-col">
         <MockProvider>
           <QueryProvider>{children}</QueryProvider>

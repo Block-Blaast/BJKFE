@@ -8,6 +8,7 @@ const reviewsAll = ['reviews'] as const;
 const briefingAll = ['briefing'] as const;
 const authAll = ['auth'] as const;
 const auditsAll = ['audits'] as const;
+const chatAll = ['chat'] as const;
 const mergeAll = ['merge-candidates'] as const;
 
 export const queryKeys = {
@@ -20,6 +21,10 @@ export const queryKeys = {
   // 브리핑은 검토·장부 검증 결과를 모은 것이라, 검토가 결정되면 함께 무효화한다.
   briefing: {
     all: briefingAll,
+  },
+  chat: {
+    all: chatAll,
+    inbox: () => [...chatAll, 'inbox'] as const,
   },
   audits: {
     all: auditsAll,

@@ -5,7 +5,14 @@ import { delay, http, HttpResponse } from 'msw';
 import { AUDIT_GRADE_ORDER } from '../domain/audit';
 import { APPROVAL_ACTIONS } from '../domain/review';
 import { ENDPOINTS } from '../endpoints';
-import type { ChatCard, ChatIntent, ChatTurn, SendChatInput } from '../types/chat';
+import type {
+  ChatCard,
+  ChatInboxItem,
+  ChatIntent,
+  ChatTurn,
+  ConfirmPendingInput,
+  SendChatInput,
+} from '../types/chat';
 import type {
   AcceptInviteInput,
   AuthResult,
@@ -92,6 +99,30 @@ const replyToChat = ({ text }: SendChatInput): ChatTurn => {
 
   if (qty === null) {
     return { reply: '몇 개인지 알려주세요.' };
+  }
+
+  // 실사 응답 (F-CHAT-05): 장부와 차이를 보여주고, 차이가 있으면 사유를 고르게 한다
+  const ledger = part ? stock.get(part.part_id) : null;
+  if (intent === '실사' && part && ledger !== null && ledger !== undefined) {
+    const card: ChatCard = {
+      type: 'count',
+      pending_id: crypto.randomUUID(),
+      intent,
+      qty,
+      unit: part.unit,
+      part: partRef(part),
+      ledger_qty: ledger,
+      expires_at: expiresAt(),
+    };
+    pending.set(card.pending_id, card);
+    const diff = qty - ledger;
+    return {
+      reply:
+        diff === 0
+          ? `장부와 같아요(${ledger}${part.unit}). 이상 없음으로 기록할까요?`
+          : `장부(${ledger}${part.unit})보다 ${Math.abs(diff)}${part.unit} ${diff < 0 ? '적어요' : '많아요'}. 사유를 골라 주세요.`,
+      card,
+    };
   }
 
   // "베어링"처럼 형번 없이 말하면 후보를 고르게 한다
@@ -429,6 +460,20 @@ export const handlers = [
     return HttpResponse.json(review);
   }),
 
+  // 시스템이 작업자에게 먼저 보낸 메시지 — 지금은 실사 요청만 (F-AUDIT-06)
+  // 로그인 연동 전이라 담당자와 상관없이 요청 중인 실사를 모두 보여준다
+  http.get(ENDPOINTS.chatInbox, async () => {
+    await delay(NETWORK_DELAY);
+    const items: ChatInboxItem[] = [...audits.values()]
+      .filter((a) => a.status === 'requested' && a.request)
+      .map((a) => ({
+        id: `inbox-${a.id}`,
+        text: `${a.part.name} 지금 몇 개 있나요? 장부상 ${a.ledger_qty}${a.part.unit}예요.\n예: "${a.part.name} 세어보니 ${a.ledger_qty}${a.part.unit}"`,
+        created_at: a.request!.requested_at,
+      }));
+    return HttpResponse.json(items);
+  }),
+
   http.post(ENDPOINTS.chatMessages, async ({ request }) => {
     await delay(NETWORK_DELAY);
     const input = (await request.json()) as SendChatInput;
@@ -449,10 +494,36 @@ export const handlers = [
         { status: 410 },
       );
     }
-    const { part_id: chosen } = (await request.json()) as { part_id?: string };
+    const { part_id: chosen, adjust_reason: adjustReason } =
+      (await request.json()) as ConfirmPendingInput;
     const partId = card.type === 'select' ? chosen : card.part.part_id;
     const part = PART_FIXTURES.find((p) => p.part_id === partId);
     if (!part) return HttpResponse.json({ message: '부품을 골라 주세요.' }, { status: 400 });
+
+    // 실사조정 기록 → 열린 의심 항목 종료 (F-CHAT-05, F-AUDIT-06)
+    if (card.type === 'count') {
+      const diff = card.qty - card.ledger_qty;
+      if (diff !== 0 && !adjustReason) {
+        return HttpResponse.json({ message: '차이 사유를 골라 주세요.' }, { status: 400 });
+      }
+      pending.delete(card.pending_id);
+      stock.set(part.part_id, card.qty);
+      for (const audit of audits.values()) {
+        if (audit.part.id !== part.part_id || audit.status === 'resolved') continue;
+        audit.status = 'resolved';
+        audit.result = {
+          counted_qty: card.qty,
+          adjust_reason: diff === 0 ? null : (adjustReason ?? null),
+          resolved_at: new Date().toISOString(),
+        };
+      }
+      return HttpResponse.json({
+        reply:
+          diff === 0
+            ? '이상 없음으로 기록했어요.'
+            : `실사조정을 기록했어요. 장부 ${card.ledger_qty}${part.unit} → ${card.qty}${part.unit} (${adjustReason})`,
+      } satisfies ChatTurn);
+    }
 
     pending.delete(card.pending_id);
     const sign = card.intent === '입고' ? 1 : -1;

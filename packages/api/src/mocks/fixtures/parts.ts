@@ -1,4 +1,5 @@
 // 개발용 목업 부품. 재고는 명세서 F-REVIEW-10 예시의 S 값을 쓴다(6204 는 명세서에 없어 비워 둠).
+// 오링 P-20 은 F-AUDIT-06 예시(장부상 14개).
 export type MockPart = {
   part_id: string;
   part_name: string;
@@ -41,5 +42,13 @@ export const PART_FIXTURES: MockPart[] = [
     unit: '개',
     stock: null,
     keywords: ['6204'],
+  },
+  {
+    part_id: 'pt-oring-p20',
+    part_name: '오링 P-20',
+    spec: 'P-20',
+    unit: '개',
+    stock: 14,
+    keywords: ['오링', 'p-20', 'p20'],
   },
 ];
