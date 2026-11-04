@@ -3,6 +3,7 @@ import { queryOptions } from '@tanstack/react-query';
 import { request } from './client';
 import { ENDPOINTS } from './endpoints';
 import { queryKeys } from './queryKeys';
+import type { StockForecast } from './types/forecast';
 import type { Review, ReviewDecisionInput, ReviewListFilters } from './types/review';
 
 const toSearch = ({ status, verdict, urgent, minTotal }: ReviewListFilters) => {
@@ -38,6 +39,9 @@ export const decideReview = (
     body: JSON.stringify(input),
   });
 
+export const getReviewForecast = (id: string) =>
+  request<StockForecast>(ENDPOINTS.reviewForecast(id));
+
 export const reviewQueries = {
   list: (filters: ReviewListFilters) =>
     queryOptions({
@@ -53,5 +57,10 @@ export const reviewQueries = {
     queryOptions({
       queryKey: queryKeys.reviews.detail(id),
       queryFn: () => getReview(id),
+    }),
+  forecast: (id: string) =>
+    queryOptions({
+      queryKey: queryKeys.reviews.forecast(id),
+      queryFn: () => getReviewForecast(id),
     }),
 };

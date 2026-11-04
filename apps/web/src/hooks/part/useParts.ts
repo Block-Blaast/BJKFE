@@ -8,3 +8,5 @@ export const useParts = (filters: PartListFilters) => useQuery(partQueries.list(
 export const usePart = (id: string) => useQuery(partQueries.detail(id));
 
 export const usePartLedger = (id: string) => useQuery(partQueries.ledger(id));
+
+export const usePartForecast = (id: string) => useQuery(partQueries.forecast(id));

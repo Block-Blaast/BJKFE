@@ -26,6 +26,7 @@ import type { Review, ReviewDecisionInput } from '../types/review';
 import { AUDIT_FIXTURES, MERGE_FIXTURES } from './fixtures/audits';
 import { MOCK_COMPANY, MOCK_INVITES, MOCK_MEMBERS, MOCK_OWNER } from './fixtures/auth';
 import { PART_FIXTURES, type MockPart } from './fixtures/parts';
+import type { StockForecast, StockPoint } from '../types/forecast';
 import type { Part, StockMovement } from '../types/part';
 import { REVIEW_FIXTURES } from './fixtures/reviews';
 
@@ -83,6 +84,79 @@ const recordMovement = (
     created_at: new Date().toISOString(),
   });
   pendingText.delete(pendingId);
+};
+
+// ---- 재고 예측 (목업) ----
+// 실제 예측은 서버의 8주 경로 시뮬레이션(F-ANAL-07)이다. 목업은 화면을 그리기 위해 기존 지표로 단순 계산한다:
+// - 미발주: 오늘 재고에서 소진 예상일(t_out)까지 직선, 없으면 월 소모량(m)으로 감소. 입고 예정(O)은 도착일에 더한다.
+// - 발주 시: 위 선에 발주 수량을 오늘 + 늦을 때 납기(LT90, 없으면 LT50) 날에 더한다. 납기를 모르면 그리지 않는다.
+const DAY_MS = 24 * 60 * 60 * 1000;
+const kstDate = (iso: string | number) =>
+  new Date(new Date(iso).getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+const addDays = (ymd: string, days: number) =>
+  new Date(Date.parse(`${ymd}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
+const daysBetween = (from: string, to: string) =>
+  Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS);
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+const buildForecast = (p: MockPart, orderQty: number | null): StockForecast => {
+  const view = partView(p);
+  const today = kstDate(Date.now());
+  const entries = [...(ledger.get(p.part_id) ?? [])].sort(
+    (a, b) => Date.parse(a.created_at) - Date.parse(b.created_at),
+  );
+  const start = entries.length ? kstDate(entries[0].created_at) : today;
+  const actual: StockPoint[] = [];
+  for (let d = start; d <= today; d = addDays(d, 1)) {
+    const qty = entries
+      .filter((e) => kstDate(e.created_at) <= d)
+      .reduce((sum, e) => sum + e.qty, 0);
+    actual.push({ date: d, qty });
+  }
+  const current = view.stock;
+  const {
+    m,
+    t_out: tOut,
+    LT50,
+    LT90,
+    reorder_point: reorderPoint,
+    t_deadline: deadline,
+  } = p.metrics;
+  const daily =
+    tOut && tOut > today ? current / daysBetween(today, tOut) : m !== null ? m / 30 : null;
+  const horizon = Math.min(56, Math.max(28, tOut ? daysBetween(today, tOut) + 7 : 0));
+  const lead = LT90 ?? LT50;
+
+  const project = (extra: { date: string; qty: number }[]) => {
+    if (daily === null) return null;
+    const points: StockPoint[] = [];
+    let qty = current;
+    for (let i = 0; i <= horizon; i++) {
+      const date = addDays(today, i);
+      if (i > 0) qty = Math.max(0, qty - daily);
+      for (const add of extra) if (add.date === date && i > 0) qty += add.qty;
+      points.push({ date, qty: round1(qty) });
+    }
+    return points;
+  };
+  const incoming = p.incoming && p.incoming.eta > today ? [p.incoming] : [];
+  const orderArrives =
+    orderQty && lead !== null ? [{ date: addDays(today, lead), qty: orderQty }] : null;
+
+  return {
+    unit: p.unit,
+    today,
+    computed_at: p.metrics.computed_at,
+    reorder_point: reorderPoint,
+    deadline,
+    order_qty: orderArrives ? orderQty : null,
+    actual,
+    without_order: project(incoming.map((x) => ({ date: x.eta, qty: x.qty }))),
+    with_order: orderArrives
+      ? project([...incoming.map((x) => ({ date: x.eta, qty: x.qty })), ...orderArrives])
+      : null,
+    is_mock: true,
+  };
 };
 
 // 병합 부품은 원장을 고치지 않고 재고 계산 때 대표 부품에 합산한다 (F-LEDGER-02, F-MATCH-03)
@@ -304,6 +378,25 @@ export const handlers = [
     const part = PART_FIXTURES.find((p) => p.part_id === params.id);
     if (!part) return HttpResponse.json({ message: '부품을 찾을 수 없어요.' }, { status: 404 });
     return HttpResponse.json(partView(part));
+  }),
+
+  // "발주 시" 선에는 권장 발주량(R)을 넣는다
+  http.get(ENDPOINTS.partForecast(':id'), async ({ params }) => {
+    await delay(NETWORK_DELAY);
+    const part = PART_FIXTURES.find((p) => p.part_id === params.id);
+    if (!part) return HttpResponse.json({ message: '부품을 찾을 수 없어요.' }, { status: 404 });
+    return HttpResponse.json(buildForecast(part, part.metrics.R));
+  }),
+
+  // 검토의 "발주 시" 선은 승인될 수량 — 수정안이 0이면 원안 수량으로 "샀을 때"를 보여준다
+  http.get(ENDPOINTS.reviewForecast(':id'), async ({ params }) => {
+    await delay(NETWORK_DELAY);
+    const review = reviews.get(String(params.id));
+    const part = review && PART_FIXTURES.find((p) => p.part_id === review.part.id);
+    if (!review || !part) {
+      return HttpResponse.json({ message: '검토를 찾을 수 없어요.' }, { status: 404 });
+    }
+    return HttpResponse.json(buildForecast(part, review.proposal.qty || review.original.qty));
   }),
 
   // 최신 기록이 위로

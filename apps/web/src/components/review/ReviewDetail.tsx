@@ -6,7 +6,8 @@ import type { Review } from '@bjk/api/types/review';
 import Button from '@bjk/ui/components/Button';
 
 import ComputedAt from '@/components/ui/ComputedAt';
-import { useReview } from '@/hooks/review/useReview';
+import ForecastPanel from '@/components/charts/ForecastPanel';
+import { useReview, useReviewForecast } from '@/hooks/review/useReview';
 import { formatDate, formatWon } from '@/utils/format';
 
 import ApprovalActions from './ApprovalActions';
@@ -51,6 +52,9 @@ const Risk = ({ risk }: { risk: Review['risk_if_not_ordered'] }) => {
     </ul>
   );
 };
+
+// 그래프는 PC(W-03)에서만 — 폰 의견서(M-05)에는 명세서상 그래프가 없다
+const DeskForecast = ({ id }: { id: string }) => <ForecastPanel query={useReviewForecast(id)} />;
 
 type ReviewDetailProps = {
   id: string;
@@ -136,7 +140,7 @@ const ReviewDetail = ({ id, layout }: ReviewDetailProps) => {
         <div className="col-span-2 flex flex-col gap-6">
           {opinion}
           {checks}
-          {/* TODO(W-03): 재고 예측 그래프(발주 시/미발주 시) — 차트 라이브러리 결정 후 */}
+          <DeskForecast id={review.id} />
         </div>
         <div className="flex flex-col gap-6">
           {comparison}

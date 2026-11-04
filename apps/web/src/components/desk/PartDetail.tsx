@@ -7,9 +7,10 @@ import { DEMAND_PATTERNS, MOVEMENT_TYPES } from '@bjk/api/domain/part';
 import type { PartMetrics } from '@bjk/api/types/part';
 import Button from '@bjk/ui/components/Button';
 
+import ForecastPanel from '@/components/charts/ForecastPanel';
 import Tag from '@/components/ui/Tag';
 import ComputedAt from '@/components/ui/ComputedAt';
-import { usePart, usePartLedger } from '@/hooks/part/useParts';
+import { usePart, usePartForecast, usePartLedger } from '@/hooks/part/useParts';
 import { factLabel, formatFact } from '@/utils/facts';
 import { formatComputedAt, formatDate, formatQty, formatWon } from '@/utils/format';
 
@@ -123,9 +124,9 @@ type PartDetailProps = {
 };
 
 // 부품 상세 (W-05). 재고, 근거 지표와 계산 근거, 입출고 원문, 별칭.
-// TODO(W-05): 재고 추이 + 예측선 그래프 — 차트 라이브러리 결정 후
 const PartDetail = ({ id }: PartDetailProps) => {
   const { data: part, isPending, isError, refetch } = usePart(id);
+  const forecast = usePartForecast(id);
 
   if (isPending)
     return <p className="text-body-md text-text-secondary">부품을 불러오는 중이에요…</p>;
@@ -178,6 +179,7 @@ const PartDetail = ({ id }: PartDetailProps) => {
 
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-2 flex flex-col gap-6">
+          <ForecastPanel query={forecast} />
           <Section
             title="근거 지표"
             aside={

@@ -13,7 +13,7 @@ const ReviewBody = async ({ params }: { params: PageProps<'/reviews/[id]'>['para
   return <ReviewDetail id={id} layout="desk" />;
 };
 
-// TODO(W-03): 재고 예측 그래프, PDF 링크 (F-APPROVAL-04)
+// TODO(W-03): PDF 링크 (F-APPROVAL-04)
 const ReviewDetailPage = ({ params }: PageProps<'/reviews/[id]'>) => {
   return (
     <div className="flex flex-col gap-6">

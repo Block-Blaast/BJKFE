@@ -19,6 +19,7 @@ export const queryKeys = {
     list: (filters: ReviewListFilters) => [...reviewsAll, 'list', filters] as const,
     mine: () => [...reviewsAll, 'mine'] as const,
     detail: (id: string) => [...reviewsAll, 'detail', id] as const,
+    forecast: (id: string) => [...reviewsAll, 'forecast', id] as const,
   },
   // 브리핑은 검토·장부 검증 결과를 모은 것이라, 검토가 결정되면 함께 무효화한다.
   briefing: {
@@ -30,6 +31,7 @@ export const queryKeys = {
     list: (filters: PartListFilters) => [...partsAll, 'list', filters] as const,
     detail: (id: string) => [...partsAll, 'detail', id] as const,
     ledger: (id: string) => [...partsAll, 'ledger', id] as const,
+    forecast: (id: string) => [...partsAll, 'forecast', id] as const,
   },
   chat: {
     all: chatAll,
