@@ -13,6 +13,7 @@ import { useParts } from '@/hooks/part/useParts';
 import { useAddSupplierPrice, useCreateSupplier, useSuppliers } from '@/hooks/setup/useSetup';
 import { apiErrorMessage } from '@/utils/apiError';
 import { formatDate, formatNumber, formatWon } from '@/utils/format';
+import { TABLE, TD, TH, TR } from '@/components/ui/table';
 
 import QueryStatus from './QueryStatus';
 import SetupCard from './SetupCard';
@@ -188,34 +189,34 @@ const SupplierCard = ({ supplier }: { supplier: Supplier }) => (
       .join(' · ')}
   >
     {supplier.prices.length > 0 ? (
-      <table className="w-full text-body-sm">
-        <thead className="text-label-sm text-text-secondary">
+      <table className={TABLE}>
+        <thead>
           <tr>
-            <th scope="col" className="py-2 text-left font-medium">
+            <th scope="col" className={`${TH} text-left`}>
               부품
             </th>
-            <th scope="col" className="py-2 text-right font-medium">
+            <th scope="col" className={`${TH} text-right`}>
               단가
             </th>
-            <th scope="col" className="py-2 text-right font-medium">
+            <th scope="col" className={`${TH} text-right`}>
               MOQ
             </th>
-            <th scope="col" className="py-2 pl-6 text-left font-medium">
+            <th scope="col" className={`${TH} text-left`}>
               단가 구간
             </th>
           </tr>
         </thead>
         <tbody>
           {supplier.prices.map((p) => (
-            <tr key={p.part_id} className="border-t border-border-default">
-              <td className="py-3 text-label-md text-text-heading">{p.part_name}</td>
-              <td className="py-3 text-right text-text-body tabular-nums">
+            <tr key={p.part_id} className={TR}>
+              <td className={`${TD} text-label-md text-text-heading`}>{p.part_name}</td>
+              <td className={`${TD} text-right text-text-body tabular-nums`}>
                 {formatWon(p.unit_price)}
               </td>
-              <td className="py-3 text-right text-text-body tabular-nums">
+              <td className={`${TD} text-right text-text-body tabular-nums`}>
                 {p.moq === null ? EMPTY : formatNumber(p.moq)}
               </td>
-              <td className="py-3 pl-6 text-text-body tabular-nums">
+              <td className={`${TD} text-text-body tabular-nums`}>
                 {p.tiers.length === 0
                   ? EMPTY
                   : p.tiers.map((t) => `${t.min_qty}개↑ ${formatWon(t.unit_price)}`).join(' · ')}

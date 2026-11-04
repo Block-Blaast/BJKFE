@@ -22,6 +22,7 @@ import { PILL_SEARCH, PILL_SELECT } from '@/components/ui/controls';
 import EmptyState from '@/components/ui/EmptyState';
 import { useParts } from '@/hooks/part/useParts';
 import { formatComputedAt, formatDate, formatQty } from '@/utils/format';
+import { TABLE, TABLE_CARD, TD, TH, TR } from '@/components/ui/table';
 
 const pick = <T extends string>(value: string | null, allowed: readonly T[]) =>
   value !== null && (allowed as readonly string[]).includes(value) ? (value as T) : undefined;
@@ -144,9 +145,9 @@ const PartBrowser = () => {
       ) : parts.length === 0 ? (
         <EmptyState title="조건에 맞는 부품이 없어요">검색어나 필터를 바꿔 보세요.</EmptyState>
       ) : (
-        <div className="overflow-hidden rounded-xl bg-bg-surface shadow-card">
-          <table className="w-full text-body-sm">
-            <thead className="bg-bg-page text-label-sm text-text-secondary">
+        <div className={TABLE_CARD}>
+          <table className={TABLE}>
+            <thead>
               <tr>
                 {[
                   '부품',
@@ -163,7 +164,7 @@ const PartBrowser = () => {
                   <th
                     key={h}
                     scope="col"
-                    className={`px-4 py-3 font-medium ${i >= 2 && i <= 4 ? 'text-right' : 'text-left'}`}
+                    className={`${TH} ${i >= 2 && i <= 4 ? 'text-right' : 'text-left'}`}
                   >
                     {h}
                   </th>
@@ -172,8 +173,8 @@ const PartBrowser = () => {
             </thead>
             <tbody>
               {parts.map((part) => (
-                <tr key={part.id} className="border-t border-border-default hover:bg-bg-page">
-                  <td className="px-4 py-3">
+                <tr key={part.id} className={TR}>
+                  <td className={TD}>
                     <Link
                       href={`/parts/${part.id}`}
                       className="flex flex-col text-label-md text-text-heading hover:text-text-brand"
@@ -184,29 +185,29 @@ const PartBrowser = () => {
                       ) : null}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-text-body">{part.category ?? EMPTY}</td>
-                  <td className="px-4 py-3 text-right text-text-heading tabular-nums">
+                  <td className={`${TD} text-text-body`}>{part.category ?? EMPTY}</td>
+                  <td className={`${TD} text-right text-text-heading tabular-nums`}>
                     {formatQty(part.stock, part.unit)}
                   </td>
-                  <td className="px-4 py-3 text-right text-text-body tabular-nums">
+                  <td className={`${TD} text-right text-text-body tabular-nums`}>
                     {part.incoming ? formatQty(part.incoming.qty, part.unit) : EMPTY}
                   </td>
                   <td
-                    className={`px-4 py-3 text-right tabular-nums ${part.hidden_stock > 0 ? 'text-text-warning' : 'text-text-body'}`}
+                    className={`${TD} text-right tabular-nums ${part.hidden_stock > 0 ? 'text-text-warning' : 'text-text-body'}`}
                   >
                     {part.hidden_stock > 0 ? formatQty(part.hidden_stock, part.unit) : EMPTY}
                   </td>
-                  <td className="px-4 py-3 text-text-body tabular-nums">
+                  <td className={`${TD} text-text-body tabular-nums`}>
                     {part.metrics.t_out ? formatDate(part.metrics.t_out) : EMPTY}
                   </td>
-                  <td className="px-4 py-3 text-text-body">{part.metrics.abc ?? EMPTY}</td>
-                  <td className="px-4 py-3 text-text-body">
+                  <td className={`${TD} text-text-body`}>{part.metrics.abc ?? EMPTY}</td>
+                  <td className={`${TD} text-text-body`}>
                     {part.metrics.demand_pattern
                       ? DEMAND_PATTERNS[part.metrics.demand_pattern]
                       : EMPTY}
                   </td>
-                  <td className="px-4 py-3 text-text-body">{part.risk ?? EMPTY}</td>
-                  <td className="px-4 py-3 text-text-secondary tabular-nums">
+                  <td className={`${TD} text-text-body`}>{part.risk ?? EMPTY}</td>
+                  <td className={`${TD} text-text-secondary tabular-nums`}>
                     {part.metrics.computed_at ? formatComputedAt(part.metrics.computed_at) : EMPTY}
                   </td>
                 </tr>

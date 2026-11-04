@@ -15,6 +15,7 @@ import {
 import type { StockForecast } from '@bjk/api/types/forecast';
 
 import { formatDate, formatNumber, formatQty } from '@/utils/format';
+import { TD, TH, TR } from '@/components/ui/table';
 
 // 시리즈 색 — 색은 "시나리오"(발주 / 미발주), 선 모양은 "실적 / 예측"을 구분한다.
 // brand-600 · sub-700 쌍은 dataviz 팔레트 검사(명도 대역, 채도 하한, 색각 이상 ΔE, 표면 대비)를 모두 통과했다.
@@ -197,13 +198,13 @@ const StockForecastChart = ({ forecast }: StockForecastChartProps) => {
         </summary>
         <div className="max-h-72 overflow-y-auto">
           <table className="w-full tabular-nums">
-            <thead className="sticky top-0 bg-bg-surface text-label-sm text-text-secondary">
+            <thead className="sticky top-0">
               <tr>
-                <th scope="col" className="py-2 text-left font-medium">
+                <th scope="col" className={`${TH} text-left`}>
                   날짜
                 </th>
                 {shown.map((key) => (
-                  <th key={key} scope="col" className="py-2 text-right font-medium">
+                  <th key={key} scope="col" className={`${TH} text-right`}>
                     {SERIES[key].label}
                   </th>
                 ))}
@@ -211,10 +212,10 @@ const StockForecastChart = ({ forecast }: StockForecastChartProps) => {
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.date} className="border-t border-border-default">
-                  <td className="py-1 text-text-secondary">{formatDate(row.date)}</td>
+                <tr key={row.date} className={TR}>
+                  <td className={`${TD} text-text-secondary`}>{formatDate(row.date)}</td>
                   {shown.map((key) => (
-                    <td key={key} className="py-1 text-right text-text-body">
+                    <td key={key} className={`${TD} text-right text-text-body`}>
                       {row[key] === undefined ? '—' : formatNumber(row[key])}
                     </td>
                   ))}

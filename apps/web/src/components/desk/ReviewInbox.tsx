@@ -16,6 +16,7 @@ import Segmented from '@/components/ui/Segmented';
 import { useReviews } from '@/hooks/review/useReviews';
 import { formatComputedAt, formatWon } from '@/utils/format';
 import { MIN_TOTAL_OPTIONS, parseReviewFilters, toReviewSearch } from '@/utils/reviewFilters';
+import { TABLE, TABLE_CARD, TD, TH, TR } from '@/components/ui/table';
 
 // 검토함 (W-02). 필터는 URL 에 두고, 목록은 긴급 → 최근 순으로 서버가 정렬한다.
 // usePathname·useSearchParams 를 쓰므로 페이지에서 <Suspense> 로 감싼다.
@@ -102,37 +103,37 @@ const ReviewInbox = () => {
           필터를 바꾸거나 전체를 눌러 보세요.
         </EmptyState>
       ) : (
-        <div className="overflow-hidden rounded-xl bg-bg-surface shadow-card">
-          <table className="w-full text-body-sm">
-            <thead className="bg-bg-page text-label-sm text-text-secondary">
+        <div className={TABLE_CARD}>
+          <table className={TABLE}>
+            <thead>
               <tr>
-                <th scope="col" className="px-4 py-3 text-left font-medium">
+                <th scope="col" className={`${TH} text-left`}>
                   부품
                 </th>
-                <th scope="col" className="px-4 py-3 text-left font-medium">
+                <th scope="col" className={`${TH} text-left`}>
                   입구
                 </th>
-                <th scope="col" className="px-4 py-3 text-left font-medium">
+                <th scope="col" className={`${TH} text-left`}>
                   판정
                 </th>
-                <th scope="col" className="px-4 py-3 text-right font-medium">
+                <th scope="col" className={`${TH} text-right`}>
                   원안 총액
                 </th>
-                <th scope="col" className="px-4 py-3 text-right font-medium">
+                <th scope="col" className={`${TH} text-right`}>
                   절감
                 </th>
-                <th scope="col" className="px-4 py-3 text-left font-medium">
+                <th scope="col" className={`${TH} text-left`}>
                   상태
                 </th>
-                <th scope="col" className="px-4 py-3 text-right font-medium">
+                <th scope="col" className={`${TH} text-right`}>
                   요청 시각
                 </th>
               </tr>
             </thead>
             <tbody>
               {reviews.map((review) => (
-                <tr key={review.id} className="border-t border-border-default hover:bg-bg-page">
-                  <td className="px-4 py-3">
+                <tr key={review.id} className={TR}>
+                  <td className={TD}>
                     <Link
                       href={`/reviews/${review.id}`}
                       className="text-label-md text-text-heading hover:text-text-brand"
@@ -140,20 +141,20 @@ const ReviewInbox = () => {
                       {review.part.name}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-text-secondary">{entryLabelOf(review)}</td>
-                  <td className="px-4 py-3">
+                  <td className={`${TD} text-text-secondary`}>{entryLabelOf(review)}</td>
+                  <td className={TD}>
                     <VerdictTags verdict={review.verdict} flags={review.flags} />
                   </td>
-                  <td className="px-4 py-3 text-right text-text-body tabular-nums">
+                  <td className={`${TD} text-right text-text-body tabular-nums`}>
                     {review.original.total === null ? '—' : formatWon(review.original.total)}
                   </td>
-                  <td className="px-4 py-3 text-right text-text-success tabular-nums">
+                  <td className={`${TD} text-right text-text-success tabular-nums`}>
                     {review.proposal.saving ? formatWon(review.proposal.saving) : '—'}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className={TD}>
                     <ReviewStatusTag status={review.status} />
                   </td>
-                  <td className="px-4 py-3 text-right text-text-secondary tabular-nums">
+                  <td className={`${TD} text-right text-text-secondary tabular-nums`}>
                     {formatComputedAt(review.requested_at)}
                   </td>
                 </tr>

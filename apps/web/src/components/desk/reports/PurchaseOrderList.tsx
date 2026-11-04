@@ -11,6 +11,7 @@ import Button from '@bjk/ui/components/Button';
 import EmptyState from '@/components/ui/EmptyState';
 import { usePurchaseOrders } from '@/hooks/report/useReports';
 import { formatComputedAt, formatDate, formatQty, formatWon } from '@/utils/format';
+import { TABLE, TABLE_CARD, TD, TH, TR } from '@/components/ui/table';
 
 const EMPTY = '—';
 
@@ -73,15 +74,15 @@ const PurchaseOrderList = () => {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl bg-bg-surface shadow-card">
-      <table className="w-full text-body-sm">
-        <thead className="bg-bg-page text-label-sm text-text-secondary">
+    <div className={TABLE_CARD}>
+      <table className={TABLE}>
+        <thead>
           <tr>
             {['승인 시각', '부품', '수량', '공급사', '총액', '승인', ''].map((h, i) => (
               <th
                 key={h || 'actions'}
                 scope="col"
-                className={`px-4 py-3 font-medium ${i === 2 || i === 4 ? 'text-right' : 'text-left'}`}
+                className={`${TH} ${i === 2 || i === 4 ? 'text-right' : 'text-left'}`}
               >
                 {h}
               </th>
@@ -90,11 +91,11 @@ const PurchaseOrderList = () => {
         </thead>
         <tbody>
           {orders.map((po) => (
-            <tr key={po.id} className="border-t border-border-default">
-              <td className="px-4 py-3 text-text-secondary tabular-nums">
+            <tr key={po.id} className={TR}>
+              <td className={`${TD} text-text-secondary tabular-nums`}>
                 {formatComputedAt(po.approved_at)}
               </td>
-              <td className="px-4 py-3">
+              <td className={TD}>
                 <Link
                   href={`/reviews/${po.review_id}`}
                   className="flex flex-col text-label-md text-text-heading hover:text-text-brand"
@@ -105,17 +106,17 @@ const PurchaseOrderList = () => {
                   ) : null}
                 </Link>
               </td>
-              <td className="px-4 py-3 text-right text-text-heading tabular-nums">
+              <td className={`${TD} text-right text-text-heading tabular-nums`}>
                 {formatQty(po.qty, po.part.unit)}
               </td>
-              <td className="px-4 py-3 text-text-body">{po.supplier ?? EMPTY}</td>
-              <td className="px-4 py-3 text-right text-text-heading tabular-nums">
+              <td className={`${TD} text-text-body`}>{po.supplier ?? EMPTY}</td>
+              <td className={`${TD} text-right text-text-heading tabular-nums`}>
                 {po.total === null ? EMPTY : formatWon(po.total)}
               </td>
-              <td className="px-4 py-3 text-text-body">
+              <td className={`${TD} text-text-body`}>
                 {APPROVAL_ACTIONS[po.action]} · {po.approved_by}
               </td>
-              <td className="px-4 py-3">
+              <td className={TD}>
                 <div className="flex justify-end gap-2">
                   <CopyButton po={po} />
                   {po.pdf_url ? (

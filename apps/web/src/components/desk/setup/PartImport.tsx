@@ -14,6 +14,7 @@ import Tag from '@/components/ui/Tag';
 import { useConfirmPartImport, useUploadPartImport } from '@/hooks/setup/useSetup';
 import { apiErrorMessage } from '@/utils/apiError';
 import { formatQty, formatWon } from '@/utils/format';
+import { TABLE, TD, TH, TR } from '@/components/ui/table';
 
 import SetupCard from './SetupCard';
 
@@ -126,26 +127,26 @@ const PartImport = () => {
           description="부품 이름·현재 재고·단위만 있으면 시작할 수 있어요. 같은 파일을 다시 올려도 부품이 겹쳐 생기지 않아요."
         >
           <div className="grid grid-cols-2 gap-6">
-            <table className="w-full text-body-sm">
-              <thead className="text-label-sm text-text-secondary">
+            <table className={TABLE}>
+              <thead>
                 <tr>
-                  <th scope="col" className="py-2 text-left font-medium">
+                  <th scope="col" className={`${TH} text-left`}>
                     열
                   </th>
-                  <th scope="col" className="py-2 text-left font-medium">
+                  <th scope="col" className={`${TH} text-left`}>
                     필요
                   </th>
-                  <th scope="col" className="py-2 text-left font-medium">
+                  <th scope="col" className={`${TH} text-left`}>
                     예시
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {COLUMNS.map(([name, need, example]) => (
-                  <tr key={name} className="border-t border-border-default">
-                    <td className="py-2 text-label-md text-text-heading">{name}</td>
-                    <td className="py-2 text-text-body">{need}</td>
-                    <td className="py-2 text-text-secondary">{example}</td>
+                  <tr key={name} className={TR}>
+                    <td className={`${TD} text-label-md text-text-heading`}>{name}</td>
+                    <td className={`${TD} text-text-body`}>{need}</td>
+                    <td className={`${TD} text-text-secondary`}>{example}</td>
                   </tr>
                 ))}
               </tbody>
@@ -193,9 +194,9 @@ const PartImport = () => {
             </Button>
           }
         >
-          <div className="overflow-hidden rounded-md border border-border-default">
-            <table className="w-full text-body-sm">
-              <thead className="bg-bg-page text-label-sm text-text-secondary">
+          <div>
+            <table className={TABLE}>
+              <thead>
                 <tr>
                   {[
                     '줄',
@@ -209,7 +210,7 @@ const PartImport = () => {
                     <th
                       key={h}
                       scope="col"
-                      className={`px-4 py-3 font-medium ${i === 2 ? 'text-right' : 'text-left'}`}
+                      className={`${TH} ${i === 2 ? 'text-right' : 'text-left'}`}
                     >
                       {h}
                     </th>
@@ -223,9 +224,9 @@ const PartImport = () => {
                   const setEdit = (patch: Partial<Edit>) =>
                     setEdits((prev) => ({ ...prev, [row.row]: { ...edit, ...patch } }));
                   return (
-                    <tr key={row.row} className="border-t border-border-default align-top">
-                      <td className="px-4 py-3 text-text-secondary tabular-nums">{row.row}</td>
-                      <td className="px-4 py-3">
+                    <tr key={row.row} className={`${TR} align-top`}>
+                      <td className={`${TD} text-text-secondary tabular-nums`}>{row.row}</td>
+                      <td className={TD}>
                         <div className="flex flex-col gap-1">
                           <span className="text-label-md text-text-heading">{row.name}</span>
                           <span className="text-label-sm text-text-secondary">
@@ -248,10 +249,10 @@ const PartImport = () => {
                           ) : null}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right text-text-heading tabular-nums">
+                      <td className={`${TD} text-right text-text-heading tabular-nums`}>
                         {formatQty(row.stock, row.unit)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className={TD}>
                         <div className="flex flex-col gap-1">
                           <input
                             aria-label={`${row.name} 규격`}
@@ -269,7 +270,7 @@ const PartImport = () => {
                           ) : null}
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className={TD}>
                         <select
                           aria-label={`${row.name} 카테고리`}
                           className={`${FIELD} w-full`}
@@ -284,7 +285,7 @@ const PartImport = () => {
                           ))}
                         </select>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className={TD}>
                         {low ? (
                           <Tag tone="warning" icon={TriangleAlert}>
                             확인 필요
@@ -295,7 +296,7 @@ const PartImport = () => {
                           </Tag>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-text-body">
+                      <td className={`${TD} text-text-body`}>
                         {row.action === 'create' ? '새로 등록' : '갱신'}
                       </td>
                     </tr>

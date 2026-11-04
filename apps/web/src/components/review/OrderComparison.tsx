@@ -1,6 +1,7 @@
 import type { OrderLine, Proposal } from '@bjk/api/types/review';
 
 import { formatQty, formatWon } from '@/utils/format';
+import { TABLE, TD, TH, TR } from '@/components/ui/table';
 
 type OrderComparisonProps = {
   original: OrderLine;
@@ -43,29 +44,29 @@ const OrderComparison = ({ original, proposal, unit, lossAvoided }: OrderCompari
 
   return (
     <div className="flex flex-col gap-3">
-      <table className="w-full text-body-sm tabular-nums">
+      <table className={`${TABLE} tabular-nums`}>
         <thead>
-          <tr className="text-label-sm text-text-secondary">
-            <th scope="col" className="py-2 text-left font-medium">
+          <tr>
+            <th scope="col" className={`${TH} text-left`}>
               <span className="sr-only">항목</span>
             </th>
-            <th scope="col" className="py-2 text-right font-medium">
+            <th scope="col" className={`${TH} text-right`}>
               원안
             </th>
-            <th scope="col" className="py-2 text-right font-medium">
+            <th scope="col" className={`${TH} text-right`}>
               수정안
             </th>
           </tr>
         </thead>
         <tbody>
           {rows.map(({ label, before, after }) => (
-            <tr key={label} className="border-t border-border-default">
-              <th scope="row" className="py-2 text-left font-normal text-text-secondary">
+            <tr key={label} className={TR}>
+              <th scope="row" className={`${TD} text-left font-normal text-text-secondary`}>
                 {label}
               </th>
-              <td className="py-2 text-right text-text-body">{before}</td>
+              <td className={`${TD} text-right text-text-body`}>{before}</td>
               <td
-                className={`py-2 text-right ${before === after ? 'text-text-body' : 'text-label-md text-text-brand'}`}
+                className={`${TD} text-right ${before === after ? 'text-text-body' : 'text-label-md text-text-brand'}`}
               >
                 {after}
               </td>

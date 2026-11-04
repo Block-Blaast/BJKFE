@@ -14,6 +14,7 @@ import IconCircle, { type IconCircleTone } from '@/components/ui/IconCircle';
 import { usePart, usePartForecast, usePartLedger } from '@/hooks/part/useParts';
 import { factLabel, formatFact } from '@/utils/facts';
 import { formatComputedAt, formatDate, formatQty, formatWon } from '@/utils/format';
+import { TABLE, TD, TH, TR } from '@/components/ui/table';
 
 const EMPTY = '—';
 
@@ -97,37 +98,37 @@ const Ledger = ({ id, unit }: { id: string; unit: string }) => {
     return <p className="text-body-sm text-text-secondary">아직 기록이 없어요.</p>;
   }
   return (
-    <table className="w-full text-body-sm">
-      <thead className="text-label-sm text-text-secondary">
+    <table className={TABLE}>
+      <thead>
         <tr>
-          <th scope="col" className="py-2 text-left font-medium">
+          <th scope="col" className={`${TH} text-left`}>
             시각
           </th>
-          <th scope="col" className="py-2 text-left font-medium">
+          <th scope="col" className={`${TH} text-left`}>
             구분
           </th>
-          <th scope="col" className="py-2 text-right font-medium">
+          <th scope="col" className={`${TH} text-right`}>
             수량
           </th>
-          <th scope="col" className="py-2 pl-6 text-left font-medium">
+          <th scope="col" className={`${TH} text-left`}>
             원문 · 사유
           </th>
         </tr>
       </thead>
       <tbody>
         {entries.map((entry) => (
-          <tr key={entry.id} className="border-t border-border-default">
-            <td className="py-2 text-text-secondary tabular-nums">
+          <tr key={entry.id} className={TR}>
+            <td className={`${TD} text-text-secondary tabular-nums`}>
               {formatComputedAt(entry.created_at)}
             </td>
-            <td className="py-2 text-text-body">{MOVEMENT_TYPES[entry.type]}</td>
+            <td className={`${TD} text-text-body`}>{MOVEMENT_TYPES[entry.type]}</td>
             <td
-              className={`py-2 text-right tabular-nums ${entry.qty < 0 ? 'text-text-danger' : 'text-text-body'}`}
+              className={`${TD} text-right tabular-nums ${entry.qty < 0 ? 'text-text-danger' : 'text-text-body'}`}
             >
               {entry.qty > 0 ? '+' : ''}
               {formatQty(entry.qty, unit)}
             </td>
-            <td className="py-2 pl-6 text-text-body">
+            <td className={`${TD} text-text-body`}>
               {entry.message ? <q>{entry.message}</q> : null}
               {entry.message && entry.reason ? ' · ' : null}
               {entry.reason ?? (entry.message ? null : EMPTY)}

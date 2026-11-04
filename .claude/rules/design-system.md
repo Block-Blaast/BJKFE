@@ -73,6 +73,7 @@ Figma 컴포넌트와 같은 것은 `@bjk/ui/components/*`에 있습니다. 앱�
 - **알약 컨트롤**: 내비·필터·버튼은 `rounded-full`. 선택된 내비·탭은 **검정**(`bg-bg-inverse text-text-on-inverse`) — 파랑은 강조 카드·주 버튼에 아껴 써서, 화면의 대비는 파랑 + 검정 두 색으로 만듭니다.
 - **아이콘은 꽉 찬 동그란 칩 안에**: `components/ui/IconCircle` — 흰색(강조 카드 위)·검정·파랑·파랑 그라데이션 네 가지. 연한 바탕 원은 쓰지 않습니다. 한 줄의 카드들은 서로 다른 톤을 섞어 리듬을 줍니다.
 - **공용 부품을 먼저 쓴다** (`src/components/ui/`): 알약 묶음 선택 `Segmented`(선택은 검정), 필터·검색 클래스 `controls.ts`(`PILL_SELECT`, `PILL_SEARCH`, 라벨 없는 폼 칸 `FIELD`), 빈 화면 `EmptyState`(작은 일러스트), 동그란 뒤로 가기 `BackLink`, 아이콘 원 `IconCircle`. 같은 모양을 화면에서 다시 만들지 않습니다.
+- **표는 `components/ui/table.ts`만 쓴다** (참고: Loseva 타임시트 표): 줄 사이 선 없이 둥근 회색 머리줄(`TH`, `bg-bg-subtle`) + 흰색·연회색(`bg-bg-page`) 줄무늬(`TR`)로 행을 나눕니다. 표만 있는 화면은 `TABLE_CARD`(흰 카드)에 담습니다. 표 안 칩은 줄무늬에 묻히지 않게 흰 바탕 + 테두리를 씁니다.
 - **카드 제목은 `text-h3`**, 카드 안 소제목은 `text-label-lg`.
 - **위트는 브랜드 순간에만**: 빈 화면·로그인·브리핑 머리 같은 곳에서만 파랑+노랑 일러스트(`components/illustration/`)를 씁니다. 데이터 화면에는 넣지 않습니다.
 

@@ -30,6 +30,7 @@ import { useAudits } from '@/hooks/audit/useAudits';
 import { useParts } from '@/hooks/part/useParts';
 import { useReviews } from '@/hooks/review/useReviews';
 import { formatDate, formatQty, formatWon } from '@/utils/format';
+import { TABLE, TD, TH, TR } from '@/components/ui/table';
 
 const EMPTY = '—';
 const TOP = 5;
@@ -241,27 +242,27 @@ const Dashboard = () => {
               <Muted>소진이 예상되는 부품이 없어요.</Muted>
             ) : (
               <>
-                <table className="w-full text-body-sm tabular-nums">
-                  <thead className="text-label-sm text-text-secondary">
+                <table className={`${TABLE} tabular-nums`}>
+                  <thead>
                     <tr>
-                      <th scope="col" className="py-2 text-left font-medium">
+                      <th scope="col" className={`${TH} text-left`}>
                         부품
                       </th>
-                      <th scope="col" className="py-2 text-right font-medium">
+                      <th scope="col" className={`${TH} text-right`}>
                         현재 재고
                       </th>
-                      <th scope="col" className="py-2 text-right font-medium">
+                      <th scope="col" className={`${TH} text-right`}>
                         소진 예상
                       </th>
-                      <th scope="col" className="py-2 text-right font-medium">
+                      <th scope="col" className={`${TH} text-right`}>
                         발주 마감
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     {risk!.items.slice(0, TOP).map((p) => (
-                      <tr key={p.id} className="border-t border-border-default">
-                        <td className="py-3">
+                      <tr key={p.id} className={TR}>
+                        <td className={TD}>
                           <Link
                             href={`/parts/${p.id}`}
                             className="flex items-center gap-3 text-label-md text-text-heading hover:text-text-brand"
@@ -272,13 +273,13 @@ const Dashboard = () => {
                             {p.name}
                           </Link>
                         </td>
-                        <td className="py-3 text-right text-text-body">
+                        <td className={`${TD} text-right text-text-body`}>
                           {formatQty(p.stock, p.unit)}
                         </td>
-                        <td className="py-3 text-right text-text-body">
+                        <td className={`${TD} text-right text-text-body`}>
                           {p.metrics.t_out ? formatDate(p.metrics.t_out) : EMPTY}
                         </td>
-                        <td className="py-3 text-right text-text-heading">
+                        <td className={`${TD} text-right text-text-heading`}>
                           {p.metrics.t_deadline ? formatDate(p.metrics.t_deadline) : EMPTY}
                         </td>
                       </tr>

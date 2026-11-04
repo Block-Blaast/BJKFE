@@ -17,6 +17,7 @@ import {
 } from '@/hooks/setup/useSetup';
 import { apiErrorMessage } from '@/utils/apiError';
 import { formatComputedAt, formatDate, formatQty } from '@/utils/format';
+import { TABLE, TD, TH, TR } from '@/components/ui/table';
 
 import PartQtyFields, { EMPTY_PART_ROW, toPartQtyInput, type PartQtyDraft } from './PartQtyFields';
 import QueryStatus from './QueryStatus';
@@ -125,11 +126,11 @@ const MaintenanceSection = () => {
             </div>
           ) : null}
           {items && items.length > 0 ? (
-            <table className="w-full text-body-sm">
-              <thead className="text-label-sm text-text-secondary">
+            <table className={TABLE}>
+              <thead>
                 <tr>
                   {['예정일', '설비', '필요 부품', '상태'].map((h) => (
-                    <th key={h} scope="col" className="py-2 text-left font-medium">
+                    <th key={h} scope="col" className={`${TH} text-left`}>
                       {h}
                     </th>
                   ))}
@@ -139,17 +140,17 @@ const MaintenanceSection = () => {
                 {items.map((item) => {
                   const saving = complete.isPending && complete.variables === item.id;
                   return (
-                    <tr key={item.id} className="border-t border-border-default">
-                      <td className="py-3 text-label-md text-text-heading tabular-nums">
+                    <tr key={item.id} className={TR}>
+                      <td className={`${TD} text-label-md text-text-heading tabular-nums`}>
                         {formatDate(item.scheduled_on)}
                       </td>
-                      <td className="py-3 text-text-body">{item.equipment.name}</td>
-                      <td className="py-3 text-text-body">
+                      <td className={`${TD} text-text-body`}>{item.equipment.name}</td>
+                      <td className={`${TD} text-text-body`}>
                         {item.parts
                           .map((p) => `${p.part_name} ${formatQty(p.qty, p.unit)}`)
                           .join(', ')}
                       </td>
-                      <td className="py-3">
+                      <td className={TD}>
                         {item.completed_at ? (
                           <span className="flex items-center gap-2">
                             <Tag tone="success" icon={CircleCheck}>
