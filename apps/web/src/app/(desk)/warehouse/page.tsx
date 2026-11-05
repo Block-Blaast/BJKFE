@@ -9,10 +9,10 @@ export const metadata: Metadata = { title: '3D 창고' };
 // 화면 상태는 store 에 있고 요청 시점 값(searchParams 등)을 읽지 않아 Suspense 가 필요 없다.
 const WarehousePage = () => {
   return (
-    <>
+    <main className="flex flex-1 flex-col">
       <h1 className="sr-only">3D 창고</h1>
       <WarehouseView />
-    </>
+    </main>
   );
 };
 

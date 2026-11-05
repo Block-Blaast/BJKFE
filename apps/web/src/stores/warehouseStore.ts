@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 import type { TwinLayerKey, TwinLayers } from '@/utils/twin';
 
-// 3D 창고(W-11) 화면 조작 상태 — 선택·강조·날짜의 유일한 출처.
+// 3D 창고(W-11) 화면 조작 상태 — 선택·강조의 유일한 출처.
 // 목록 필터가 아니라 화면 조작이라 URL 이 아니라 store 에 둔다(desk.md).
 // iframe 은 이 값을 따라 그리기만 한다: iframe 클릭 → postMessage → 여기 → WarehouseView 가 다시 iframe 에 반영.
 // 서버 데이터(layout·projection)는 TanStack Query 캐시에만 둔다.
@@ -24,9 +24,7 @@ type WarehouseState = {
   hoveredLoc: string | null;
   highlighted: string[];
   highlightLabel: string | null; // 강조를 만든 칩·검색 이름 (패널 머리에 쓴다)
-  day: number;
   layers: TwinLayers;
-  withOrders: boolean;
   panelOpen: boolean;
   frameReady: boolean;
 
@@ -35,10 +33,8 @@ type WarehouseState = {
   selectEquipment: (id: string | null) => void;
   setHoveredLoc: (loc: string | null) => void;
   setHighlight: (locs: string[], label?: string | null) => void;
-  setDay: (day: number) => void;
   setLayers: (layers: Partial<TwinLayers>) => void;
   toggleLayer: (key: TwinLayerKey) => void;
-  setWithOrders: (withOrders: boolean) => void;
   setPanelOpen: (open: boolean) => void;
   setFrameReady: (ready: boolean) => void;
   clearFocus: () => void; // 선택·강조를 모두 지운다 (전체 보기)
@@ -51,9 +47,7 @@ export const useWarehouseStore = create<WarehouseState>()((set) => ({
   hoveredLoc: null,
   highlighted: [],
   highlightLabel: null,
-  day: 0,
   layers: ALL_LAYERS,
-  withOrders: false,
   panelOpen: true,
   frameReady: false,
 
@@ -73,10 +67,8 @@ export const useWarehouseStore = create<WarehouseState>()((set) => ({
   setHoveredLoc: (loc) => set({ hoveredLoc: loc }),
   setHighlight: (locs, label = null) =>
     set({ highlighted: locs, highlightLabel: locs.length ? label : null }),
-  setDay: (day) => set({ day }),
   setLayers: (layers) => set((s) => ({ layers: { ...s.layers, ...layers } })),
   toggleLayer: (key) => set((s) => ({ layers: { ...s.layers, [key]: !s.layers[key] } })),
-  setWithOrders: (withOrders) => set({ withOrders }),
   setPanelOpen: (panelOpen) => set({ panelOpen }),
   setFrameReady: (frameReady) => set({ frameReady }),
   clearFocus: () =>

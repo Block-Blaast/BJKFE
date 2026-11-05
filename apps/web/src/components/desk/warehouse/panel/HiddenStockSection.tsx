@@ -13,7 +13,7 @@ import { useParts } from '@/hooks/part/useParts';
 import { useWarehouseBridge } from '@/hooks/twin/useWarehouseBridge';
 import { apiErrorMessage } from '@/utils/apiError';
 import { formatQty } from '@/utils/format';
-import { locsByPart } from '@/utils/twin';
+import { locsByPart, TODAY } from '@/utils/twin';
 
 import type { BinSectionProps, OverviewSectionProps } from './types';
 
@@ -128,7 +128,7 @@ const MergeDialog = ({ candidate, onClose }: MergeDialogProps) => {
 };
 
 // 칸을 골랐을 때 — 같은 묶음의 다른 칸, 같이 보기, 병합
-const HiddenStockSection = ({ layout, projection, part, bin, day }: BinSectionProps) => {
+const HiddenStockSection = ({ layout, projection, part, bin }: BinSectionProps) => {
   const bridge = useWarehouseBridge();
   const parts = useParts({});
   const candidates = useMergeCandidates();
@@ -176,7 +176,7 @@ const HiddenStockSection = ({ layout, projection, part, bin, day }: BinSectionPr
                   </span>
                 </span>
                 <span className="shrink-0 text-label-md text-text-body tabular-nums">
-                  {formatQty(Math.round(b.qty[day] * 10) / 10, other?.unit ?? part.unit)}
+                  {formatQty(Math.round(b.qty[TODAY] * 10) / 10, other?.unit ?? part.unit)}
                 </span>
               </button>
             </li>

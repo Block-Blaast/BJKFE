@@ -11,7 +11,7 @@ import { useTwinLayout, useTwinProjection } from '@/hooks/twin/useTwinLayout';
 import { useWarehouseBridge } from '@/hooks/twin/useWarehouseBridge';
 import { useWarehouseStore, type WarehouseView } from '@/stores/warehouseStore';
 import { formatQty } from '@/utils/format';
-import { BIN_LOOK_LABEL, binLook, LOOK_TONE, type TwinLayers } from '@/utils/twin';
+import { BIN_LOOK_LABEL, binLook, LOOK_TONE, TODAY, type TwinLayers } from '@/utils/twin';
 
 // 표는 층 토글과 무관하게 칸의 실제 상태를 모두 보여준다
 const ALL_LAYERS: TwinLayers = {
@@ -46,15 +46,13 @@ export const WarehouseViewToggle = () => {
 // 3D 창고(W-11)의 표 보기. canvas 는 키보드로 칸을 고를 수 없어 이 표가 키보드·화면 읽기 사용자의 유일한 길이다.
 // 그래서 칸으로 가는 조작은 모두 button 이다.
 const WarehouseTable = () => {
-  const day = useWarehouseStore((s) => s.day);
-  const withOrders = useWarehouseStore((s) => s.withOrders);
   const selectedLoc = useWarehouseStore((s) => s.selectedLoc);
   const setSelectedLoc = useWarehouseStore((s) => s.setSelectedLoc);
   const setView = useWarehouseStore((s) => s.setView);
   const bridge = useWarehouseBridge();
 
   const layout = useTwinLayout();
-  const projection = useTwinProjection(withOrders);
+  const projection = useTwinProjection(false);
   const parts = useParts({});
 
   if (layout.isError || projection.isError || parts.isError) {
@@ -100,8 +98,7 @@ const WarehouseTable = () => {
     <div className={TABLE_CARD}>
       <table className={`${TABLE} tabular-nums`}>
         <caption className="sr-only">
-          {day === 0 ? '오늘' : `${day}일 뒤`} 기준 칸별 재고. 칸 위치 버튼을 누르면 3D에서 그
-          칸으로 이동합니다.
+          오늘 기준 칸별 재고. 칸 위치 버튼을 누르면 3D에서 그 칸으로 이동합니다.
         </caption>
         <thead>
           <tr>
@@ -112,7 +109,7 @@ const WarehouseTable = () => {
               부품
             </th>
             <th scope="col" className={`${TH} text-right`}>
-              {day === 0 ? '현재 재고' : `${day}일 뒤 재고`}
+              현재 재고
             </th>
             <th scope="col" className={`${TH} text-right`}>
               재주문점
@@ -135,7 +132,7 @@ const WarehouseTable = () => {
           {projection.data.bins.map((b) => {
             const part = partOf.get(b.part_id);
             const unit = part?.unit ?? '';
-            const look = binLook(b, day, ALL_LAYERS);
+            const look = binLook(b, ALL_LAYERS);
             const placements = placementsOf.get(b.part_id) ?? [];
             return (
               <tr key={b.part_id} className={TR}>
@@ -166,7 +163,7 @@ const WarehouseTable = () => {
                 </td>
                 <td className={`${TD} text-text-body`}>{part?.name ?? b.part_id}</td>
                 <td className={`${TD} text-right text-text-heading`}>
-                  {formatQty(Math.round(b.qty[day] * 10) / 10, unit)}
+                  {formatQty(Math.round(b.qty[TODAY] * 10) / 10, unit)}
                 </td>
                 <td className={`${TD} text-right text-text-body`}>
                   {b.reorder_point === null ? '—' : formatQty(b.reorder_point, unit)}
@@ -177,7 +174,7 @@ const WarehouseTable = () => {
                   </DotTag>
                 </td>
                 <td className={`${TD} text-right text-text-body`}>
-                  {Math.round(b.p_out[day] * 100)}%
+                  {Math.round(b.p_out[TODAY] * 100)}%
                 </td>
                 <td className={`${TD} text-text-body`}>{isHidden(b) ? '있음' : '—'}</td>
                 <td className={`${TD} text-text-body`}>{b.audit ? b.audit.reason : '—'}</td>

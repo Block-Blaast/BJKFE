@@ -15,6 +15,7 @@ import {
   LOOK_TONE,
   shortDate,
   type BinLook,
+  TODAY,
 } from '@/utils/twin';
 
 const EMPTY = '—';
@@ -36,7 +37,6 @@ type BinPanelProps = {
   part: Part;
   bin: TwinBin;
   look: BinLook;
-  day: number;
   equipmentNames: string[];
   arrivals: TwinArrival[];
   sameSpec: { part: Part; qty: number }[];
@@ -49,7 +49,6 @@ export const BinPanel = ({
   part,
   bin,
   look,
-  day,
   equipmentNames,
   arrivals,
   sameSpec,
@@ -67,14 +66,14 @@ export const BinPanel = ({
     <PropertyList
       items={[
         {
-          label: day === 0 ? '현재 재고' : `${day}일 뒤 예측 재고`,
-          value: formatQty(Math.round(bin.qty[day] * 10) / 10, part.unit),
+          label: '현재 재고',
+          value: formatQty(Math.round(bin.qty[TODAY] * 10) / 10, part.unit),
         },
         {
           label: '재주문점',
           value: bin.reorder_point === null ? EMPTY : formatQty(bin.reorder_point, part.unit),
         },
-        { label: '결품 확률', value: `${Math.round(bin.p_out[day] * 100)}%` },
+        { label: '결품 확률', value: `${Math.round(bin.p_out[TODAY] * 100)}%` },
         { label: '쓰는 설비', value: equipmentNames.join(', ') || EMPTY },
         {
           label: '정비 필요량',
@@ -135,7 +134,6 @@ export const BinPanel = ({
 type EquipmentPanelProps = {
   name: string;
   projection: TwinEquipmentProjection;
-  day: number;
   partName: (id: string) => string;
   usedParts: string[];
   onClose: () => void;
@@ -145,14 +143,13 @@ type EquipmentPanelProps = {
 export const EquipmentPanel = ({
   name,
   projection,
-  day,
   partName,
   usedParts,
   onClose,
   sections,
 }: EquipmentPanelProps) => {
-  const status = projection.status[day];
-  const loss = projection.loss[day];
+  const status = projection.status[TODAY];
+  const loss = projection.loss[TODAY];
   return (
     <InfoPanel title={name}>
       <div className="-mt-4 flex items-start justify-between gap-3">
@@ -177,7 +174,7 @@ export const EquipmentPanel = ({
           },
           {
             label: status === 'down' ? '멈추게 하는 부품' : '위험한 부품',
-            value: projection.cause_part_ids[day].map(partName).join(', ') || EMPTY,
+            value: projection.cause_part_ids[TODAY].map(partName).join(', ') || EMPTY,
           },
         ]}
       />

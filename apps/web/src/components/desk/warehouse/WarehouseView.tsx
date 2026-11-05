@@ -17,28 +17,27 @@ import { useWarehouseStore } from '@/stores/warehouseStore';
 
 import { FLOATING_SLOTS } from './panel/slots';
 import WarehouseLegend from './WarehouseLegend';
+import WarehouseMenu from './WarehouseMenu';
 import WarehousePanel from './WarehousePanel';
 import WarehouseSummary from './WarehouseSummary';
 import WarehouseTable, { WarehouseViewToggle } from './WarehouseTable';
-import WarehouseTimeline from './WarehouseTimeline';
 
 const FLOAT = 'pointer-events-auto';
 
 // 디지털 트윈 — 3D 창고 (W-11). 3D 는 public/warehouse-3d.html(iframe)이 그리고,
 // 이 컴포넌트는 그 위에 겹치는 React 레이어다. 씬은 useWarehouseBridge 로만 조작한다.
-// 색·숫자·날짜별 상태는 모두 /twin/projection 에서 온다 — 여기서 계산하지 않는다.
+// 색·숫자는 모두 /twin/projection 의 오늘 값에서 온다 — 여기서 계산하지 않는다.
 // 오버레이 바깥 래퍼는 pointer-events-none 이라 빈 곳을 끌면 iframe 이 카메라를 돌린다.
 // TODO(W-11): SSE(stock.changed, audit.flagged)로 twin 쿼리 무효화
 const WarehouseView = () => {
-  const withOrders = useWarehouseStore((s) => s.withOrders);
   const view = useWarehouseStore((s) => s.view);
   const panelOpen = useWarehouseStore((s) => s.panelOpen);
   const setPanelOpen = useWarehouseStore((s) => s.setPanelOpen);
   const bridge = useWarehouseBridge();
 
   const layout = useTwinLayout();
-  const projection = useTwinProjection(withOrders);
-  // 결정 대기(수정안 상자)는 "발주하면" 예측에만 실린다. 토글할 때 기다리지 않게도 미리 받아 둔다
+  // 3D 는 오늘 상태(발주 전)를 그린다. 결정 대기(수정안 상자)는 "발주하면" 예측에만 실려 칩을 셀 때만 쓴다
+  const projection = useTwinProjection(false);
   const ordered = useTwinProjection(true);
   const parts = useParts({});
 
@@ -47,14 +46,6 @@ const WarehouseView = () => {
       pushWarehouseData({ layout: layout.data, projection: projection.data });
     }
   }, [layout.data, projection.data]);
-
-  // 예측 기간이 줄어든 응답이 와도 칸의 날짜 배열 밖을 가리키지 않게 한다
-  const horizon = projection.data?.horizon_days;
-  useEffect(() => {
-    if (horizon === undefined) return;
-    const { day, setDay } = useWarehouseStore.getState();
-    if (day > horizon) setDay(horizon);
-  }, [horizon]);
 
   const failed = layout.isError || projection.isError || parts.isError;
   const ready = layout.data && projection.data && parts.data;
@@ -73,13 +64,16 @@ const WarehouseView = () => {
       <div className="pointer-events-none absolute inset-0 flex flex-col gap-4 p-4">
         <div className="flex items-start justify-between gap-4">
           <div className={`${FLOAT} flex flex-col gap-2`}>
-            {layout.data && projection.data ? (
-              <WarehouseSummary
-                layout={layout.data}
-                projection={projection.data}
-                withOrdersProjection={ordered.data}
-              />
-            ) : null}
+            <div className="flex flex-wrap items-start gap-2">
+              <WarehouseMenu />
+              {layout.data && projection.data ? (
+                <WarehouseSummary
+                  layout={layout.data}
+                  projection={projection.data}
+                  withOrdersProjection={ordered.data}
+                />
+              ) : null}
+            </div>
             {projection.data?.is_mock ? (
               <span className="w-fit rounded-full bg-bg-surface px-3 py-1 text-label-sm text-text-secondary shadow-card">
                 목업 데이터
@@ -166,18 +160,13 @@ const WarehouseView = () => {
           ) : null}
         </div>
 
-        <div className="flex items-end gap-4">
-          <div className={`${FLOAT} min-w-0 flex-1`}>
-            {projection.data ? <WarehouseTimeline projection={projection.data} /> : null}
+        {FLOATING_SLOTS.length ? (
+          <div className={`${FLOAT} flex shrink-0 items-center gap-2 self-end`}>
+            {FLOATING_SLOTS.map((Slot, i) => (
+              <Slot key={i} />
+            ))}
           </div>
-          {FLOATING_SLOTS.length ? (
-            <div className={`${FLOAT} flex shrink-0 items-center gap-2`}>
-              {FLOATING_SLOTS.map((Slot, i) => (
-                <Slot key={i} />
-              ))}
-            </div>
-          ) : null}
-        </div>
+        ) : null}
       </div>
     </div>
   );

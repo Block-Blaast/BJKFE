@@ -16,6 +16,7 @@ import {
   binLook,
   locsByPart,
   twinLoc,
+  TODAY,
 } from '@/utils/twin';
 
 import { BIN_SECTIONS, OVERVIEW_SECTIONS, PANEL_TOP_SLOTS } from './panel/slots';
@@ -37,13 +38,11 @@ const WarehousePanel = ({ layout, projection, parts }: WarehousePanelProps) => {
   const selectedEquipmentId = useWarehouseStore((s) => s.selectedEquipmentId);
   const highlighted = useWarehouseStore((s) => s.highlighted);
   const highlightLabel = useWarehouseStore((s) => s.highlightLabel);
-  const day = useWarehouseStore((s) => s.day);
   const layers = useWarehouseStore((s) => s.layers);
-  const withOrders = useWarehouseStore((s) => s.withOrders);
   const selectEquipment = useWarehouseStore((s) => s.selectEquipment);
   const bridge = useWarehouseBridge();
 
-  const ctx = { layout, projection, day, withOrders };
+  const ctx = { layout, projection };
   const partOf = new Map(parts.map((p) => [p.id, p]));
   const binOf = new Map(projection.bins.map((b) => [b.part_id, b]));
   const partAt = new Map(layout.placements.map((pl) => [twinLoc(pl), pl.part_id]));
@@ -63,8 +62,7 @@ const WarehousePanel = ({ layout, projection, parts }: WarehousePanelProps) => {
         <BinPanel
           part={part}
           bin={bin}
-          look={binLook(bin, day, layers)}
-          day={day}
+          look={binLook(bin, layers)}
           equipmentNames={layout.equipment
             .filter((e) => e.part_ids.includes(part.id))
             .map((e) => e.name)}
@@ -78,7 +76,7 @@ const WarehousePanel = ({ layout, projection, parts }: WarehousePanelProps) => {
             )
             .flatMap((b) => {
               const p = partOf.get(b.part_id);
-              return p ? [{ part: p, qty: b.qty[day] }] : [];
+              return p ? [{ part: p, qty: b.qty[TODAY] }] : [];
             })}
           onClose={() => bridge.select(null)}
           sections={BIN_SECTIONS.map((Section, i) => (
@@ -100,7 +98,6 @@ const WarehousePanel = ({ layout, projection, parts }: WarehousePanelProps) => {
         <EquipmentPanel
           name={equipment.name}
           projection={equipmentProjection}
-          day={day}
           partName={partName}
           usedParts={equipment.part_ids}
           onClose={() => selectEquipment(null)}
@@ -116,13 +113,13 @@ const WarehousePanel = ({ layout, projection, parts }: WarehousePanelProps) => {
   const rows = (
     highlighted.length
       ? highlightedParts
-      : projection.bins.filter((b) => binLook(b, day, layers) !== 'normal')
+      : projection.bins.filter((b) => binLook(b, layers) !== 'normal')
   )
-    .map((b) => ({ b, look: binLook(b, day, layers) }))
+    .map((b) => ({ b, look: binLook(b, layers) }))
     .sort((a, b) => LOOK_ORDER[a.look] - LOOK_ORDER[b.look]);
 
   const troubled = layout.equipment.filter(
-    (e) => (equipmentOf.get(e.id)?.status[day] ?? 'normal') !== 'normal',
+    (e) => (equipmentOf.get(e.id)?.status[TODAY] ?? 'normal') !== 'normal',
   );
 
   return (
@@ -166,7 +163,7 @@ const WarehousePanel = ({ layout, projection, parts }: WarehousePanelProps) => {
           <InfoSection title="설비 영향">
             <ul className="flex flex-col gap-1">
               {troubled.map((e) => {
-                const status = equipmentOf.get(e.id)?.status[day] ?? 'normal';
+                const status = equipmentOf.get(e.id)?.status[TODAY] ?? 'normal';
                 return (
                   <li key={e.id}>
                     <button

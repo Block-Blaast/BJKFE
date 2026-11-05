@@ -6,75 +6,29 @@ export const MOBILE_TABS = [
   { href: '/m/briefing', label: '브리핑', specId: 'M-04' },
 ] as const;
 
-// PC 주 메뉴 (v2) — 화면 묶음이 아니라 발주 흐름 5단계가 곧 메뉴다. PC 첫 화면은 ①의 3D 창고(/warehouse,
-// proxy.ts)이고, 대시보드(오늘)는 메뉴에 없이 로고로만 들어간다.
-// match 의 경로 중 하나에 있으면 그 단계가 활성이다. ②자동 검토와 ③사장님 결정은 같은 /reviews 라
-// status 로 가른다(?status=all 이면 ②, 아니면 ③ — reviewFilters 의 기본값이 결정 대기다).
-// 하위 화면은 DESK_SUB_NAV 의 탭으로 고른다.
-export const DESK_FLOW = [
-  {
-    key: 'record',
-    label: '현장 기록',
-    who: '작업자 · 채팅',
-    href: '/warehouse',
-    match: ['/warehouse', '/parts', '/hidden-stock'],
-    status: null,
-  },
-  {
-    key: 'review',
-    label: '자동 검토',
-    who: '시스템 · 체크 9가지',
-    href: '/reviews?status=all',
-    match: ['/reviews'],
-    status: 'all',
-  },
-  {
-    key: 'decide',
-    label: '사장님 결정',
-    who: '검토함 · 결정 대기',
-    href: '/reviews',
-    match: ['/reviews'],
-    status: 'pending',
-  },
-  {
-    key: 'ordered',
-    label: '발주·납기',
-    who: '공급사 · 도착 대기',
-    href: '/reports',
-    match: ['/reports'],
-    status: null,
-  },
-  {
-    key: 'received',
-    label: '입고 검수',
-    who: '작업자 · 수량 확인',
-    href: '/audit',
-    match: ['/audit'],
-    status: null,
-  },
-] as const;
+// PC (v3) — 상단 메뉴가 없다. 3D 창고(/warehouse)가 유일한 입구이고(proxy.ts 가 / 를 보낸다),
+// 기존 화면은 3D 창고 왼쪽 위 메뉴(WarehouseMenu)에서 상세 페이지로 연다. 각 화면은 DESK_HOME 으로 돌아온다.
+export const DESK_HOME = { href: '/warehouse', label: '3D 창고' } as const;
 
-// 왼쪽 로고 — 오늘 대시보드(W-01) 입구
-export const DESK_DASHBOARD = { href: '/dashboard', label: '발주콕 — 오늘' } as const;
-
-// 오른쪽 톱니 — 처음 한 번 맞춰 두는 화면들
-export const DESK_SETTINGS = {
-  href: '/setup',
-  label: '설정',
-  match: ['/setup', '/settings'],
-} as const;
-
-export const DESK_SUB_NAV = [
+export const DESK_MENU = [
   {
-    match: DESK_FLOW[0].match,
+    title: '현황',
     items: [
-      { href: '/warehouse', label: '3D 창고', specId: null },
-      { href: '/parts', label: '부품', specId: 'W-04' },
-      { href: '/hidden-stock', label: '숨은 재고', specId: 'W-07' },
+      { href: '/dashboard', label: '오늘 대시보드', specId: 'W-01' },
+      { href: '/reviews', label: '검토함', specId: 'W-02' },
+      { href: '/reports', label: '발주·리포트', specId: 'W-09' },
     ],
   },
   {
-    match: DESK_SETTINGS.match,
+    title: '재고',
+    items: [
+      { href: '/parts', label: '부품', specId: 'W-04' },
+      { href: '/hidden-stock', label: '숨은 재고', specId: 'W-07' },
+      { href: '/audit', label: '입고 검수·실사', specId: 'W-06' },
+    ],
+  },
+  {
+    title: '설정',
     items: [
       { href: '/setup', label: '기준 정보', specId: 'W-08' },
       { href: '/settings', label: '직원·설정', specId: 'W-10' },
@@ -86,4 +40,3 @@ export const isUnder = (pathname: string, href: string) =>
   pathname === href || pathname.startsWith(`${href}/`);
 
 export type MobileTabHref = (typeof MOBILE_TABS)[number]['href'];
-export type DeskFlowKey = (typeof DESK_FLOW)[number]['key'];

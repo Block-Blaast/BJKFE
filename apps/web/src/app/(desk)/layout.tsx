@@ -1,22 +1,9 @@
-import { Suspense, type ReactNode } from 'react';
-
-import DeskSubNav from '@/components/layout/DeskSubNav';
-import DeskTopBar from '@/components/layout/DeskTopBar';
+import type { ReactNode } from 'react';
 
 // 웹 화면(PC). 데스크톱 전용이라 최소 폭(1280px)을 둔다.
-// 회색 바탕 → 옅은 패널 → 흰 카드 3겹으로 카드가 떠 보이게 한다 (design-system.md "화면 인상").
+// 상단 메뉴는 없다(v3) — 3D 창고(/warehouse)가 입구이고, 기존 화면은 (pages) 그룹에서 3D 창고로 돌아가는 줄을 단다.
 const DeskLayout = ({ children }: { children: ReactNode }) => {
-  return (
-    <div className="flex min-h-dvh min-w-7xl flex-col bg-bg-canvas p-5">
-      <div className="flex flex-1 flex-col gap-6 rounded-xl bg-bg-page p-6">
-        <DeskTopBar />
-        <Suspense fallback={null}>
-          <DeskSubNav />
-        </Suspense>
-        <main className="flex flex-1 flex-col">{children}</main>
-      </div>
-    </div>
-  );
+  return <div className="flex min-h-dvh min-w-7xl flex-col bg-bg-canvas p-5">{children}</div>;
 };
 
 export default DeskLayout;

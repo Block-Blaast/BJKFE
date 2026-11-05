@@ -10,7 +10,7 @@
 | `PANEL_TOP_SLOTS`   | 오른쪽 패널 맨 위 (항상)                   | 없음                   | `WarehouseSearch`                                                       |
 | `BIN_SECTIONS`      | 칸을 골랐을 때, 기본 정보 아래             | `BinSectionProps`      | `ReviewSection`, `ArrivalSection`, `AuditSection`, `HiddenStockSection` |
 | `OVERVIEW_SECTIONS` | 아무것도 안 골랐을 때, 주의할 칸 목록 아래 | `OverviewSectionProps` | 전체 입고 예정 목록 등                                                  |
-| `FLOATING_SLOTS`    | 화면 오른쪽 아래, 날짜 슬라이더 옆         | 없음                   | `ChatDrawer` 의 플로팅 버튼                                             |
+| `FLOATING_SLOTS`    | 화면 오른쪽 아래                           | 없음                   | `ChatDrawer` 의 플로팅 버튼                                             |
 
 - 섹션 파일: `panel/<이름>Section.tsx` 하나. 검색·채팅처럼 섹션이 아닌 것은 `components/desk/warehouse/<이름>.tsx`.
 - 섹션은 `InfoSection`(`@/components/ui/InfoPanel`)으로 감싸 패널 안 다른 섹션과 모양을 맞춥니다. 섹션이 보여줄 것이 없으면 `null` 을 돌려줍니다.
@@ -19,8 +19,8 @@
 
 ## 데이터와 조작
 
-- 서버 데이터: props(`layout`, `projection`, `part`, `bin`, `day`, `withOrders`)를 쓰거나 `useTwinLayout`/`useTwinProjection`/`useParts` 를 직접 불러도 됩니다(같은 캐시).
-- 화면 상태: `useWarehouseStore`(`@/stores/warehouseStore`) — 선택 칸, 강조 칸, 날짜, 층, 발주 여부, 패널 열림, 보기.
+- 서버 데이터: props(`layout`, `projection`, `part`, `bin`). 숫자는 오늘 값(`TODAY`, `@/utils/twin`)를 쓰거나 `useTwinLayout`/`useTwinProjection`/`useParts` 를 직접 불러도 됩니다(같은 캐시).
+- 화면 상태: `useWarehouseStore`(`@/stores/warehouseStore`) — 선택 칸, 강조 칸, 층, 패널 열림, 보기.
 - 3D 조작: `useWarehouseBridge()`(`@/hooks/twin/useWarehouseBridge`). iframe 을 직접 만지지 않습니다.
 
 ```tsx
@@ -31,7 +31,7 @@ import { useWarehouseBridge } from '@/hooks/twin/useWarehouseBridge';
 
 import type { BinSectionProps } from './types';
 
-const ReviewSection = ({ loc, part, bin, day }: BinSectionProps) => {
+const ReviewSection = ({ loc, part, bin }: BinSectionProps) => {
   const bridge = useWarehouseBridge();
   return (
     <InfoSection title="검토">
@@ -57,7 +57,6 @@ export const BIN_SECTIONS: ComponentType<BinSectionProps>[] = [ReviewSection];
 | ----------------------------- | ----------------------------------------------------------------- |
 | `select(loc \| null)`         | 칸 선택(패널이 열림). store 를 바꾸면 씬이 따라간다               |
 | `highlight(locs, label?)`     | 여러 칸 강조. `label` 은 패널 제목으로 쓰인다. `[]` 로 해제       |
-| `setDay(day)`                 | 날짜 인덱스(0 ~ `horizon_days`)                                   |
 | `setLayers({ hidden: true })` | 층 일부만 바꿔도 된다                                             |
 | `flyTo(target)`               | 카메라: `'home'` · `'top'` · `{ locs }` · `{ equipmentId }`       |
 | `goTo(loc)`                   | 선택 + 그 칸으로 날아감                                           |

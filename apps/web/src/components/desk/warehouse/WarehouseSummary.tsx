@@ -24,18 +24,17 @@ const CHIPS: { key: TwinSummaryKey; icon: LucideIcon; iconClass: string }[] = [
 
 // 상단 요약 칩 — 누르면 해당 칸을 강조하고 그쪽으로 날아가 패널을 연다. 다시 누르면 강조를 푼다
 const WarehouseSummary = ({ layout, projection, withOrdersProjection }: WarehouseSummaryProps) => {
-  const day = useWarehouseStore((s) => s.day);
   const highlightLabel = useWarehouseStore((s) => s.highlightLabel);
 
   const highlighted = useWarehouseStore((s) => s.highlighted);
   const bridge = useWarehouseBridge();
   const { highlight } = bridge;
 
-  const summary = twinSummary(projection, withOrdersProjection, day);
+  const summary = twinSummary(projection, withOrdersProjection);
   const locsOf = locsByPart(layout.placements);
   const locsFor = (key: TwinSummaryKey) => summary[key].flatMap((id) => locsOf.get(id) ?? []);
 
-  // 켜 둔 칩의 칸이 바뀌면(승인·채팅 기록·날짜 이동) 강조도 따라간다. 카메라는 옮기지 않는다
+  // 켜 둔 칩의 칸이 바뀌면(승인·채팅 기록) 강조도 따라간다. 카메라는 옮기지 않는다
   const activeKey = CHIPS.find(({ key }) => TWIN_SUMMARY_LABEL[key] === highlightLabel)?.key;
   const activeLocs = activeKey ? locsFor(activeKey).join(',') : null;
   useEffect(() => {

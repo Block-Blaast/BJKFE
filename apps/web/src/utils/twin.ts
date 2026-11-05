@@ -35,9 +35,12 @@ export const EQUIPMENT_STATUS_LABEL: Record<TwinEquipmentStatus, string> = {
   down: '정지 예상',
 };
 
+// projection 의 날짜별 배열에서 오늘 칸. 화면은 오늘 상태만 보여 준다(날짜 시뮬레이션은 쓰지 않는다)
+export const TODAY = 0;
+
 // 우선순위: 비어 있음·결품 위험 > 장부 의심 > 재주문점 이하 > 정상
-export const binLook = (bin: TwinBin, day: number, layers: TwinLayers): BinLook => {
-  const s = bin.status[day];
+export const binLook = (bin: TwinBin, layers: TwinLayers): BinLook => {
+  const s = bin.status[TODAY];
   if (layers.status && (s === 'out' || s === 'risk')) return s;
   if (layers.suspect && bin.audit) return 'suspect';
   if (layers.status && s === 'low') return 'low';
@@ -62,9 +65,6 @@ export const LOOK_TONE: Record<BinLook, 'inverse' | 'warning' | 'danger' | 'neut
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-export const addDays = (ymd: string, days: number) =>
-  new Date(Date.parse(`${ymd}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
 
 export const dayOf = (base: string, ymd: string) =>
   Math.round((Date.parse(`${ymd}T00:00:00Z`) - Date.parse(`${base}T00:00:00Z`)) / DAY_MS);
@@ -99,7 +99,6 @@ export const TWIN_SUMMARY_LABEL: Record<TwinSummaryKey, string> = {
 export const twinSummary = (
   projection: TwinProjection,
   withOrdersProjection: TwinProjection | undefined,
-  day: number,
 ): Record<TwinSummaryKey, string[]> => {
   const unique = (ids: string[]) => [...new Set(ids)];
   return {
@@ -108,7 +107,7 @@ export const twinSummary = (
         .filter((a) => a.kind === 'proposal')
         .map((a) => a.part_id),
     ),
-    risk: projection.bins.filter((b) => b.status[day] === 'risk').map((b) => b.part_id),
+    risk: projection.bins.filter((b) => b.status[TODAY] === 'risk').map((b) => b.part_id),
     suspect: projection.bins.filter((b) => b.audit).map((b) => b.part_id),
     arriving: unique(projection.arrivals.filter((a) => a.kind === 'ordered').map((a) => a.part_id)),
   };
