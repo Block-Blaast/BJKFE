@@ -43,8 +43,10 @@ export const ENDPOINTS = {
   // [추가] 기록 중 재고 부족 초안 (F-NOTI-01) — 작업자가 제안을 누르면 검토를 만든다
   chatStockDraft: (draftId: string) => `/api/chat/drafts/${draftId}`,
   // 기준 정보 (W-08, F-SETUP)
-  partImports: '/api/setup/part-imports',
-  partImportConfirm: (id: string) => `/api/setup/part-imports/${id}/confirm`,
+  // 부품 엑셀 이관 — 백엔드 SET-01·02, 카테고리 목록 SET-06
+  partImports: '/v1/imports/parts',
+  partImportConfirm: (id: string) => `/v1/imports/parts/${id}/confirm`,
+  categories: '/v1/categories',
   equipment: '/api/setup/equipment',
   maintenance: '/api/setup/maintenance',
   maintenanceComplete: (id: string) => `/api/setup/maintenance/${id}/complete`,

@@ -1,28 +1,38 @@
 'use client';
 
-import { CircleCheck, FileSpreadsheet, TriangleAlert, Upload } from 'lucide-react';
-import Link from 'next/link';
+import { Ban, CircleCheck, FileSpreadsheet, TriangleAlert, Upload } from 'lucide-react';
 import { useRef, useState } from 'react';
 
-import { CATEGORIES, type Category } from '@bjk/api/domain/part';
-import type { ImportPreview, ImportResult, ImportRow } from '@bjk/api/types/setup';
+import {
+  IMPORT_FILE_ACCEPT,
+  IMPORT_ROW_ERRORS,
+  IMPORT_ROW_WARNINGS,
+  SPEC_KEY_LABELS,
+} from '@bjk/api/domain/partImport';
+import type {
+  CategoryOption,
+  ConfirmImportInput,
+  ImportPreview,
+  ImportResult,
+  ImportRow,
+} from '@bjk/api/types/setup';
 import Button from '@bjk/ui/components/Button';
 
 import Select from '@/components/ui/Select';
 import { FIELD } from '@/components/ui/controls';
 import IconCircle from '@/components/ui/IconCircle';
 import Tag from '@/components/ui/Tag';
-import { useConfirmPartImport, useUploadPartImport } from '@/hooks/setup/useSetup';
-import { apiErrorMessage } from '@/utils/apiError';
-import { formatQty, formatWon } from '@/utils/format';
 import { TABLE, TD, TH, TR } from '@/components/ui/table';
+import { useCategories, useConfirmPartImport, useUploadPartImport } from '@/hooks/setup/useSetup';
+import { apiErrorMessage } from '@/utils/apiError';
+import { formatQty } from '@/utils/format';
 
 import SetupCard from './SetupCard';
 
 // AI 제안 확신도가 이보다 낮으면 "확인 필요"로 표시한다. 기준값은 명세서에 없어 화면에서 정했다.
 const LOW_CONFIDENCE = 0.7;
 
-// F-SETUP-01 표
+// F-SETUP-01 표. 열 이름은 서버가 공백을 무시하고 여러 이름(부품명·품명 …)을 받아 준다.
 const COLUMNS: [string, '필수' | '권장' | '선택', string][] = [
   ['부품 이름', '필수', '볼베어링 6205ZZ'],
   ['현재 재고', '필수', '3'],
@@ -33,23 +43,52 @@ const COLUMNS: [string, '필수' | '권장' | '선택', string][] = [
   ['보관 위치', '선택', 'B선반 2칸'],
 ];
 
-type Edit = { spec: string; category: Category | '' };
+// merge: 새로 만들지 않고 합칠 기존 부품 id (중복 의심 줄만, '' = 새로 등록)
+type Edit = { spec: Record<string, string>; categoryId: string; merge: string };
 
 const toEdit = (row: ImportRow): Edit => ({
-  spec: row.suggestion.spec ?? row.spec ?? '',
-  category: row.suggestion.category ?? '',
+  spec: row.spec,
+  categoryId: row.suggested_category?.id ?? '',
+  merge: '',
 });
 
-// 부품 엑셀 이관 + AI 규격·카테고리 제안 검토 (F-SETUP-01·02).
-// 관리자는 틀린 것만 고친다. 확신도가 낮은 줄을 위로 올린다.
+const sameSpec = (a: Record<string, string>, b: Record<string, string>) =>
+  Object.keys(a).length === Object.keys(b).length &&
+  Object.entries(a).every(([k, v]) => b[k] === v);
+
+// 값을 지운 규격 키는 빼고 보낸다
+const cleanSpec = (spec: Record<string, string>) =>
+  Object.fromEntries(
+    Object.entries(spec)
+      .map(([k, v]) => [k, v.trim()])
+      .filter(([, v]) => v),
+  );
+
+const toConfirmRow = (row: ImportRow, edit: Edit): ConfirmImportInput['rows'][number] => {
+  const spec = cleanSpec(edit.spec);
+  return {
+    row: row.row,
+    ...(edit.categoryId ? { category_id: edit.categoryId } : {}),
+    // 고치지 않은 규격은 비워 보내 서버가 SET-01 제안 값을 쓰게 한다
+    ...(sameSpec(spec, row.spec) ? {} : { spec }),
+    ...(edit.merge ? { merge_with_part_id: edit.merge } : {}),
+  };
+};
+
+type Done = ImportResult & { reimport: boolean };
+
+// 부품 엑셀 이관 + AI 규격·카테고리 제안 검토 (F-SETUP-01·02, 백엔드 SET-01·02).
+// 관리자는 틀린 것만 고친다. 서버가 오류 줄 → 확신도 낮은 줄 순으로 올려 준다.
 const PartImport = () => {
   const fileRef = useRef<HTMLInputElement>(null);
   const upload = useUploadPartImport();
   const confirm = useConfirmPartImport();
+  const categories = useCategories();
   const [preview, setPreview] = useState<ImportPreview | null>(null);
+  const [fileName, setFileName] = useState('');
   const [edits, setEdits] = useState<Record<number, Edit>>({});
   const [asking, setAsking] = useState(false);
-  const [result, setResult] = useState<ImportResult | null>(null);
+  const [result, setResult] = useState<Done | null>(null);
 
   const reset = () => {
     setPreview(null);
@@ -63,6 +102,7 @@ const PartImport = () => {
   const onFile = (file: File | undefined) => {
     if (!file) return;
     setResult(null);
+    setFileName(file.name);
     upload.mutate(file, {
       onSuccess: (data) => {
         setPreview(data);
@@ -71,27 +111,30 @@ const PartImport = () => {
     });
   };
 
-  const rows = preview
-    ? [...preview.rows].sort((a, b) => a.suggestion.confidence - b.suggestion.confidence)
-    : [];
-  const created = rows.filter((r) => r.action === 'create').length;
+  const rows = preview?.rows ?? [];
+  const valid = rows.filter((r) => r.errors.length === 0);
+  const editOf = (row: ImportRow) => edits[row.row] ?? toEdit(row);
+  const created = valid.filter((r) => !r.existing_part_id && !editOf(r).merge).length;
+
+  // 회사 카테고리 목록을 못 받아도 AI 가 제안한 카테고리는 고를 수 있게 한다
+  const optionsFor = (row: ImportRow): CategoryOption[] => {
+    const list = categories.data ?? [];
+    const suggested = row.suggested_category;
+    return suggested && !list.some((c) => c.id === suggested.id)
+      ? [{ id: suggested.id, name: suggested.name }, ...list]
+      : list;
+  };
 
   const submit = () => {
     if (!preview) return;
     confirm.mutate(
       {
-        id: preview.id,
-        input: {
-          rows: preview.rows.map((r) => ({
-            row: r.row,
-            spec: edits[r.row]?.spec.trim() || null,
-            category: edits[r.row]?.category || null,
-          })),
-        },
+        id: preview.import_id,
+        input: { rows: valid.map((r) => toConfirmRow(r, editOf(r))) },
       },
       {
         onSuccess: (data) => {
-          setResult(data);
+          setResult({ ...data, reimport: preview.is_reimport });
           reset();
         },
       },
@@ -110,14 +153,12 @@ const PartImport = () => {
             <p className="text-label-lg">
               등록을 마쳤어요. 새로 {result.created}개, 갱신 {result.updated}개.
             </p>
-            {result.merge_candidates > 0 ? (
-              <p className="text-body-sm text-text-body">
-                같은 부품일 수 있는 쌍이 {result.merge_candidates}개 있어요.{' '}
-                <Link href="/hidden-stock" className="text-label-md text-text-brand underline">
-                  숨은 재고에서 합칠지 골라 주세요
-                </Link>
-              </p>
-            ) : null}
+            <p className="text-body-sm text-text-body">
+              {result.adjust_movements > 0
+                ? `시작 재고 ${result.adjust_movements}건을 실사조정 기록으로 남겼어요.`
+                : '재고 기록은 바꾸지 않았어요.'}
+              {result.reimport ? ' 이미 있던 부품의 재고는 그대로 두었어요.' : ''}
+            </p>
           </div>
         </div>
       ) : null}
@@ -157,13 +198,13 @@ const PartImport = () => {
               <p className="text-body-md text-text-body">
                 올리면 AI가 이름에서 규격을 뽑고 카테고리를 제안해요.
                 <br />
-                초기 재고는 실사조정 기록으로 재고 기록에 들어가요.
+                엑셀(.xlsx)·CSV 파일, 5MB·1,000줄까지 올릴 수 있어요.
               </p>
               <input
                 ref={fileRef}
                 id="part-import-file"
                 type="file"
-                accept=".xlsx,.xls,.csv"
+                accept={IMPORT_FILE_ACCEPT}
                 className="sr-only"
                 onChange={(e) => onFile(e.target.files?.[0])}
               />
@@ -187,14 +228,25 @@ const PartImport = () => {
 
       {preview ? (
         <SetupCard
-          title={`제안 검토 — ${preview.file_name}`}
-          description="틀린 규격·카테고리만 고쳐 주세요. 확신이 낮은 줄이 위에 있어요."
+          title={`제안 검토 — ${fileName}`}
+          description="틀린 규격·카테고리만 고쳐 주세요. 확인이 필요한 줄이 위에 있어요."
           action={
             <Button variant="ghost" onClick={reset} disabled={confirm.isPending}>
               다른 파일 올리기
             </Button>
           }
         >
+          {preview.ai.fallback ? (
+            <p
+              role="status"
+              className="flex items-center gap-2 rounded-md bg-bg-warning-subtle p-4 text-body-md text-text-warning"
+            >
+              <TriangleAlert size={16} aria-hidden className="shrink-0 text-icon-warning" />
+              AI 제안을 받지 못했어요. 규격은 이름에서 찾은 값만 넣었으니 카테고리를 직접 골라
+              주세요.
+            </p>
+          ) : null}
+
           <div>
             <table className={TABLE}>
               <thead>
@@ -220,75 +272,82 @@ const PartImport = () => {
               </thead>
               <tbody>
                 {rows.map((row) => {
-                  const edit = edits[row.row] ?? toEdit(row);
-                  const low = row.suggestion.confidence < LOW_CONFIDENCE;
+                  const edit = editOf(row);
+                  const blocked = row.errors.length > 0;
+                  const low = (row.suggested_category?.confidence ?? 0) < LOW_CONFIDENCE;
                   const setEdit = (patch: Partial<Edit>) =>
                     setEdits((prev) => ({ ...prev, [row.row]: { ...edit, ...patch } }));
+                  const specKeys = Object.keys(edit.spec);
                   return (
                     <tr key={row.row} className={`${TR} align-top`}>
                       <td className={`${TD} text-text-secondary tabular-nums`}>{row.row}</td>
                       <td className={TD}>
                         <div className="flex flex-col gap-1">
-                          <span className="text-label-md text-text-heading">{row.name}</span>
-                          <span className="text-label-sm text-text-secondary">
-                            {[
-                              row.supplier
-                                ? `${row.supplier.name}${row.supplier.unit_price === null ? '' : ` ${formatWon(row.supplier.unit_price)}`}`
-                                : null,
-                              row.location,
-                              row.monthly_estimate === null
-                                ? null
-                                : `월 약 ${formatQty(row.monthly_estimate, row.unit)}`,
-                            ]
-                              .filter(Boolean)
-                              .join(' · ')}
+                          <span className="text-label-md text-text-heading">
+                            {row.name || '(이름 없음)'}
                           </span>
-                          {row.duplicate_of ? (
-                            <span className="text-label-sm text-text-warning">
-                              ‘{row.duplicate_of.name}’과 같은 부품일 수 있어요
+                          {row.errors.map((code) => (
+                            <span key={code} className="text-label-sm text-text-danger">
+                              {IMPORT_ROW_ERRORS[code]}
                             </span>
-                          ) : null}
+                          ))}
+                          {row.warnings.map((code) => (
+                            <span key={code} className="text-label-sm text-text-warning">
+                              {IMPORT_ROW_WARNINGS[code]}
+                            </span>
+                          ))}
                         </div>
                       </td>
                       <td className={`${TD} text-right text-text-heading tabular-nums`}>
-                        {formatQty(row.stock, row.unit)}
+                        {row.stock === null ? '—' : formatQty(row.stock, row.unit)}
                       </td>
                       <td className={TD}>
-                        <div className="flex flex-col gap-1">
-                          <input
-                            aria-label={`${row.name} 규격`}
-                            className={`${FIELD} w-full`}
-                            value={edit.spec}
-                            placeholder="규격 없음"
-                            onChange={(e) => setEdit({ spec: e.target.value })}
-                          />
-                          {Object.keys(row.suggestion.spec_fields).length > 0 ? (
-                            <span className="text-label-sm text-text-secondary">
-                              {Object.entries(row.suggestion.spec_fields)
-                                .map(([k, v]) => `${k} ${v}`)
-                                .join(' · ')}
-                            </span>
-                          ) : null}
-                        </div>
+                        {specKeys.length === 0 ? (
+                          <span className="text-body-sm text-text-secondary">규격 없음</span>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            {specKeys.map((key) => (
+                              <label key={key} className="flex items-center gap-2">
+                                <span className="w-20 shrink-0 text-label-sm text-text-secondary">
+                                  {SPEC_KEY_LABELS[key] ?? key}
+                                </span>
+                                <input
+                                  aria-label={`${row.name} 규격 ${SPEC_KEY_LABELS[key] ?? key}`}
+                                  className={`${FIELD} w-full`}
+                                  value={edit.spec[key]}
+                                  disabled={blocked}
+                                  onChange={(e) =>
+                                    setEdit({ spec: { ...edit.spec, [key]: e.target.value } })
+                                  }
+                                />
+                              </label>
+                            ))}
+                          </div>
+                        )}
                       </td>
                       <td className={TD}>
                         <Select
                           aria-label={`${row.name} 카테고리`}
                           variant="field"
                           className="w-full"
-                          value={edit.category}
-                          onChange={(e) => setEdit({ category: e.target.value as Category | '' })}
+                          value={edit.categoryId}
+                          disabled={blocked}
+                          onChange={(e) => setEdit({ categoryId: e.target.value })}
                         >
                           <option value="">정하지 않음</option>
-                          {CATEGORIES.map((c) => (
-                            <option key={c} value={c}>
-                              {c}
+                          {optionsFor(row).map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
                             </option>
                           ))}
                         </Select>
                       </td>
                       <td className={TD}>
-                        {low ? (
+                        {blocked ? (
+                          <Tag tone="danger" icon={Ban}>
+                            등록 안 함
+                          </Tag>
+                        ) : low ? (
                           <Tag tone="warning" icon={TriangleAlert}>
                             확인 필요
                           </Tag>
@@ -299,7 +358,33 @@ const PartImport = () => {
                         )}
                       </td>
                       <td className={`${TD} text-text-body`}>
-                        {row.action === 'create' ? '새로 등록' : '갱신'}
+                        {blocked ? (
+                          '—'
+                        ) : row.existing_part_id ? (
+                          '갱신'
+                        ) : row.duplicate_suspects.length > 0 ? (
+                          <div className="flex flex-col gap-1">
+                            <Select
+                              aria-label={`${row.name} 처리`}
+                              variant="field"
+                              className="w-full"
+                              value={edit.merge}
+                              onChange={(e) => setEdit({ merge: e.target.value })}
+                            >
+                              <option value="">새로 등록</option>
+                              {row.duplicate_suspects.map((s) => (
+                                <option key={s.part_id} value={s.part_id}>
+                                  ‘{s.name}’에 합치기
+                                </option>
+                              ))}
+                            </Select>
+                            <span className="text-label-sm text-text-warning">
+                              같은 부품일 수 있어요
+                            </span>
+                          </div>
+                        ) : (
+                          '새로 등록'
+                        )}
                       </td>
                     </tr>
                   );
@@ -311,8 +396,14 @@ const PartImport = () => {
           {asking ? (
             <div className="flex items-center justify-between gap-4 rounded-md bg-bg-brand-subtle p-4">
               <p className="text-body-md text-text-body">
-                {rows.length}줄을 등록할까요? 새로 {created}개, 갱신 {rows.length - created}개예요.
-                재고는 실사조정 기록으로 재고 기록에 남아요.
+                {valid.length}줄을 등록할까요? 새로 {created}개, 갱신 {valid.length - created}
+                개예요.
+                {rows.length > valid.length
+                  ? ` 오류가 있는 ${rows.length - valid.length}줄은 빼요.`
+                  : ''}{' '}
+                {preview.is_reimport
+                  ? '이미 있는 부품의 재고는 바꾸지 않고, 새 부품만 시작 재고를 실사조정 기록으로 남겨요.'
+                  : '재고는 실사조정 기록으로 재고 기록에 남아요.'}
               </p>
               <div className="flex shrink-0 gap-2">
                 <Button
@@ -328,8 +419,12 @@ const PartImport = () => {
               </div>
             </div>
           ) : (
-            <Button className="self-end" onClick={() => setAsking(true)}>
-              {rows.length}줄 등록하기
+            <Button
+              className="self-end"
+              onClick={() => setAsking(true)}
+              disabled={valid.length === 0}
+            >
+              {valid.length}줄 등록하기
             </Button>
           )}
           {confirm.isError ? (

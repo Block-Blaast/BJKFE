@@ -1,11 +1,13 @@
 // 개발용 목업 — 기준 정보(W-08)와 리포트(W-09). 설비·정비·공급사는 가상 공장(fixtures/factory.ts) 값으로 시작한다.
 import { delay, http, HttpResponse } from 'msw';
 
+import { CATEGORIES, type Category } from '../domain/part';
 import type { ApprovalAction } from '../domain/review';
 import { ENDPOINTS } from '../endpoints';
 import type { PurchaseOrder, SimReport } from '../types/report';
 import type { Review } from '../types/review';
 import type {
+  CategoryOption,
   ConfirmImportInput,
   Equipment,
   EquipmentInput,
@@ -39,48 +41,74 @@ const toPartQty = (parts: { part_id: string; qty: number }[]): PartQty[] | null 
 
 const badRequest = (message: string) => HttpResponse.json({ message }, { status: 400 });
 
-// ---- 부품 엑셀 이관 (F-SETUP-01·02) ----
+// ---- 부품 엑셀 이관 (F-SETUP-01·02, 백엔드 SET-01·02 형식) ----
 // 목업은 엑셀을 읽지 않는다. 어떤 파일을 올려도 처음 이관한 부품 목록(=고정 데이터)을 다시 올린 것으로 본다.
 // 확신도는 목업 값이다 — 카테고리를 정하지 못한 줄을 낮게 두어 "낮은 줄 위로" 정렬을 확인할 수 있게 했다.
-const importRows = (): ImportRow[] => [
-  ...PART_FIXTURES.map((p, i): ImportRow => ({
-    row: i + 2,
-    name: p.part_name,
-    stock: p.stock ?? 0,
-    unit: p.unit,
-    spec: p.spec,
-    supplier: p.supplier,
-    monthly_estimate: p.metrics.estimated ? p.metrics.m : null,
-    location: p.location,
-    suggestion: {
-      spec: p.spec,
-      spec_fields: {},
-      category: p.category,
-      confidence: p.category ? 0.9 : 0.4,
+const MOCK_CATEGORIES: CategoryOption[] = CATEGORIES.map((name, i) => ({
+  id: `cat-${i + 1}`,
+  name,
+}));
+
+const suggest = (name: Category | null, confidence: number) => {
+  const category = MOCK_CATEGORIES.find((c) => c.name === name);
+  return category ? { ...category, confidence } : null;
+};
+
+const importRows = (): ImportRow[] => {
+  const rows: ImportRow[] = [
+    ...PART_FIXTURES.map((p, i): ImportRow => ({
+      row: i + 2,
+      name: p.part_name,
+      stock: p.stock ?? 0,
+      unit: p.unit,
+      // 목업 부품의 규격은 문자열 하나라 키 하나로 넣는다 (서버는 bearing_no·thread 같은 키로 나눈다)
+      spec: p.spec ? { 규격: p.spec } : {},
+      suggested_category: suggest(p.category, 0.9),
+      existing_part_id: p.part_id,
+      duplicate_suspects: [],
+      errors: [],
+      warnings: [],
+    })),
+    // F-SETUP-02 예시: "육각볼트 M8-20" → 나사 M8, 길이 20. 재고 예시가 없어 0으로 두었다.
+    {
+      row: PART_FIXTURES.length + 2,
+      name: '육각볼트 M8-20',
+      stock: 0,
+      unit: '개',
+      spec: { thread: 'M8', length_mm: '20' },
+      suggested_category: suggest('볼트·너트', 0.6),
+      existing_part_id: null,
+      duplicate_suspects: [
+        { part_id: 'pt-bolt-m8x20', name: '육각볼트 M8×20', reason: 'spec_exact' },
+      ],
+      errors: [],
+      warnings: ['supplier_unknown'],
     },
-    action: 'update',
-    duplicate_of: null,
-  })),
-  // F-SETUP-02 예시: "육각볼트 M8-20" → 지름 M8, 길이 20. 재고 예시가 없어 0으로 두었다.
-  {
-    row: PART_FIXTURES.length + 2,
-    name: '육각볼트 M8-20',
-    stock: 0,
-    unit: '개',
-    spec: null,
-    supplier: null,
-    monthly_estimate: null,
-    location: null,
-    suggestion: {
-      spec: 'M8 × 20',
-      spec_fields: { 지름: 'M8', 길이: '20' },
-      category: '볼트·너트',
-      confidence: 0.6,
+    // 오류 줄 확인용 — 재고 칸에 글자가 들어간 줄
+    {
+      row: PART_FIXTURES.length + 3,
+      name: '평와셔 M8',
+      stock: null,
+      unit: '개',
+      spec: { thread: 'M8' },
+      suggested_category: null,
+      existing_part_id: null,
+      duplicate_suspects: [],
+      errors: ['stock_invalid'],
+      warnings: [],
     },
-    action: 'create',
-    duplicate_of: { part_id: 'pt-bolt-m8x20', name: '육각볼트 M8×20' },
-  },
-];
+  ];
+  // 서버와 같은 정렬: 오류 줄 → 확신도 낮은 줄(제안 없음은 0) → 파일 순서
+  const rank = (r: ImportRow) => [
+    r.errors.length ? 0 : 1,
+    r.suggested_category?.confidence ?? 0,
+    r.row,
+  ];
+  return rows.sort((a, b) => {
+    const [x, y] = [rank(a), rank(b)];
+    return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
+  });
+};
 
 const imports = new Map<string, ImportPreview>();
 
@@ -181,16 +209,24 @@ export const recordPurchaseOrder = (review: Review) => {
 };
 
 export const setupHandlers = [
+  http.get(ENDPOINTS.categories, async () => {
+    await delay(NETWORK_DELAY);
+    return HttpResponse.json({ items: MOCK_CATEGORIES, next_cursor: null });
+  }),
+
   http.post(ENDPOINTS.partImports, async ({ request }) => {
     await delay(NETWORK_DELAY * 3);
     const file = (await request.formData()).get('file');
     if (!(file instanceof File)) return badRequest('엑셀 파일을 골라 주세요.');
+    if (!/\.(xlsx|csv)$/i.test(file.name))
+      return badRequest('xlsx 또는 csv 파일만 올릴 수 있습니다.');
     const preview: ImportPreview = {
-      id: `im-${crypto.randomUUID()}`,
-      file_name: file.name,
+      import_id: `im-${crypto.randomUUID()}`,
+      is_reimport: true,
       rows: importRows(),
+      ai: { used: true, fallback: false, reason: null },
     };
-    imports.set(preview.id, preview);
+    imports.set(preview.import_id, preview);
     return HttpResponse.json(preview);
   }),
 
@@ -198,15 +234,21 @@ export const setupHandlers = [
     await delay(NETWORK_DELAY);
     const preview = imports.get(String(params.id));
     if (!preview) {
-      return HttpResponse.json({ message: '이관 미리보기를 찾을 수 없어요.' }, { status: 404 });
+      return HttpResponse.json({ message: '이관을 찾을 수 없습니다.' }, { status: 404 });
     }
     const input = (await request.json()) as ConfirmImportInput;
-    const confirmed = preview.rows.filter((r) => input.rows.some((c) => c.row === r.row));
-    imports.delete(preview.id);
+    const confirmed = input.rows.map((c) => preview.rows.find((r) => r.row === c.row));
+    if (confirmed.some((r) => !r || r.errors.length > 0)) {
+      return badRequest('오류가 있거나 파일에 없는 줄은 등록할 수 없습니다.');
+    }
+    imports.delete(preview.import_id);
+    const created = confirmed.filter((r) => !r?.existing_part_id).length;
+    // 재이관 기본값(ignore): 새 부품만 시작 재고를 실사조정으로 남기고, 기존 부품 재고는 그대로 둔다
     return HttpResponse.json({
-      created: confirmed.filter((r) => r.action === 'create').length,
-      updated: confirmed.filter((r) => r.action === 'update').length,
-      merge_candidates: confirmed.filter((r) => r.duplicate_of).length,
+      created,
+      updated: confirmed.length - created,
+      adjust_movements: created,
+      stock_diffs: [],
     } satisfies ImportResult);
   }),
 

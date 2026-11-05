@@ -4,6 +4,7 @@ import { request } from './client';
 import { ENDPOINTS } from './endpoints';
 import { queryKeys } from './queryKeys';
 import type {
+  CategoryOption,
   ConfirmImportInput,
   Equipment,
   EquipmentInput,
@@ -28,6 +29,24 @@ export const uploadPartImport = (file: File) => {
 export const confirmPartImport = (id: string, input: ConfirmImportInput) =>
   post<ImportResult>(ENDPOINTS.partImportConfirm(id), input);
 
+type CategoryPage = { items: CategoryOption[]; next_cursor: string | null };
+
+// SET-06 목록은 커서 페이지(한 번에 최대 100개)라 끝까지 이어 받는다.
+export const getCategories = async () => {
+  const all: CategoryOption[] = [];
+  let cursor: string | null = null;
+  do {
+    const query: URLSearchParams = new URLSearchParams({
+      limit: '100',
+      ...(cursor ? { cursor } : {}),
+    });
+    const page: CategoryPage = await request<CategoryPage>(`${ENDPOINTS.categories}?${query}`);
+    all.push(...page.items.map(({ id, name }) => ({ id, name })));
+    cursor = page.next_cursor;
+  } while (cursor);
+  return all;
+};
+
 export const getEquipment = () => request<Equipment[]>(ENDPOINTS.equipment);
 export const createEquipment = (input: EquipmentInput) =>
   post<Equipment>(ENDPOINTS.equipment, input);
@@ -48,4 +67,6 @@ export const setupQueries = {
   maintenance: () =>
     queryOptions({ queryKey: queryKeys.setup.maintenance(), queryFn: getMaintenance }),
   suppliers: () => queryOptions({ queryKey: queryKeys.setup.suppliers(), queryFn: getSuppliers }),
+  categories: () =>
+    queryOptions({ queryKey: queryKeys.setup.categories(), queryFn: getCategories }),
 };

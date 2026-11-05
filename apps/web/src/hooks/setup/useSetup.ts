@@ -16,6 +16,7 @@ import type { ConfirmImportInput, SupplierPriceInput } from '@bjk/api/types/setu
 export const useEquipment = () => useQuery(setupQueries.equipment());
 export const useMaintenance = () => useQuery(setupQueries.maintenance());
 export const useSuppliers = () => useQuery(setupQueries.suppliers());
+export const useCategories = () => useQuery(setupQueries.categories());
 
 const useInvalidateSetup = () => {
   const queryClient = useQueryClient();
