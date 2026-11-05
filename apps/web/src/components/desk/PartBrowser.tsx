@@ -51,6 +51,7 @@ const toSearch = (filters: PartListFilters) => {
 const EMPTY = '—';
 
 // 부품 목록 (W-04). 검색·필터는 URL 에 둔다. 지표는 새벽 배치 값이라 계산 기준 시각을 함께 보여준다.
+// 백엔드 목록(SET-03)에 입고 예정·숨은 재고가 없어 그 칸은 두지 않는다 (숨은 재고는 상세에서 본다).
 // usePathname·useSearchParams 를 쓰므로 페이지에서 <Suspense> 로 감싼다.
 const PartBrowser = () => {
   const router = useRouter();
@@ -175,8 +176,6 @@ const PartBrowser = () => {
                   '부품',
                   '카테고리',
                   '현재 재고',
-                  '입고 예정',
-                  '숨은 재고',
                   '소진 예상',
                   'ABC',
                   '수요 유형',
@@ -186,7 +185,7 @@ const PartBrowser = () => {
                   <th
                     key={h}
                     scope="col"
-                    className={`${TH} ${i >= 2 && i <= 4 ? 'text-right' : 'text-left'}`}
+                    className={`${TH} ${i === 2 ? 'text-right' : 'text-left'}`}
                   >
                     {h}
                   </th>
@@ -210,14 +209,6 @@ const PartBrowser = () => {
                   <td className={`${TD} text-text-body`}>{part.category ?? EMPTY}</td>
                   <td className={`${TD} text-right text-text-heading tabular-nums`}>
                     {formatQty(part.stock, part.unit)}
-                  </td>
-                  <td className={`${TD} text-right text-text-body tabular-nums`}>
-                    {part.incoming ? formatQty(part.incoming.qty, part.unit) : EMPTY}
-                  </td>
-                  <td
-                    className={`${TD} text-right tabular-nums ${part.hidden_stock > 0 ? 'text-text-warning' : 'text-text-body'}`}
-                  >
-                    {part.hidden_stock > 0 ? formatQty(part.hidden_stock, part.unit) : EMPTY}
                   </td>
                   <td className={`${TD} text-text-body tabular-nums`}>
                     {part.metrics.t_out ? formatDate(part.metrics.t_out) : EMPTY}
