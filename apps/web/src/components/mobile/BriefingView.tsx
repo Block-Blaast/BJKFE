@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 
 import type { Review } from '@bjk/api/types/review';
 
+import { SkeletonList } from '@/components/ui/feedback/Skeleton';
 import ErrorState from '@/components/ui/ErrorState';
 import SpotlightIllustration from '@/components/illustration/SpotlightIllustration';
 import { entryLabelOf } from '@/components/review/labels';
@@ -51,7 +52,7 @@ const BriefingView = () => {
   const { data: briefing, isPending, isError, refetch } = useBriefing();
 
   if (isPending) {
-    return <p className="text-body-md text-text-secondary">브리핑을 불러오는 중이에요…</p>;
+    return <SkeletonList label="브리핑을 불러오는 중" rows={3} />;
   }
   if (isError) {
     return <ErrorState title="브리핑을 불러오지 못했어요" onRetry={() => refetch()} />;

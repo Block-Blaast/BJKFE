@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
+import { SkeletonPage } from '@/components/ui/feedback/Skeleton';
 import AuditBoard from '@/components/desk/AuditBoard';
 
 export const metadata: Metadata = { title: '재고 맞춰보기' };
@@ -17,7 +18,7 @@ const AuditPage = () => {
         </p>
       </header>
       {/* useSearchParams 는 요청 시점 값이라 Suspense 안에서 읽는다 (cacheComponents) */}
-      <Suspense fallback={<p className="text-body-md text-text-secondary">불러오는 중이에요…</p>}>
+      <Suspense fallback={<SkeletonPage label="화면을 불러오는 중" />}>
         <AuditBoard />
       </Suspense>
     </div>

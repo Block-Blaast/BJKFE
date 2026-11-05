@@ -7,6 +7,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { Verdict } from '@bjk/api/domain/review';
 import type { ReviewListFilters } from '@bjk/api/types/review';
 
+import { SkeletonTable } from '@/components/ui/feedback/Skeleton';
 import ErrorState from '@/components/ui/ErrorState';
 import Select from '@/components/ui/Select';
 import { entryLabelOf } from '@/components/review/labels';
@@ -116,7 +117,7 @@ const ReviewInbox = () => {
       </div>
 
       {isPending ? (
-        <p className="text-body-md text-text-secondary">검토 목록을 불러오는 중이에요…</p>
+        <SkeletonTable label="검토 목록을 불러오는 중" />
       ) : isError ? (
         <ErrorState title="검토 목록을 불러오지 못했어요" onRetry={() => refetch()} />
       ) : reviews.length === 0 ? (

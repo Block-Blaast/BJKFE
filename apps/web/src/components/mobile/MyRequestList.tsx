@@ -5,6 +5,7 @@ import Link from 'next/link';
 
 import { APPROVAL_ACTIONS } from '@bjk/api/domain/review';
 
+import { SkeletonList } from '@/components/ui/feedback/Skeleton';
 import ErrorState from '@/components/ui/ErrorState';
 import ReviewStatusTag from '@/components/review/ReviewStatusTag';
 import EmptyState from '@/components/ui/EmptyState';
@@ -16,7 +17,7 @@ const MyRequestList = () => {
   const { data: requests, isPending, isError, refetch } = useMyRequests();
 
   if (isPending) {
-    return <p className="text-body-md text-text-secondary">요청 목록을 불러오는 중이에요…</p>;
+    return <SkeletonList label="요청 목록을 불러오는 중" rows={3} />;
   }
   if (isError) {
     return <ErrorState title="요청 목록을 불러오지 못했어요" onRetry={() => refetch()} />;

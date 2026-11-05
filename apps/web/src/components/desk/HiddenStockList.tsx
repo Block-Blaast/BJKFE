@@ -7,6 +7,7 @@ import { useState } from 'react';
 import type { MergeCandidate } from '@bjk/api/types/audit';
 import Button from '@bjk/ui/components/Button';
 
+import { SkeletonList } from '@/components/ui/feedback/Skeleton';
 import ErrorState from '@/components/ui/ErrorState';
 import EmptyState from '@/components/ui/EmptyState';
 import FolderCard from '@/components/ui/FolderCard';
@@ -161,11 +162,7 @@ const HiddenStockList = () => {
   );
 
   if (isPending) {
-    return (
-      <p className="text-body-md text-text-secondary">
-        같은 부품일 수 있는 항목을 불러오는 중이에요…
-      </p>
-    );
+    return <SkeletonList label="같은 부품일 수 있는 항목을 불러오는 중" rows={3} />;
   }
   if (isError || !candidates) {
     return (

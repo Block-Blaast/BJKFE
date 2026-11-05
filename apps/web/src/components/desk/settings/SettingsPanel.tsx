@@ -1,5 +1,6 @@
 'use client';
 
+import { SkeletonLines } from '@/components/ui/feedback/Skeleton';
 import ErrorState from '@/components/ui/ErrorState';
 import { useCompanySettings } from '@/hooks/company/useCompany';
 
@@ -9,7 +10,7 @@ const SettingsPanel = () => {
   const settings = useCompanySettings();
 
   if (settings.isPending) {
-    return <p className="text-body-sm text-text-secondary">설정을 불러오는 중이에요…</p>;
+    return <SkeletonLines label="설정을 불러오는 중" />;
   }
   if (settings.isError) {
     return (

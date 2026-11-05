@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { CATEGORIES, type Category } from '@bjk/api/domain/part';
 import type { TwinBin, TwinPlacement, TwinRack } from '@bjk/api/types/twin';
 
+import { SkeletonTable } from '@/components/ui/feedback/Skeleton';
 import { PILL_SEARCH } from '@/components/ui/controls';
 import EmptyState from '@/components/ui/EmptyState';
 import ErrorState from '@/components/ui/ErrorState';
@@ -92,7 +93,7 @@ const WarehouseTable = () => {
     );
   }
   if (layout.isPending || projection.isPending || parts.isPending) {
-    return <p className="text-body-md text-text-secondary">창고 표를 불러오는 중이에요…</p>;
+    return <SkeletonTable label="창고 표를 불러오는 중" rows={8} cols={6} />;
   }
 
   const partOf = new Map(parts.data.map((p) => [p.id, p]));

@@ -13,7 +13,7 @@ import Tag from '@/components/ui/Tag';
 // 차트 라이브러리는 PC 화면(W-03, W-05)에서만 쓰므로 이 화면을 열 때 따로 불러온다.
 const StockForecastChart = dynamic(() => import('./StockForecastChart'), {
   ssr: false,
-  loading: () => <div className="h-72 rounded-md bg-bg-subtle" aria-hidden />,
+  loading: () => <div className="h-72 skeleton rounded-md" aria-hidden />,
 });
 
 type ForecastPanelProps = {
@@ -38,7 +38,7 @@ const ForecastPanel = ({ query }: ForecastPanelProps) => {
         </div>
       </div>
       {isPending ? (
-        <div className="h-72 rounded-md bg-bg-subtle" aria-label="그래프를 불러오는 중" />
+        <div role="status" className="h-72 skeleton rounded-md" aria-label="그래프를 불러오는 중" />
       ) : isError ? (
         <ErrorState
           title="그래프 데이터를 불러오지 못했어요"

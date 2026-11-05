@@ -168,6 +168,115 @@
   }
 }
 
+/* 스켈레톤 (components/ui/feedback/Skeleton) — 회색 막대 위로 옅은 빛이 왼쪽 → 오른쪽으로 지나간다.
+   움직임 줄이기면 빛 없이 회색만 둔다 */
+@utility skeleton {
+  background-color: var(--bg-subtle);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--bg-surface) 70%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background-image: none;
+  }
+}
+
+/* 지게차 스켈레톤 (components/desk/warehouse/WarehouseSkeleton) — 일러스트라 프리미티브 회색을 쓴다 */
+.forklift-shine {
+  stop-color: var(--color-gray-200);
+  animation: forklift-shine 1.6s ease-in-out infinite;
+}
+/* 그라데이션 칸마다 늦게 밝아져 밝은 띠가 왼쪽 → 오른쪽으로 지나간다 */
+.forklift-shine:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.forklift-shine:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.forklift-shine:nth-child(4) {
+  animation-delay: 0.45s;
+}
+.forklift-shine:nth-child(5) {
+  animation-delay: 0.6s;
+}
+.forklift-forks {
+  animation: forklift-lift 2.4s ease-in-out infinite;
+}
+.forklift-body {
+  animation: forklift-idle 0.5s ease-in-out infinite alternate;
+}
+.forklift-wheel {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: forklift-spin 0.9s linear infinite;
+}
+.forklift-floor {
+  stroke-dasharray: 8 7;
+  animation: forklift-floor 0.9s linear infinite;
+}
+@keyframes forklift-shine {
+  0%,
+  100% {
+    stop-color: var(--color-gray-200);
+  }
+  50% {
+    stop-color: var(--color-gray-100);
+  }
+}
+@keyframes forklift-lift {
+  0%,
+  20% {
+    translate: 0 0;
+  }
+  50%,
+  70% {
+    translate: 0 -16px;
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+@keyframes forklift-idle {
+  to {
+    translate: 0 -0.6px;
+  }
+}
+@keyframes forklift-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+@keyframes forklift-floor {
+  to {
+    stroke-dashoffset: 15;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .forklift-shine,
+  .forklift-forks,
+  .forklift-body,
+  .forklift-wheel,
+  .forklift-floor {
+    animation: none;
+  }
+}
+
 /* 3D 위에 뜬 패널처럼 좁은 스크롤 영역 — 굵은 기본 스크롤바가 카드를 가리지 않게 얇고 투명한 바탕으로 */
 @utility scrollbar-thin {
   scrollbar-width: thin;

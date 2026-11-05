@@ -18,6 +18,7 @@ import {
 } from '@bjk/api/domain/part';
 import type { PartListFilters } from '@bjk/api/types/part';
 
+import { SkeletonTable } from '@/components/ui/feedback/Skeleton';
 import ErrorState from '@/components/ui/ErrorState';
 import Select from '@/components/ui/Select';
 import { PILL_SEARCH } from '@/components/ui/controls';
@@ -183,7 +184,7 @@ const PartBrowser = () => {
       </div>
 
       {isPending ? (
-        <p className="text-body-md text-text-secondary">부품을 불러오는 중이에요…</p>
+        <SkeletonTable label="부품을 불러오는 중" rows={8} cols={7} />
       ) : isError ? (
         <ErrorState title="부품을 불러오지 못했어요" onRetry={() => refetch()} />
       ) : parts.length === 0 ? (
