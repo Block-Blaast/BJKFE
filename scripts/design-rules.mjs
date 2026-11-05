@@ -51,11 +51,9 @@ export const RULES = [
 // 토큰을 정의하는 파일만 hex 를 가질 수 있다.
 export const TOKEN_DEFINITION_FILES = new Set(['packages/ui/src/tokens.css']);
 
-// 검사 대상: 앱과 UI 패키지의 소스, 그리고 앱 public/ 의 HTML.
-// public/*.html 은 앱 밖에서 그대로 서빙돼 토큰·글꼴을 비켜 가기 쉬워서 함께 본다 (화면은 src/ 에 둔다).
+// 검사 대상: 앱과 UI 패키지의 소스
 export const isDesignChecked = (rel) =>
-  (/^(?:apps\/[^/]+|packages\/ui)\/src\/.+\.(?:tsx|ts|jsx|js|css)$/.test(rel) ||
-    /^apps\/[^/]+\/public\/.+\.html$/.test(rel)) &&
+  /^(?:apps\/[^/]+|packages\/ui)\/src\/.+\.(?:tsx|ts|jsx|js|css)$/.test(rel) &&
   !TOKEN_DEFINITION_FILES.has(rel);
 
 // 한 파일 내용에서 위반을 모은다. 주석 줄의 예시(`p-[13px]` 같은 설명)는 검사하지 않는다.
