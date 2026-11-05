@@ -54,6 +54,9 @@ export const DESK_FLOW = [
   },
 ] as const;
 
+// 왼쪽 로고 — 오늘 대시보드(W-01) 입구
+export const DESK_DASHBOARD = { href: '/dashboard', label: '발주콕 — 오늘' } as const;
+
 // 오른쪽 톱니 — 처음 한 번 맞춰 두는 화면들
 export const DESK_SETTINGS = {
   href: '/setup',

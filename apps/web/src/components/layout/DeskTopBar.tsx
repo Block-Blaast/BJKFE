@@ -2,7 +2,7 @@ import { Settings, Target } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
 
-import { DESK_SETTINGS } from '@/constants/routes';
+import { DESK_DASHBOARD, DESK_SETTINGS } from '@/constants/routes';
 
 import FlowBand, { FlowBandFallback } from './FlowBand';
 
@@ -14,8 +14,8 @@ const DeskTopBar = () => {
   return (
     <header className="flex items-center gap-4 rounded-full bg-bg-surface py-2 pr-2 pl-3 shadow-card">
       <Link
-        href="/dashboard"
-        aria-label="발주콕 — 오늘"
+        href={DESK_DASHBOARD.href}
+        aria-label={DESK_DASHBOARD.label}
         className="flex shrink-0 items-center gap-2"
       >
         {/* "콕 짚는다" — 과녁 */}

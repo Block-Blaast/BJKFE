@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { AlertTriangle, ClipboardCheck, SearchCheck, Truck, type LucideIcon } from 'lucide-react';
 
 import type { TwinLayout, TwinProjection } from '@bjk/api/types/twin';
@@ -25,10 +26,22 @@ const CHIPS: { key: TwinSummaryKey; icon: LucideIcon; iconClass: string }[] = [
 const WarehouseSummary = ({ layout, projection, withOrdersProjection }: WarehouseSummaryProps) => {
   const day = useWarehouseStore((s) => s.day);
   const highlightLabel = useWarehouseStore((s) => s.highlightLabel);
+
+  const highlighted = useWarehouseStore((s) => s.highlighted);
   const bridge = useWarehouseBridge();
+  const { highlight } = bridge;
 
   const summary = twinSummary(projection, withOrdersProjection, day);
   const locsOf = locsByPart(layout.placements);
+  const locsFor = (key: TwinSummaryKey) => summary[key].flatMap((id) => locsOf.get(id) ?? []);
+
+  // 켜 둔 칩의 칸이 바뀌면(승인·채팅 기록·날짜 이동) 강조도 따라간다. 카메라는 옮기지 않는다
+  const activeKey = CHIPS.find(({ key }) => TWIN_SUMMARY_LABEL[key] === highlightLabel)?.key;
+  const activeLocs = activeKey ? locsFor(activeKey).join(',') : null;
+  useEffect(() => {
+    if (!activeKey || activeLocs === null || activeLocs === highlighted.join(',')) return;
+    highlight(activeLocs ? activeLocs.split(',') : [], TWIN_SUMMARY_LABEL[activeKey]);
+  }, [activeKey, activeLocs, highlighted, highlight]);
 
   return (
     <ul aria-label="창고 요약" className="flex flex-wrap gap-2">
@@ -41,14 +54,7 @@ const WarehouseSummary = ({ layout, projection, withOrdersProjection }: Warehous
             <button
               type="button"
               aria-pressed={on}
-              onClick={() =>
-                on
-                  ? bridge.highlight([])
-                  : bridge.focus(
-                      partIds.flatMap((id) => locsOf.get(id) ?? []),
-                      label,
-                    )
-              }
+              onClick={() => (on ? bridge.highlight([]) : bridge.focus(locsFor(key), label))}
               className={`flex h-10 items-center gap-2 rounded-full px-4 text-label-md shadow-card transition-colors ${
                 on
                   ? 'bg-bg-inverse text-text-on-inverse'
