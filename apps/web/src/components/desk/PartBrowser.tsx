@@ -8,6 +8,7 @@ import { useState } from 'react';
 import {
   ABC_CLASSES,
   CATEGORIES,
+  CATEGORY_DEFAULTS,
   DEMAND_PATTERNS,
   RISK_LEVELS,
   type AbcClass,
@@ -20,6 +21,7 @@ import Button from '@bjk/ui/components/Button';
 
 import { PILL_SEARCH, PILL_SELECT } from '@/components/ui/controls';
 import EmptyState from '@/components/ui/EmptyState';
+import FolderCard from '@/components/ui/FolderCard';
 import { useParts } from '@/hooks/part/useParts';
 import { formatComputedAt, formatDate, formatQty } from '@/utils/format';
 import { TABLE, TABLE_CARD, TD, TH, TR } from '@/components/ui/table';
@@ -56,6 +58,12 @@ const PartBrowser = () => {
   const filters = parseFilters(searchParams);
   const [query, setQuery] = useState(filters.q ?? '');
   const { data: parts, isPending, isError, refetch } = useParts(filters);
+  // 폴더의 부품 수는 필터 없는 목록에서 센다 (같은 캐시라 추가 요청은 처음 한 번)
+  const { data: allParts } = useParts({});
+  const countOf = (category?: Category) =>
+    allParts
+      ? `부품 ${allParts.filter((p) => !category || p.category === category).length}개`
+      : '…';
 
   const update = (patch: Partial<PartListFilters>) =>
     router.replace(`${pathname}${toSearch({ ...filters, ...patch })}`, { scroll: false });
@@ -83,7 +91,26 @@ const PartBrowser = () => {
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
+      <nav aria-label="카테고리" className="grid grid-cols-5 gap-5">
+        <FolderCard
+          title="전체"
+          count={countOf()}
+          foot={`카테고리 ${CATEGORIES.length}개`}
+          selected={!filters.category}
+          onClick={() => update({ category: undefined })}
+        />
+        {CATEGORIES.map((category) => (
+          <FolderCard
+            key={category}
+            title={category}
+            count={countOf(category)}
+            foot={`수입 의존 ${CATEGORY_DEFAULTS[category].importDependency}`}
+            selected={filters.category === category}
+            onClick={() => update({ category })}
+          />
+        ))}
+      </nav>
       <div className="flex flex-wrap items-center gap-3">
         <form
           className="flex items-center gap-2"
@@ -108,11 +135,6 @@ const PartBrowser = () => {
             <Search size={16} aria-hidden />
           </Button>
         </form>
-        {select(
-          '카테고리',
-          'category',
-          CATEGORIES.map((c) => ({ value: c, label: c })),
-        )}
         {select(
           'ABC',
           'abc',

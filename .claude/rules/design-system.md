@@ -74,6 +74,8 @@ Figma 컴포넌트와 같은 것은 `@bjk/ui/components/*`에 있습니다. 앱�
 - **아이콘은 꽉 찬 동그란 칩 안에**: `components/ui/IconCircle` — 흰색(강조 카드 위)·검정·파랑·파랑 그라데이션 네 가지. 연한 바탕 원은 쓰지 않습니다. 한 줄의 카드들은 서로 다른 톤을 섞어 리듬을 줍니다.
 - **공용 부품을 먼저 쓴다** (`src/components/ui/`): 알약 묶음 선택 `Segmented`(선택은 검정), 필터·검색 클래스 `controls.ts`(`PILL_SELECT`, `PILL_SEARCH`, 라벨 없는 폼 칸 `FIELD`), 빈 화면 `EmptyState`(작은 일러스트), 동그란 뒤로 가기 `BackLink`, 아이콘 원 `IconCircle`. 같은 모양을 화면에서 다시 만들지 않습니다.
 - **표는 `components/ui/table.ts`만 쓴다** (참고: Loseva 타임시트 표): 줄 사이 선 없이 둥근 회색 머리줄(`TH`, `bg-bg-subtle`) + 흰색·연회색(`bg-bg-page`) 줄무늬(`TR`)로 행을 나눕니다. 표만 있는 화면은 `TABLE_CARD`(흰 카드)에 담습니다. 표 안 칩은 줄무늬에 묻히지 않게 흰 바탕 + 테두리를 씁니다.
+- **묶음 고르기는 폴더 카드** (참고: Kintsugi): 카테고리·종류를 고르는 큰 선택지는 `components/ui/FolderCard`(그림은 `illustration/FolderArt`)를 씁니다. 선택된 폴더만 파랑, 한 줄에 5개(`grid-cols-5 gap-5`). 글씨는 앞판(위 40%부터)에만 둡니다.
+- **상세 화면은 가운데 본문 + 오른쪽 정보 패널**: 맨 위 `Breadcrumb`(뒤로 원 | 상위 › 지금), 오른쪽에 막대 카드(`Meter`) → 속성 목록(라벨 왼쪽·값 오른쪽) → 점 찍힌 태그 순서(`PartInfoPanel` 참고).
 - **카드 제목은 `text-h3`**, 카드 안 소제목은 `text-label-lg`.
 - **위트는 브랜드 순간에만**: 빈 화면·로그인·브리핑 머리 같은 곳에서만 파랑+노랑 일러스트(`components/illustration/`)를 씁니다. 데이터 화면에는 넣지 않습니다.
 

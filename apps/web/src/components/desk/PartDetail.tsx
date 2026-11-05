@@ -1,6 +1,6 @@
 'use client';
 
-import { CircleHelp, Layers, Package, Truck, type LucideIcon } from 'lucide-react';
+import { CircleHelp } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { DEMAND_PATTERNS, MOVEMENT_TYPES } from '@bjk/api/domain/part';
@@ -10,11 +10,13 @@ import Button from '@bjk/ui/components/Button';
 import ForecastPanel from '@/components/charts/ForecastPanel';
 import Tag from '@/components/ui/Tag';
 import ComputedAt from '@/components/ui/ComputedAt';
-import IconCircle, { type IconCircleTone } from '@/components/ui/IconCircle';
+import Breadcrumb from '@/components/ui/Breadcrumb';
 import { usePart, usePartForecast, usePartLedger } from '@/hooks/part/useParts';
 import { factLabel, formatFact } from '@/utils/facts';
-import { formatComputedAt, formatDate, formatQty, formatWon } from '@/utils/format';
+import { formatComputedAt, formatQty } from '@/utils/format';
 import { TABLE, TD, TH, TR } from '@/components/ui/table';
+
+import PartInfoPanel from './PartInfoPanel';
 
 const EMPTY = '—';
 
@@ -48,40 +50,6 @@ const Section = ({
     {children}
   </section>
 );
-
-// 강조 카드는 한 화면에 하나 — 현재 재고(S). 큰 단독 숫자에는 tabular-nums 를 쓰지 않는다.
-const Stat = ({
-  label,
-  value,
-  icon,
-  tone,
-  warn = false,
-}: {
-  label: string;
-  value: string;
-  icon: LucideIcon;
-  tone: IconCircleTone;
-  warn?: boolean;
-}) => {
-  const hero = tone === 'onHero';
-  return (
-    <div
-      className={`flex flex-1 items-start justify-between gap-3 rounded-xl p-6 ${
-        hero
-          ? 'bg-bg-brand bg-linear-to-br from-brand-600 via-brand-500 to-brand-300 text-text-on-brand shadow-raised print:text-text-heading'
-          : 'bg-bg-surface shadow-card'
-      }`}
-    >
-      <div className="flex flex-col gap-2">
-        <span className={`text-label-md ${hero ? '' : 'text-text-secondary'}`}>{label}</span>
-        <span className={`text-h1 ${hero ? '' : warn ? 'text-text-warning' : 'text-text-heading'}`}>
-          {value}
-        </span>
-      </div>
-      <IconCircle icon={icon} tone={tone} />
-    </div>
-  );
-};
 
 const Ledger = ({ id, unit }: { id: string; unit: string }) => {
   const { data: entries, isPending, isError, refetch } = usePartLedger(id);
@@ -144,7 +112,7 @@ type PartDetailProps = {
   id: string;
 };
 
-// 부품 상세 (W-05). 재고, 근거 지표와 계산 근거, 입출고 원문, 별칭.
+// 부품 상세 (W-05). 가운데에 그래프·근거 지표·입출고 원문, 오른쪽 정보 패널에 재고·속성·별칭.
 const PartDetail = ({ id }: PartDetailProps) => {
   const { data: part, isPending, isError, refetch } = usePart(id);
   const forecast = usePartForecast(id);
@@ -166,46 +134,16 @@ const PartDetail = ({ id }: PartDetailProps) => {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-h1 text-text-heading">{part.name}</h1>
-        <p className="text-body-md text-text-secondary">
-          {[
-            part.spec && `규격 ${part.spec}`,
-            part.category,
-            part.location && `보관 ${part.location}`,
-            part.supplier &&
-              `기본 공급사 ${part.supplier.name}${part.supplier.unit_price ? ` · ${formatWon(part.supplier.unit_price)}` : ''}`,
-          ]
-            .filter(Boolean)
-            .join(' · ') || '기본 정보가 아직 없어요.'}
-        </p>
+      <header className="flex flex-col gap-4">
+        <Breadcrumb parent={{ href: '/parts', label: '부품' }} current={part.name} />
+        <div className="flex flex-col gap-1">
+          <h1 className="text-h1 text-text-heading">{part.name}</h1>
+          <p className="text-body-md text-text-secondary">
+            {[part.spec && `규격 ${part.spec}`, part.category].filter(Boolean).join(' · ') ||
+              '기본 정보가 아직 없어요.'}
+          </p>
+        </div>
       </header>
-
-      <div className="flex gap-5">
-        <Stat
-          label="현재 재고 (S)"
-          value={formatQty(part.stock, part.unit)}
-          icon={Package}
-          tone="onHero"
-        />
-        <Stat
-          icon={Truck}
-          tone="brand"
-          label="입고 예정 (O)"
-          value={
-            part.incoming
-              ? `${formatQty(part.incoming.qty, part.unit)} · ${formatDate(part.incoming.eta)}`
-              : EMPTY
-          }
-        />
-        <Stat
-          icon={Layers}
-          tone="inverse"
-          label="숨은 재고 (H)"
-          value={part.hidden_stock > 0 ? formatQty(part.hidden_stock, part.unit) : EMPTY}
-          warn={part.hidden_stock > 0}
-        />
-      </div>
 
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-2 flex flex-col gap-6">
@@ -264,23 +202,8 @@ const PartDetail = ({ id }: PartDetailProps) => {
           </Section>
         </div>
 
-        <div className="flex flex-col gap-6">
-          <Section title="별칭">
-            {part.aliases.length === 0 ? (
-              <p className="text-body-sm text-text-secondary">등록된 별칭이 없어요.</p>
-            ) : (
-              <ul className="flex flex-wrap gap-2">
-                {part.aliases.map((alias) => (
-                  <li
-                    key={alias}
-                    className="rounded-full bg-bg-subtle px-3 py-1 text-label-sm text-text-body"
-                  >
-                    {alias}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Section>
+        <div>
+          <PartInfoPanel part={part} />
         </div>
       </div>
     </div>

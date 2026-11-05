@@ -2,7 +2,10 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import Segmented from '@/components/ui/Segmented';
+import { CATEGORIES } from '@bjk/api/domain/part';
+
+import FolderCard from '@/components/ui/FolderCard';
+import { useEquipment, useMaintenance, useSuppliers } from '@/hooks/setup/useSetup';
 
 import CategoryDefaults from './CategoryDefaults';
 import EquipmentSection from './EquipmentSection';
@@ -30,19 +33,38 @@ const SetupView = () => {
   const searchParams = useSearchParams();
   const raw = searchParams.get('tab');
   const tab: Tab = isTab(raw) ? raw : 'import';
+  const equipment = useEquipment();
+  const maintenance = useMaintenance();
+  const suppliers = useSuppliers();
+  const count = (n: number | undefined, unit: string) => (n === undefined ? '…' : `${n}${unit}`);
+  const upcoming = maintenance.data?.filter((m) => !m.completed_at).length;
+
+  const folders: Record<Tab, { count: string; foot: string }> = {
+    import: { count: '엑셀 → AI 제안', foot: '이름·재고·단위만 있으면 돼요' },
+    equipment: { count: count(equipment.data?.length, '대'), foot: '멈추면 손실이 나는 설비' },
+    maintenance: { count: `예정 ${count(upcoming, '건')}`, foot: '정비 부품은 미리 필요량으로' },
+    suppliers: { count: count(suppliers.data?.length, '곳'), foot: '납기·단가·MOQ' },
+    categories: { count: `${CATEGORIES.length}개`, foot: '수입 의존·외부 요인' },
+  };
 
   return (
     <div className="flex flex-col gap-6">
-      <Segmented
-        label="기준 정보 종류"
-        options={TABS}
-        value={tab}
-        onChange={(next) =>
-          router.replace(next === 'import' ? pathname : `${pathname}?tab=${next}`, {
-            scroll: false,
-          })
-        }
-      />
+      <nav aria-label="기준 정보 종류" className="grid grid-cols-5 gap-5">
+        {TABS.map(([key, title]) => (
+          <FolderCard
+            key={key}
+            title={title}
+            count={folders[key].count}
+            foot={folders[key].foot}
+            selected={tab === key}
+            onClick={() =>
+              router.replace(key === 'import' ? pathname : `${pathname}?tab=${key}`, {
+                scroll: false,
+              })
+            }
+          />
+        ))}
+      </nav>
       {tab === 'import' ? <PartImport /> : null}
       {tab === 'equipment' ? <EquipmentSection /> : null}
       {tab === 'maintenance' ? <MaintenanceSection /> : null}
