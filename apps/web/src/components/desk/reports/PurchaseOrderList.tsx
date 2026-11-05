@@ -1,48 +1,134 @@
 'use client';
 
-import { Check, Copy, FileText } from 'lucide-react';
+import {
+  Ban,
+  Check,
+  CircleCheck,
+  Clock,
+  Copy,
+  FileText,
+  PackageCheck,
+  PhoneOutgoing,
+  Truck,
+  type LucideIcon,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
-import { APPROVAL_ACTIONS } from '@bjk/api/domain/review';
-import type { PurchaseOrder } from '@bjk/api/types/report';
+import { getPurchaseOrderMessage, PURCHASE_ORDER_STATUS } from '@bjk/api/reports';
+import { openReviewPdf } from '@bjk/api/reviews';
+import type { PurchaseOrder, PurchaseOrderStatus } from '@bjk/api/types/report';
 import Button from '@bjk/ui/components/Button';
 
 import ErrorState from '@/components/ui/ErrorState';
 import EmptyState from '@/components/ui/EmptyState';
-import { usePurchaseOrders } from '@/hooks/report/useReports';
-import { formatComputedAt, formatDate, formatQty, formatWon } from '@/utils/format';
+import Tag, { type TagTone } from '@/components/ui/Tag';
+import {
+  useCancelPurchaseOrder,
+  useMarkPurchaseOrderOrdered,
+  usePurchaseOrders,
+} from '@/hooks/report/useReports';
+import { apiErrorMessage } from '@/utils/apiError';
+import { formatComputedAt, formatNumber, formatWon } from '@/utils/format';
 import { TABLE, TABLE_CARD, TD, TH, TR } from '@/components/ui/table';
 
-const EMPTY = '—';
+const STATUS_TAG: Record<PurchaseOrderStatus, { tone: TagTone; icon: LucideIcon }> = {
+  approved: { tone: 'warning', icon: Clock },
+  ordered: { tone: 'brand', icon: Truck },
+  partially_received: { tone: 'brand', icon: PackageCheck },
+  received: { tone: 'success', icon: CircleCheck },
+  cancelled: { tone: 'neutral', icon: Ban },
+};
 
-// 공급사에 보낼 문자 문구: 품목·규격·수량·납기 희망일 (F-APPROVAL-03). 자동 전송은 범위 밖이라 복사만 한다.
-const orderMessage = (po: PurchaseOrder) =>
-  [
-    `[발주] ${po.part.name}${po.part.spec ? ` (${po.part.spec})` : ''}`,
-    `수량: ${formatQty(po.qty, po.part.unit)}`,
-    po.unit_price === null ? null : `단가: ${formatWon(po.unit_price)}`,
-    po.desired_date ? `납기 희망일: ${formatDate(po.desired_date)}` : null,
-    '확인 부탁드립니다.',
-  ]
-    .filter(Boolean)
-    .join('\n');
-
-const CopyButton = ({ po }: { po: PurchaseOrder }) => {
-  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
+// 공급사에 보낼 문자 문구는 서버가 만든다 (F-APPROVAL-03, PO-02). 자동 전송은 범위 밖이라 복사만 한다.
+const CopyButton = ({ id }: { id: string }) => {
+  const [state, setState] = useState<'idle' | 'loading' | 'copied' | 'failed'>('idle');
   return (
     <Button
       variant="secondary"
-      onClick={() =>
-        navigator.clipboard.writeText(orderMessage(po)).then(
-          () => setState('copied'),
-          () => setState('failed'),
-        )
-      }
+      disabled={state === 'loading'}
+      onClick={() => {
+        setState('loading');
+        getPurchaseOrderMessage(id)
+          .then((message) => navigator.clipboard.writeText(message))
+          .then(
+            () => setState('copied'),
+            () => setState('failed'),
+          );
+      }}
     >
       {state === 'copied' ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />}
       {state === 'copied' ? '복사했어요' : state === 'failed' ? '복사 실패' : '발주 문구 복사'}
     </Button>
+  );
+};
+
+// 결재용 PDF 는 검토 단위다(REV-07). 로그인 토큰이 필요해 링크 대신 받아서 연다
+const PdfButton = ({ reviewId }: { reviewId: string | null }) => {
+  const [state, setState] = useState<'idle' | 'loading' | 'failed'>('idle');
+  if (!reviewId) {
+    return (
+      <Button disabled title="검토 없이 들어온 발주라 결재용 PDF가 없어요">
+        <FileText size={16} aria-hidden />
+        PDF 없음
+      </Button>
+    );
+  }
+  return (
+    <Button
+      disabled={state === 'loading'}
+      title={state === 'failed' ? 'PDF를 열지 못했어요. 만드는 중일 수 있어요.' : undefined}
+      onClick={() => {
+        setState('loading');
+        openReviewPdf(reviewId).then(
+          () => setState('idle'),
+          () => setState('failed'),
+        );
+      }}
+    >
+      <FileText size={16} aria-hidden />
+      {state === 'loading' ? '여는 중…' : state === 'failed' ? 'PDF 다시 열기' : 'PDF'}
+    </Button>
+  );
+};
+
+// 주문 완료 표시·취소는 승인 상태(주문 전)에서만 된다 (PO-03·04)
+const OrderActions = ({ po }: { po: PurchaseOrder }) => {
+  const mark = useMarkPurchaseOrderOrdered();
+  const cancel = useCancelPurchaseOrder();
+  const [asking, setAsking] = useState(false);
+  const busy = mark.isPending || cancel.isPending;
+  const error = mark.error ?? cancel.error;
+
+  return (
+    <div className="flex flex-col items-end gap-2">
+      {asking ? (
+        <div className="flex items-center gap-2">
+          <span className="text-label-sm text-text-body">이 발주를 취소할까요?</span>
+          <Button variant="ghost" disabled={busy} onClick={() => setAsking(false)}>
+            아니요
+          </Button>
+          <Button variant="secondary" disabled={busy} onClick={() => cancel.mutate(po.id)}>
+            {cancel.isPending ? '취소 중…' : '발주 취소'}
+          </Button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" disabled={busy} onClick={() => mark.mutate(po.id)}>
+            <PhoneOutgoing size={16} aria-hidden />
+            {mark.isPending ? '표시 중…' : '발주 완료 표시'}
+          </Button>
+          <Button variant="ghost" disabled={busy} onClick={() => setAsking(true)}>
+            취소
+          </Button>
+        </div>
+      )}
+      {error ? (
+        <p role="alert" className="text-body-sm text-text-danger">
+          {apiErrorMessage(error, '처리하지 못했어요.')}
+        </p>
+      ) : null}
+    </div>
   );
 };
 
@@ -72,7 +158,7 @@ const PurchaseOrderList = () => {
       <table className={TABLE}>
         <thead>
           <tr>
-            {['승인 시각', '부품', '수량', '공급사', '총액', '승인', ''].map((h, i) => (
+            {['승인 시각', '부품', '수량', '공급사', '총액', '상태', ''].map((h, i) => (
               <th
                 key={h || 'actions'}
                 scope="col"
@@ -84,55 +170,64 @@ const PurchaseOrderList = () => {
           </tr>
         </thead>
         <tbody>
-          {orders.map((po) => (
-            <tr key={po.id} className={TR}>
-              <td className={`${TD} text-text-secondary tabular-nums`}>
-                {formatComputedAt(po.approved_at)}
-              </td>
-              <td className={TD}>
-                <Link
-                  href={`/reviews/${po.review_id}`}
-                  className="flex flex-col text-label-md text-text-heading hover:text-text-brand"
-                >
-                  {po.part.name}
-                  {po.part.spec ? (
-                    <span className="text-label-sm text-text-secondary">{po.part.spec}</span>
+          {orders.map((po) => {
+            const tag = STATUS_TAG[po.status];
+            return (
+              <tr key={po.id} className={`${TR} align-top`}>
+                <td className={`${TD} text-text-secondary tabular-nums`}>
+                  {formatComputedAt(po.approved_at)}
+                  {po.approved_by ? (
+                    <span className="block text-label-sm">{po.approved_by}</span>
                   ) : null}
-                </Link>
-              </td>
-              <td className={`${TD} text-right text-text-heading tabular-nums`}>
-                {formatQty(po.qty, po.part.unit)}
-              </td>
-              <td className={`${TD} text-text-body`}>{po.supplier ?? EMPTY}</td>
-              <td className={`${TD} text-right text-text-heading tabular-nums`}>
-                {po.total === null ? EMPTY : formatWon(po.total)}
-              </td>
-              <td className={`${TD} text-text-body`}>
-                {APPROVAL_ACTIONS[po.action]} · {po.approved_by}
-              </td>
-              <td className={TD}>
-                <div className="flex justify-end gap-2">
-                  <CopyButton po={po} />
-                  {po.pdf_url ? (
-                    <a
-                      href={po.pdf_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 rounded-full bg-bg-brand px-5 py-3 text-label-md text-text-on-brand hover:bg-bg-brand-hover"
+                </td>
+                <td className={TD}>
+                  {po.review_id ? (
+                    <Link
+                      href={`/reviews/${po.review_id}`}
+                      className="text-label-md text-text-heading hover:text-text-brand"
                     >
-                      <FileText size={16} aria-hidden />
-                      PDF
-                    </a>
+                      {po.part.name}
+                    </Link>
                   ) : (
-                    <Button disabled title="PDF를 만드는 중이에요">
-                      <FileText size={16} aria-hidden />
-                      PDF 준비 중
-                    </Button>
+                    <span className="text-label-md text-text-heading">{po.part.name}</span>
                   )}
-                </div>
-              </td>
-            </tr>
-          ))}
+                </td>
+                <td className={`${TD} text-right text-text-heading tabular-nums`}>
+                  {formatNumber(po.qty)}
+                  {po.status === 'partially_received' ? (
+                    <span className="block text-label-sm text-text-secondary">
+                      입고 {formatNumber(po.received_qty)}
+                    </span>
+                  ) : null}
+                </td>
+                <td className={`${TD} text-text-body`}>{po.supplier}</td>
+                <td className={`${TD} text-right text-text-heading tabular-nums`}>
+                  {formatWon(po.total)}
+                </td>
+                <td className={TD}>
+                  <span className="flex flex-col items-start gap-1">
+                    <Tag tone={tag.tone} icon={tag.icon}>
+                      {PURCHASE_ORDER_STATUS[po.status]}
+                    </Tag>
+                    {po.ordered_at ? (
+                      <span className="text-label-sm text-text-secondary tabular-nums">
+                        주문 {formatComputedAt(po.ordered_at)}
+                      </span>
+                    ) : null}
+                  </span>
+                </td>
+                <td className={TD}>
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="flex justify-end gap-2">
+                      <CopyButton id={po.id} />
+                      <PdfButton reviewId={po.review_id} />
+                    </div>
+                    {po.status === 'approved' ? <OrderActions po={po} /> : null}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
