@@ -8,7 +8,7 @@ import type { TwinBin, TwinLayout } from '@bjk/api/types/twin';
 import Button from '@bjk/ui/components/Button';
 
 import { InfoSection } from '@/components/ui/InfoPanel';
-import { useMergeCandidates, useMergeParts } from '@/hooks/audit/useMergeCandidates';
+import { useDecideMerge, useMergeCandidates } from '@/hooks/audit/useMergeCandidates';
 import { useParts } from '@/hooks/part/useParts';
 import { useWarehouseBridge } from '@/hooks/twin/useWarehouseBridge';
 import { apiErrorMessage } from '@/utils/apiError';
@@ -38,17 +38,18 @@ const locsOfGroup = (layout: TwinLayout, members: TwinBin[]) => {
 
 type MergeDialogProps = {
   candidate: MergeCandidate;
+  // 후보 응답에 단위가 없어 고른 칸 부품의 단위를 쓴다 (같은 규격 묶음)
+  unit: string;
   onClose: () => void;
 };
 
 // 병합은 되돌릴 수 없어 모달에서 대표 부품을 고르고 한 번 더 확인한다 (desk.md).
 // 흐름은 숨은 재고 화면(HiddenStockList)의 확인 단계와 같다. <dialog>.showModal 이 포커스 가두기·Esc 를 맡는다
-const MergeDialog = ({ candidate, onClose }: MergeDialogProps) => {
+const MergeDialog = ({ candidate, unit, onClose }: MergeDialogProps) => {
   const ref = useRef<HTMLDialogElement>(null);
-  const merge = useMergeParts();
+  const merge = useDecideMerge();
   const [primaryId, setPrimaryId] = useState(candidate.parts[0].id);
   const total = candidate.parts[0].stock + candidate.parts[1].stock;
-  const unit = candidate.parts[0].unit;
 
   // 닫기는 정리 함수에서 하지 않는다 — StrictMode 의 가짜 언마운트에서 close 이벤트가 onClose 를 불러 모달이 바로 사라진다.
   // 언마운트되면 요소가 DOM 에서 빠지면서 top layer 에서도 내려간다
@@ -66,7 +67,7 @@ const MergeDialog = ({ candidate, onClose }: MergeDialogProps) => {
     >
       <div className="flex flex-col gap-4">
         <h2 id={`merge-title-${candidate.id}`} className="text-h3 text-text-heading">
-          규격 {candidate.spec} 합치기
+          같은 부품 합치기
         </h2>
         <fieldset className="flex flex-col gap-2" disabled={merge.isPending}>
           <legend className="mb-2 text-label-md text-text-secondary">대표 부품</legend>
@@ -87,7 +88,7 @@ const MergeDialog = ({ candidate, onClose }: MergeDialogProps) => {
                 <span className="text-label-md text-text-heading">{p.name}</span>
               </span>
               <span className="text-body-sm text-text-body tabular-nums">
-                {formatQty(p.stock, p.unit)}
+                {formatQty(p.stock, unit)}
               </span>
             </label>
           ))}
@@ -114,7 +115,10 @@ const MergeDialog = ({ candidate, onClose }: MergeDialogProps) => {
             disabled={merge.isPending}
             onClick={() =>
               merge.mutate(
-                { id: candidate.id, primaryPartId: primaryId },
+                {
+                  id: candidate.id,
+                  input: { action: 'merge', representative_part_id: primaryId },
+                },
                 { onSuccess: () => ref.current?.close() },
               )
             }
@@ -144,7 +148,7 @@ const HiddenStockSection = ({ layout, projection, part, bin }: BinSectionProps) 
   const memberIds = new Set(members.map((b) => b.part_id));
   const candidate = candidates.data?.find(
     (c) =>
-      c.status === 'open' &&
+      (c.status === 'open' || c.status === 'count_requested') &&
       c.parts.some((p) => p.id === bin.part_id) &&
       c.parts.every((p) => memberIds.has(p.id)),
   );
@@ -198,7 +202,9 @@ const HiddenStockSection = ({ layout, projection, part, bin }: BinSectionProps) 
           </Button>
         ) : null}
       </div>
-      {merging ? <MergeDialog candidate={merging} onClose={() => setMerging(null)} /> : null}
+      {merging ? (
+        <MergeDialog candidate={merging} unit={part.unit} onClose={() => setMerging(null)} />
+      ) : null}
     </InfoSection>
   );
 };
