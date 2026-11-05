@@ -150,7 +150,7 @@ const commands = {
 
 export type WarehouseBridge = typeof commands & { ready: boolean };
 
-// 어디서든: const bridge = useWarehouseBridge(); bridge.goTo('A-2-3');
+// 어디서든: const bridge = useWarehouseBridge(); bridge.goTo('A-01-2-3');
 export const useWarehouseBridge = (): WarehouseBridge => {
   const ready = useWarehouseStore((s) => s.frameReady);
   return { ...commands, ready };
