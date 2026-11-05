@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 
-import { ApiError } from '@bjk/api/client';
 import { APPROVAL_ACTIONS, type ApprovalAction } from '@bjk/api/domain/review';
 import type { Review } from '@bjk/api/types/review';
 import Button from '@bjk/ui/components/Button';
 import Input from '@bjk/ui/components/Input';
 
 import { useDecideReview } from '@/hooks/review/useDecideReview';
+import { decisionErrorMessage } from '@/utils/apiError';
 
 type ApprovalActionsProps = {
   review: Review;
@@ -25,15 +25,6 @@ const RESULT_MESSAGE: Partial<Record<Review['status'], string>> = {
 const primaryActionOf = (review: Review): ApprovalAction => {
   if (review.verdict === '수정 권고' && review.proposal.qty === 0) return 'acceptNoOrder';
   return 'approveProposal';
-};
-
-const errorMessageOf = (error: unknown) => {
-  if (error instanceof ApiError) {
-    if (error.status === 409) return '다른 사람이 먼저 처리했어요. 화면이 최신 결과로 바뀌어요.';
-    const body = error.body as { message?: string } | undefined;
-    if (body?.message) return body.message;
-  }
-  return '처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
 };
 
 // TODO(auth): 권한(approveReview)이 없으면 숨기고, 본인 요청은 사장님만 승인 (F-AUTH-03)
@@ -134,7 +125,7 @@ const ApprovalActions = ({ review }: ApprovalActionsProps) => {
     <div className="flex flex-col gap-2">
       {decide.isError ? (
         <p role="alert" className="text-body-sm text-text-danger">
-          {errorMessageOf(decide.error)}
+          {decisionErrorMessage(decide.error)}
         </p>
       ) : null}
       <Button size="lg" onClick={() => setConfirming(primary)}>

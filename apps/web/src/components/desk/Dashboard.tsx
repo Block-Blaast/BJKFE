@@ -27,6 +27,7 @@ import IconCircle, { type IconCircleTone } from '@/components/ui/IconCircle';
 import Tag, { type TagTone } from '@/components/ui/Tag';
 import { useTodayActivity } from '@/hooks/activity/useTodayActivity';
 import { useAudits } from '@/hooks/audit/useAudits';
+import { useDashboardSummary } from '@/hooks/dashboard/useDashboardSummary';
 import { useParts } from '@/hooks/part/useParts';
 import { useReviews } from '@/hooks/review/useReviews';
 import { formatDate, formatQty, formatWon } from '@/utils/format';
@@ -118,8 +119,19 @@ const Stat = ({
   </div>
 );
 
-// 결품 위험 순위: 명세서 우선순위는 P_out × L (F-ANAL-08). 값이 없으면 소진 예상일이 이른 순으로 대신한다.
-const riskOrder = (parts: Part[]) => {
+// 결품 위험 순위: 명세서 우선순위는 P_out × L (F-ANAL-08). 백엔드 요약이 준 순서(rankedIds)를 먼저 쓴다.
+// 값이 없으면(목업) 부품 지표로 계산하고, 그것도 없으면 소진 예상일이 이른 순으로 대신한다.
+const riskOrder = (parts: Part[], rankedIds?: string[]) => {
+  if (rankedIds?.length) {
+    const byId = new Map(parts.map((p) => [p.id, p]));
+    return {
+      byPriority: true,
+      items: rankedIds.flatMap((id) => {
+        const part = byId.get(id);
+        return part ? [part] : [];
+      }),
+    };
+  }
   const scored = parts.filter((p) => p.metrics.p_out !== null && p.metrics.loss !== null);
   if (scored.length > 0) {
     return {
@@ -181,8 +193,11 @@ const Dashboard = () => {
 
   const urgent = reviews.data?.filter((r) => r.flags.includes('긴급')).length ?? 0;
   const highAudits = audits.data?.filter((a) => a.grade === '높음').length ?? 0;
-  const risk = parts.data ? riskOrder(parts.data) : null;
+  const summary = useDashboardSummary();
+  const risk = parts.data ? riskOrder(parts.data, summary.data?.riskPartIds) : null;
   const value = parts.data ? tiedUpValue(parts.data) : null;
+  // 위 표는 상위 5개만 보이므로, 카드 숫자는 소진 예상일이 있는(8주 안에 바닥나는) 부품 수로 센다
+  const atRisk = parts.data?.filter((p) => p.metrics.t_out !== null).length;
   const computedAt = parts.data?.find((p) => p.metrics.computed_at)?.metrics.computed_at;
 
   return (
@@ -220,14 +235,26 @@ const Dashboard = () => {
           icon={PackageX}
           tone="gradient"
           label="결품 위험 부품"
-          value={risk ? `${risk.items.length}종` : EMPTY}
-          note={risk && !risk.byPriority ? '소진 예상일이 있는 부품' : undefined}
+          value={atRisk === undefined ? EMPTY : `${atRisk}종`}
+          note="8주 안에 소진 예상"
         />
         <Stat
           icon={Coins}
           label="묶인 재고 금액"
-          value={value ? (value.priced ? formatWon(value.total) : EMPTY) : EMPTY}
-          note={value ? `단가 등록 ${value.priced}/${value.all}종 기준` : undefined}
+          value={
+            summary.data
+              ? formatWon(summary.data.tiedUpAmount)
+              : value?.priced
+                ? formatWon(value.total)
+                : EMPTY
+          }
+          note={
+            summary.data
+              ? '180일 넘게 안 쓴 재고 × 단가'
+              : value
+                ? `단가 등록 ${value.priced}/${value.all}종 기준`
+                : undefined
+          }
         />
       </div>
 

@@ -41,12 +41,15 @@ type BackendItem = {
   status: BackendStatus;
   verdict: BackendVerdict | null;
   flags: string[];
+  // 요청 수량·결정 (BJK-AI-BE #297) — 폰 "내 요청"이 상세를 따로 받지 않고 보여 준다
+  qty?: number | null;
   original_total: number | null;
   saving: number;
+  decision?: { action: string; reason: string | null; decided_at: string | null } | null;
   created_at: string;
 };
 
-type BackendDetail = Omit<BackendItem, 'original_total' | 'saving'> & {
+type BackendDetail = Omit<BackendItem, 'qty' | 'original_total' | 'saving' | 'decision'> & {
   requested_by: { type: 'user'; id: string; name: string } | null;
   checks: { code: CheckCode; level: string; facts: Record<string, number | string> }[];
   original: BackendLine | null;
@@ -121,9 +124,15 @@ const base = (r: BackendItem | BackendDetail) => ({
 const fromItem = (r: BackendItem): Review => ({
   ...base(r),
   requester: r.entry === 'staff_request' ? 'worker' : 'system',
-  decision: null,
+  decision: r.decision
+    ? {
+        action: ACTION_BACK[r.decision.action] ?? 'reject',
+        reason: r.decision.reason,
+        decided_at: r.decision.decided_at ?? r.created_at,
+      }
+    : null,
   checks: [],
-  original: { qty: 0, supplier: null, unit_price: null, total: r.original_total },
+  original: { qty: r.qty ?? 0, supplier: null, unit_price: null, total: r.original_total },
   proposal: { qty: 0, supplier: null, unit_price: null, total: null, saving: r.saving || null },
   risk_if_not_ordered: { stockout_date: null, equipment: [], loss: null },
   opinion: '',

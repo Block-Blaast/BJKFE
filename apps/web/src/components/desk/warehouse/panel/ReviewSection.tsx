@@ -4,7 +4,6 @@ import { ArrowRight, Truck } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
-import { ApiError } from '@bjk/api/client';
 import { APPROVAL_ACTIONS } from '@bjk/api/domain/review';
 import type { Review } from '@bjk/api/types/review';
 import type { TwinArrival } from '@bjk/api/types/twin';
@@ -17,6 +16,7 @@ import { useReview } from '@/hooks/review/useReview';
 import { useReviews } from '@/hooks/review/useReviews';
 import { useTwinProjection } from '@/hooks/twin/useTwinLayout';
 import { useWarehouseBridge } from '@/hooks/twin/useWarehouseBridge';
+import { decisionErrorMessage } from '@/utils/apiError';
 import { formatDate, formatQty } from '@/utils/format';
 import { locsByPart } from '@/utils/twin';
 
@@ -42,15 +42,6 @@ const usePendingArrivals = () => {
 // 수량 0(발주 불필요 수용)은 도착 상자가 없어 여기 오지 않는다(목업 twin.ts 가 qty 0 을 뺀다)
 const approveLabelOf = (review: Review) =>
   review.verdict === '적정' ? '승인' : APPROVAL_ACTIONS.approveProposal;
-
-const errorMessageOf = (error: unknown) => {
-  if (error instanceof ApiError) {
-    if (error.status === 409) return '다른 사람이 먼저 처리했어요. 화면이 최신 결과로 바뀌어요.';
-    const body = error.body as { message?: string } | undefined;
-    if (body?.message) return body.message;
-  }
-  return '처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
-};
 
 type ProposalCardProps = {
   arrival: TwinArrival & { review_id: string };
@@ -99,7 +90,7 @@ const ProposalCard = ({ arrival, unit, onApproved }: ProposalCardProps) => {
       ) : null}
       {decide.isError ? (
         <p role="alert" className="text-body-sm text-text-danger">
-          {errorMessageOf(decide.error)}
+          {decisionErrorMessage(decide.error)}
         </p>
       ) : null}
       {confirming && review ? (

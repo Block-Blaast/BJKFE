@@ -79,4 +79,30 @@ export const FACTS: Record<string, { label: string; kind: FactKind }> = {
   alt_supplier: { label: '더 싼 공급사', kind: 'text' },
   alt_unit_price: { label: '그 공급사 단가', kind: 'won' },
   holiday: { label: '납기 중 연휴', kind: 'text' },
+  // 백엔드 검토 엔진(bjk_review checks)이 근거로 주는 키
+  H_c: { label: '확인된 숨은 재고', kind: 'qty' },
+  H_u: { label: '확인 전 숨은 재고', kind: 'qty' },
+  P: { label: '다른 열린 요청', kind: 'qty' },
+  F_12m: { label: '12개월 확정 필요량', kind: 'qty' },
+  sigma: { label: '단가 표준편차', kind: 'won' },
+  supplier: { label: '공급사', kind: 'text' },
+  cause: { label: '원인', kind: 'text' },
+  note: { label: '참고', kind: 'text' },
+  deadline: { label: '발주 마감일', kind: 'date' },
+  days_left: { label: '마감까지 남은 날', kind: 'days' },
+  t_need: { label: '소진 예상일', kind: 'date' },
+  r_lead: { label: '납기 위험도', kind: 'number' },
+  r_price: { label: '단가 위험도', kind: 'number' },
+};
+
+// 같은 키라도 체크마다 뜻이 다르면 여기서 이름을 바꾼다 — C-06 의 단가·납기는 더 싼 공급사 값이다
+export const CHECK_FACT_LABELS: Partial<Record<CheckCode, Record<string, string>>> = {
+  'C-06': { unit_price: '그 공급사 단가', LT90: '그 공급사 납기(늦을 때)' },
+};
+
+// 글자 값 근거(원인·참고)의 화면 문구. 여러 원인은 쉼표로 이어 온다
+export const FACT_TEXT: Record<string, string> = {
+  deadline: '발주 마감 임박',
+  supplier_lead: '요청 공급사 납기 부족',
+  no_recent_usage: '최근 사용 기록 없음',
 };

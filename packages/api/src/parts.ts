@@ -1,6 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 
-import { itemsOf, request, USES_BACKEND } from './client';
+import { request, requestAll, USES_BACKEND } from './client';
 import type { Category, DemandPattern, MovementType, RiskLevel } from './domain/part';
 import { ENDPOINTS } from './endpoints';
 import { queryKeys } from './queryKeys';
@@ -219,12 +219,9 @@ const toSearch = (filters: PartListFilters) => {
 const isBackendListItem = (p: Part | BackendListItem): p is BackendListItem => 'demand_class' in p;
 
 export const getParts = async (filters: PartListFilters) => {
-  const raw = await request<Part[] | { items: BackendListItem[] }>(
-    `${ENDPOINTS.parts}${toSearch(filters)}`,
-  );
-  const list = itemsOf<Part | BackendListItem>(raw).map((p) =>
-    isBackendListItem(p) ? fromListItem(p) : p,
-  );
+  // 부품이 100개를 넘으면 다음 페이지도 받는다 — 첫 페이지만 받으면 3D 창고가 나머지 부품 이름을 모른다
+  const raw = await requestAll<Part | BackendListItem>(`${ENDPOINTS.parts}${toSearch(filters)}`);
+  const list = raw.map((p) => (isBackendListItem(p) ? fromListItem(p) : p));
   // 위험도 '정상'은 백엔드 필터에 없다
   return list
     .filter((p) => !filters.category || p.category === filters.category)
