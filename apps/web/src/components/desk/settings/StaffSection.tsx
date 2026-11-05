@@ -2,8 +2,8 @@
 
 import { ROLE_LABEL } from '@bjk/api/domain/auth';
 import type { StaffRole } from '@bjk/api/types/company';
-import Button from '@bjk/ui/components/Button';
 
+import ErrorState from '@/components/ui/ErrorState';
 import Select from '@/components/ui/Select';
 import { useCompanyStaff } from '@/hooks/audit/useAudits';
 import { useUpdateMemberRole } from '@/hooks/company/useCompany';
@@ -20,9 +20,11 @@ const StaffSection = () => {
     return <p className="text-body-sm text-text-secondary">불러오는 중이에요…</p>;
   if (staff.isError) {
     return (
-      <Button variant="secondary" onClick={() => staff.refetch()}>
-        직원 목록 다시 불러오기
-      </Button>
+      <ErrorState
+        title="직원 목록을 불러오지 못했어요"
+        onRetry={() => staff.refetch()}
+        size="inline"
+      />
     );
   }
 

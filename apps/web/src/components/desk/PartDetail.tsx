@@ -5,8 +5,8 @@ import type { ReactNode } from 'react';
 
 import { DEMAND_PATTERNS, MOVEMENT_TYPES } from '@bjk/api/domain/part';
 import type { PartMetrics } from '@bjk/api/types/part';
-import Button from '@bjk/ui/components/Button';
 
+import ErrorState from '@/components/ui/ErrorState';
 import ForecastPanel from '@/components/charts/ForecastPanel';
 import Tag from '@/components/ui/Tag';
 import ComputedAt from '@/components/ui/ComputedAt';
@@ -57,9 +57,7 @@ const Ledger = ({ id, unit }: { id: string; unit: string }) => {
     return <p className="text-body-sm text-text-secondary">원장을 불러오는 중이에요…</p>;
   if (isError) {
     return (
-      <Button variant="secondary" onClick={() => refetch()}>
-        원장 다시 불러오기
-      </Button>
+      <ErrorState title="입출고 원문을 불러오지 못했어요" onRetry={() => refetch()} size="inline" />
     );
   }
   if (entries.length === 0) {
@@ -120,14 +118,7 @@ const PartDetail = ({ id }: PartDetailProps) => {
   if (isPending)
     return <p className="text-body-md text-text-secondary">부품을 불러오는 중이에요…</p>;
   if (isError) {
-    return (
-      <div className="flex flex-col items-start gap-3">
-        <p className="text-body-md text-text-danger">부품을 불러오지 못했어요.</p>
-        <Button variant="secondary" onClick={() => refetch()}>
-          다시 시도
-        </Button>
-      </div>
-    );
+    return <ErrorState title="부품을 불러오지 못했어요" onRetry={() => refetch()} />;
   }
 
   const { metrics } = part;

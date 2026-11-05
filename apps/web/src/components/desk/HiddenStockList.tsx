@@ -1,12 +1,15 @@
 'use client';
 
 import { Combine } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
 import type { MergeCandidate } from '@bjk/api/types/audit';
 import Button from '@bjk/ui/components/Button';
 
+import ErrorState from '@/components/ui/ErrorState';
 import EmptyState from '@/components/ui/EmptyState';
+import FolderCard from '@/components/ui/FolderCard';
 import {
   useDismissMerge,
   useMergeCandidates,
@@ -114,37 +117,68 @@ const CandidateCard = ({ candidate }: { candidate: MergeCandidate }) => {
   );
 };
 
+type Status = MergeCandidate['status'];
+
+const FOLDERS: { status: Status; title: string; foot: string }[] = [
+  { status: 'open', title: '고를 차례', foot: '합칠지, 다른 부품인지' },
+  { status: 'merged', title: '합침', foot: '재고가 한 부품으로 모였어요' },
+  { status: 'dismissed', title: '다른 부품', foot: '다시 묻지 않아요' },
+];
+
 // 숨은 재고 (W-07, F-MATCH-03). 같은 규격인데 다른 이름으로 등록된 부품 쌍을 합치거나 다른 부품으로 표시한다.
+// 폴더(상태)는 URL(?status=)에 둔다. usePathname·useSearchParams 를 쓰므로 페이지에서 <Suspense> 로 감싼다.
 const HiddenStockList = () => {
-  const { data: candidates, isPending, isError, refetch } = useMergeCandidates();
+  const router = useRouter();
+  const pathname = usePathname();
+  const raw = useSearchParams().get('status');
+  const status = FOLDERS.find((f) => f.status === raw)?.status ?? 'open';
+  const { data: all, isPending, isError, refetch } = useMergeCandidates();
+  const candidates = all?.filter((c) => c.status === status);
+  const countOf = (s: Status) => (all ? `${all.filter((c) => c.status === s).length}쌍` : '…');
+
+  const folders = (
+    <nav aria-label="처리 상태" className="grid grid-cols-5 gap-5">
+      {FOLDERS.map((f) => (
+        <FolderCard
+          key={f.status}
+          title={f.title}
+          count={countOf(f.status)}
+          foot={f.foot}
+          selected={status === f.status}
+          onClick={() =>
+            router.replace(f.status === 'open' ? pathname : `${pathname}?status=${f.status}`, {
+              scroll: false,
+            })
+          }
+        />
+      ))}
+    </nav>
+  );
 
   if (isPending) {
     return <p className="text-body-md text-text-secondary">중복 의심 부품을 불러오는 중이에요…</p>;
   }
-  if (isError) {
-    return (
-      <div className="flex flex-col items-start gap-3">
-        <p className="text-body-md text-text-danger">중복 의심 부품을 불러오지 못했어요.</p>
-        <Button variant="secondary" onClick={() => refetch()}>
-          다시 시도
-        </Button>
-      </div>
-    );
-  }
-  if (candidates.length === 0) {
-    return (
-      <EmptyState title="중복 의심 부품이 없어요">
-        규격이 같은데 이름이 다른 부품을 매주 월요일에 찾아요.
-      </EmptyState>
-    );
+  if (isError || !candidates) {
+    return <ErrorState title="중복 의심 부품을 불러오지 못했어요" onRetry={() => refetch()} />;
   }
 
   return (
-    <ul className="flex flex-col gap-3">
-      {candidates.map((candidate) => (
-        <CandidateCard key={candidate.id} candidate={candidate} />
-      ))}
-    </ul>
+    <div className="flex flex-col gap-6">
+      {folders}
+      {candidates.length === 0 ? (
+        <EmptyState
+          title={status === 'open' ? '중복 의심 부품이 없어요' : '아직 처리한 쌍이 없어요'}
+        >
+          {status === 'open' ? '규격이 같은데 이름이 다른 부품을 매주 월요일에 찾아요.' : null}
+        </EmptyState>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {candidates.map((candidate) => (
+            <CandidateCard key={candidate.id} candidate={candidate} />
+          ))}
+        </ul>
+      )}
+    </div>
   );
 };
 

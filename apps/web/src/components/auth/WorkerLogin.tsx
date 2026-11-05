@@ -5,8 +5,8 @@ import { useState } from 'react';
 
 import { ROLE_LABEL } from '@bjk/api/domain/auth';
 import type { CompanyMember } from '@bjk/api/types/auth';
-import Button from '@bjk/ui/components/Button';
 
+import ErrorState from '@/components/ui/ErrorState';
 import { useCompanyMembers } from '@/hooks/auth/useAuthQueries';
 import { usePinLogin } from '@/hooks/auth/useAuthMutations';
 import { apiErrorMessage, apiErrorStatus } from '@/utils/apiError';
@@ -29,14 +29,10 @@ const WorkerLogin = ({ companyCode }: WorkerLoginProps) => {
   }
   if (membersQuery.isError) {
     return (
-      <div className="flex flex-col items-start gap-3">
-        <p className="text-body-md text-text-danger">
-          {apiErrorMessage(membersQuery.error, '직원 목록을 불러오지 못했어요.')}
-        </p>
-        <Button variant="secondary" onClick={() => membersQuery.refetch()}>
-          다시 시도
-        </Button>
-      </div>
+      <ErrorState
+        title={apiErrorMessage(membersQuery.error, '직원 목록을 불러오지 못했어요')}
+        onRetry={() => membersQuery.refetch()}
+      />
     );
   }
 

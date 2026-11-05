@@ -2,8 +2,7 @@
 
 import { FileText } from 'lucide-react';
 
-import Button from '@bjk/ui/components/Button';
-
+import ErrorState from '@/components/ui/ErrorState';
 import EmptyState from '@/components/ui/EmptyState';
 import { useSimReports } from '@/hooks/report/useReports';
 import { formatComputedAt } from '@/utils/format';
@@ -16,14 +15,7 @@ const SimReportList = () => {
     return <p className="text-body-md text-text-secondary">검증 리포트를 불러오는 중이에요…</p>;
   }
   if (isError) {
-    return (
-      <div className="flex flex-col items-start gap-3">
-        <p className="text-body-md text-text-danger">검증 리포트를 불러오지 못했어요.</p>
-        <Button variant="secondary" onClick={() => refetch()}>
-          다시 시도
-        </Button>
-      </div>
-    );
+    return <ErrorState title="검증 리포트를 불러오지 못했어요" onRetry={() => refetch()} />;
   }
   if (reports.length === 0) {
     return (

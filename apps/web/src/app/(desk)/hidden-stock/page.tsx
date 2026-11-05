@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 
 import HiddenStockList from '@/components/desk/HiddenStockList';
 
@@ -14,7 +15,10 @@ const HiddenStockPage = () => {
           막을 수 있어요.
         </p>
       </header>
-      <HiddenStockList />
+      {/* useSearchParams 는 요청 시점 값이라 Suspense 안에서 읽는다 (cacheComponents) */}
+      <Suspense fallback={<p className="text-body-md text-text-secondary">불러오는 중이에요…</p>}>
+        <HiddenStockList />
+      </Suspense>
     </div>
   );
 };

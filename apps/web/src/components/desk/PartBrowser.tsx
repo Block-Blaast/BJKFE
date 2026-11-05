@@ -17,8 +17,8 @@ import {
   type RiskLevel,
 } from '@bjk/api/domain/part';
 import type { PartListFilters } from '@bjk/api/types/part';
-import Button from '@bjk/ui/components/Button';
 
+import ErrorState from '@/components/ui/ErrorState';
 import Select from '@/components/ui/Select';
 import { PILL_SEARCH } from '@/components/ui/controls';
 import EmptyState from '@/components/ui/EmptyState';
@@ -163,12 +163,7 @@ const PartBrowser = () => {
       {isPending ? (
         <p className="text-body-md text-text-secondary">부품을 불러오는 중이에요…</p>
       ) : isError ? (
-        <div className="flex flex-col items-start gap-3">
-          <p className="text-body-md text-text-danger">부품을 불러오지 못했어요.</p>
-          <Button variant="secondary" onClick={() => refetch()}>
-            다시 시도
-          </Button>
-        </div>
+        <ErrorState title="부품을 불러오지 못했어요" onRetry={() => refetch()} />
       ) : parts.length === 0 ? (
         <EmptyState title="조건에 맞는 부품이 없어요">검색어나 필터를 바꿔 보세요.</EmptyState>
       ) : (

@@ -3,8 +3,9 @@
 import type { ReactNode } from 'react';
 
 import type { Review } from '@bjk/api/types/review';
-import Button from '@bjk/ui/components/Button';
 
+import ErrorState from '@/components/ui/ErrorState';
+import Breadcrumb from '@/components/ui/Breadcrumb';
 import ComputedAt from '@/components/ui/ComputedAt';
 import ForecastPanel from '@/components/charts/ForecastPanel';
 import { useReview, useReviewForecast } from '@/hooks/review/useReview';
@@ -14,6 +15,7 @@ import ApprovalActions from './ApprovalActions';
 import { entryLabelOf } from './labels';
 import CheckList from './CheckList';
 import OrderComparison from './OrderComparison';
+import ReviewInfoPanel from './ReviewInfoPanel';
 import VerdictTags from './VerdictTags';
 
 const Section = ({ title, children }: { title: string; children: ReactNode }) => (
@@ -62,6 +64,7 @@ type ReviewDetailProps = {
 };
 
 // 의견서·승인 (M-05) 과 검토 상세 (W-03) 가 같이 쓰는 본문. 데이터는 같고 배치만 다르다.
+// PC 는 가운데 본문 + 오른쪽(결정 → 정보 패널). 미발주 위험은 정보 패널이 보여준다.
 const ReviewDetail = ({ id, layout }: ReviewDetailProps) => {
   const { data: review, isPending, isError, refetch } = useReview(id);
 
@@ -69,18 +72,16 @@ const ReviewDetail = ({ id, layout }: ReviewDetailProps) => {
     return <p className="text-body-md text-text-secondary">검토 결과를 불러오는 중이에요…</p>;
   }
   if (isError) {
-    return (
-      <div className="flex flex-col items-start gap-3">
-        <p className="text-body-md text-text-danger">검토 결과를 불러오지 못했어요.</p>
-        <Button variant="secondary" onClick={() => refetch()}>
-          다시 시도
-        </Button>
-      </div>
-    );
+    return <ErrorState title="검토 결과를 불러오지 못했어요" onRetry={() => refetch()} />;
   }
 
   const header = (
     <header className="flex flex-col gap-2">
+      {layout === 'desk' ? (
+        <div className="pb-2">
+          <Breadcrumb parent={{ href: '/reviews', label: '검토함' }} current={review.part.name} />
+        </div>
+      ) : null}
       <span className="text-label-sm text-text-secondary">{entryLabelOf(review)}</span>
       <h1 className={`${layout === 'desk' ? 'text-h1' : 'text-h2'} text-text-heading`}>
         {review.part.name}
@@ -139,15 +140,15 @@ const ReviewDetail = ({ id, layout }: ReviewDetailProps) => {
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-2 flex flex-col gap-6">
           {opinion}
+          {comparison}
           {checks}
           <DeskForecast id={review.id} />
         </div>
         <div className="flex flex-col gap-6">
-          {comparison}
-          {risk}
           <Section title="결정">
             <ApprovalActions review={review} />
           </Section>
+          <ReviewInfoPanel review={review} />
         </div>
       </div>
     </div>

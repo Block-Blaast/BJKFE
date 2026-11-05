@@ -5,8 +5,8 @@ import { FlaskConical } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 import type { StockForecast } from '@bjk/api/types/forecast';
-import Button from '@bjk/ui/components/Button';
 
+import ErrorState from '@/components/ui/ErrorState';
 import ComputedAt from '@/components/ui/ComputedAt';
 import Tag from '@/components/ui/Tag';
 
@@ -40,12 +40,11 @@ const ForecastPanel = ({ query }: ForecastPanelProps) => {
       {isPending ? (
         <div className="h-72 rounded-md bg-bg-subtle" aria-label="그래프를 불러오는 중" />
       ) : isError ? (
-        <div className="flex flex-col items-start gap-3">
-          <p className="text-body-md text-text-danger">그래프 데이터를 불러오지 못했어요.</p>
-          <Button variant="secondary" onClick={() => refetch()}>
-            다시 시도
-          </Button>
-        </div>
+        <ErrorState
+          title="그래프 데이터를 불러오지 못했어요"
+          onRetry={() => refetch()}
+          size="inline"
+        />
       ) : (
         <StockForecastChart forecast={forecast} />
       )}

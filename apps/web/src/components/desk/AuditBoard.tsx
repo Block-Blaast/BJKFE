@@ -4,13 +4,15 @@ import { CircleAlert, Info, Send, TriangleAlert, type LucideIcon } from 'lucide-
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
-import { AUDIT_RULES, type AuditGrade } from '@bjk/api/domain/audit';
+import { AUDIT_GRADES, AUDIT_RULES, type AuditGrade } from '@bjk/api/domain/audit';
 import type { AuditItem } from '@bjk/api/types/audit';
 import Button from '@bjk/ui/components/Button';
 
+import ErrorState from '@/components/ui/ErrorState';
 import Select from '@/components/ui/Select';
 import Tag, { type TagTone } from '@/components/ui/Tag';
 import EmptyState from '@/components/ui/EmptyState';
+import FolderCard from '@/components/ui/FolderCard';
 import Segmented from '@/components/ui/Segmented';
 import { useAudits, useCompanyStaff, useRequestAudit } from '@/hooks/audit/useAudits';
 import { apiErrorMessage } from '@/utils/apiError';
@@ -101,10 +103,47 @@ const AuditBoard = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const status = searchParams.get('status') === 'resolved' ? 'resolved' : 'active';
-  const { data: audits, isPending, isError, refetch } = useAudits({ status });
+  const rawGrade = searchParams.get('grade');
+  const grade = AUDIT_GRADES.find((g) => g === rawGrade);
+  const { data: all, isPending, isError, refetch } = useAudits({ status });
+  // 등급은 화면에서 거른다 — 의심 항목은 많아야 수십 건이라 서버 필터를 따로 두지 않았다
+  const audits = all?.filter((a) => !grade || a.grade === grade);
+  const countOf = (g?: AuditGrade) =>
+    all ? `${all.filter((a) => !g || a.grade === g).length}건` : '…';
+
+  const go = (next: { status?: 'active' | 'resolved'; grade?: AuditGrade }) => {
+    const params = new URLSearchParams();
+    if ((next.status ?? status) === 'resolved') params.set('status', 'resolved');
+    const g = 'grade' in next ? next.grade : grade;
+    if (g) params.set('grade', g);
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
+      <nav aria-label="의심 등급" className="grid grid-cols-5 gap-5">
+        <FolderCard
+          title="전체"
+          count={countOf()}
+          foot={status === 'active' ? '실사로 장부를 바로잡아요' : '처리를 마친 항목'}
+          selected={!grade}
+          onClick={() => go({ grade: undefined })}
+        />
+        {AUDIT_GRADES.map((g) => (
+          <FolderCard
+            key={g}
+            title={`의심 ${g}`}
+            count={countOf(g)}
+            foot={Object.values(AUDIT_RULES)
+              .filter((r) => r.grade === g)
+              .map((r) => r.name)
+              .join(' · ')}
+            selected={grade === g}
+            onClick={() => go({ grade: g })}
+          />
+        ))}
+      </nav>
       <Segmented
         label="상태"
         options={
@@ -114,23 +153,14 @@ const AuditBoard = () => {
           ] as const
         }
         value={status}
-        onChange={(value) =>
-          router.replace(value === 'active' ? pathname : `${pathname}?status=resolved`, {
-            scroll: false,
-          })
-        }
+        onChange={(value) => go({ status: value })}
       />
 
       {isPending ? (
         <p className="text-body-md text-text-secondary">의심 항목을 불러오는 중이에요…</p>
       ) : isError ? (
-        <div className="flex flex-col items-start gap-3">
-          <p className="text-body-md text-text-danger">의심 항목을 불러오지 못했어요.</p>
-          <Button variant="secondary" onClick={() => refetch()}>
-            다시 시도
-          </Button>
-        </div>
-      ) : audits.length === 0 ? (
+        <ErrorState title="의심 항목을 불러오지 못했어요" onRetry={() => refetch()} />
+      ) : !audits || audits.length === 0 ? (
         <EmptyState
           title={status === 'active' ? '지금은 의심 항목이 없어요' : '처리한 항목이 아직 없어요'}
         >

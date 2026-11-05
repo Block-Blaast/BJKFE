@@ -5,8 +5,8 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import type { Review } from '@bjk/api/types/review';
-import Button from '@bjk/ui/components/Button';
 
+import ErrorState from '@/components/ui/ErrorState';
 import SpotlightIllustration from '@/components/illustration/SpotlightIllustration';
 import { entryLabelOf } from '@/components/review/labels';
 import VerdictTags from '@/components/review/VerdictTags';
@@ -54,14 +54,7 @@ const BriefingView = () => {
     return <p className="text-body-md text-text-secondary">브리핑을 불러오는 중이에요…</p>;
   }
   if (isError) {
-    return (
-      <div className="flex flex-col items-start gap-3">
-        <p className="text-body-md text-text-danger">브리핑을 불러오지 못했어요.</p>
-        <Button variant="secondary" onClick={() => refetch()}>
-          다시 시도
-        </Button>
-      </div>
-    );
+    return <ErrorState title="브리핑을 불러오지 못했어요" onRetry={() => refetch()} />;
   }
 
   const { missed, pending_reviews: pending, audits } = briefing;

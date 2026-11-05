@@ -1,7 +1,6 @@
 'use client';
 
-import Button from '@bjk/ui/components/Button';
-
+import ErrorState from '@/components/ui/ErrorState';
 import { useCompanySettings } from '@/hooks/company/useCompany';
 
 import SettingsForm from './SettingsForm';
@@ -14,9 +13,11 @@ const SettingsPanel = () => {
   }
   if (settings.isError) {
     return (
-      <Button variant="secondary" onClick={() => settings.refetch()}>
-        설정 다시 불러오기
-      </Button>
+      <ErrorState
+        title="설정을 불러오지 못했어요"
+        onRetry={() => settings.refetch()}
+        size="inline"
+      />
     );
   }
   // 저장되면 updated_at 이 바뀌어 폼이 저장된 값에서 다시 시작한다

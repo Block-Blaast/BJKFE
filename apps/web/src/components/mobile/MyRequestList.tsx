@@ -4,8 +4,8 @@ import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
 import { APPROVAL_ACTIONS } from '@bjk/api/domain/review';
-import Button from '@bjk/ui/components/Button';
 
+import ErrorState from '@/components/ui/ErrorState';
 import ReviewStatusTag from '@/components/review/ReviewStatusTag';
 import EmptyState from '@/components/ui/EmptyState';
 import { useMyRequests } from '@/hooks/review/useMyRequests';
@@ -19,14 +19,7 @@ const MyRequestList = () => {
     return <p className="text-body-md text-text-secondary">요청 목록을 불러오는 중이에요…</p>;
   }
   if (isError) {
-    return (
-      <div className="flex flex-col items-start gap-3">
-        <p className="text-body-md text-text-danger">요청 목록을 불러오지 못했어요.</p>
-        <Button variant="secondary" onClick={() => refetch()}>
-          다시 시도
-        </Button>
-      </div>
-    );
+    return <ErrorState title="요청 목록을 불러오지 못했어요" onRetry={() => refetch()} />;
   }
 
   return (
