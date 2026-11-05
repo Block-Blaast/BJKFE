@@ -57,7 +57,7 @@ const WarehouseView = () => {
       <iframe
         ref={registerWarehouseFrame}
         src="/warehouse-3d.html"
-        title="3D 창고 시뮬레이션"
+        title="3D 창고"
         aria-hidden={view === 'table'}
         className={`absolute inset-0 size-full border-0 ${view === 'table' ? 'invisible' : ''}`}
       />
