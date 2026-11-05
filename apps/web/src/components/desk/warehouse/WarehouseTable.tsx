@@ -23,9 +23,7 @@ const locKey = (p: TwinPlacement) => `${p.rack_id}-${p.level}-${p.slot}`;
 
 // mocks/fixtures/factory.ts 의 formatLocation 과 같은 규칙 — 앱은 mocks 를 import 하지 않는다
 const formatLocation = (rack: TwinRack | undefined, p: TwinPlacement) =>
-  rack && rack.levels === 1
-    ? `${rack.label} ${p.slot}칸`
-    : `${p.rack_id}선반 ${p.level}단 ${p.slot}칸`;
+  rack && rack.levels === 1 ? `${rack.label} ${p.slot}칸` : `${p.rack_id} ${p.level}단 ${p.slot}칸`;
 
 // 3D <-> 표 전환. WarehouseView(오버레이)가 꽂는다
 export const WarehouseViewToggle = () => {
