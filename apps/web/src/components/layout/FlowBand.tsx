@@ -2,6 +2,7 @@
 
 import {
   ChevronRight,
+  CircleAlert,
   ClipboardCheck,
   Inbox,
   MessageSquareText,
@@ -63,6 +64,14 @@ const FlowSteps = ({ pathname, reviewStatus }: FlowStepsProps) => {
     ordered: countOf(['발주됨', '부분입고'], reviews.data),
     received: countOf(['입고완료'], reviews.data),
   };
+  // 불러오기 실패를 '—'(아직 모름)와 같게 그리면 "오늘 아무 일도 없음"처럼 보인다. 실패는 따로 표시한다.
+  const failed: Record<DeskFlowKey, boolean> = {
+    record: activity.isError,
+    review: reviews.isError,
+    decide: reviews.isError,
+    ordered: reviews.isError,
+    received: reviews.isError,
+  };
   const notes: Partial<Record<DeskFlowKey, string>> = {
     record: '오늘',
     review: '오늘 올라옴',
@@ -78,7 +87,7 @@ const FlowSteps = ({ pathname, reviewStatus }: FlowStepsProps) => {
           (step.status === null || step.status === reviewStatus);
         const Icon = ICONS[step.key];
         const count = counts[step.key];
-        const note = notes[step.key];
+        const note = failed[step.key] ? '건수를 불러오지 못했어요' : notes[step.key];
         return (
           <li key={step.key} className="flex items-center gap-1">
             <Link
@@ -97,7 +106,12 @@ const FlowSteps = ({ pathname, reviewStatus }: FlowStepsProps) => {
                 <Icon size={16} aria-hidden />
               </span>
               {step.label}
-              {step.key === 'decide' ? (
+              {failed[step.key] ? (
+                <span className="flex items-center text-icon-danger">
+                  <CircleAlert size={16} aria-hidden />
+                  <span className="sr-only">건수를 불러오지 못했어요</span>
+                </span>
+              ) : step.key === 'decide' ? (
                 <PendingReviewBadge count={count} />
               ) : (
                 <span

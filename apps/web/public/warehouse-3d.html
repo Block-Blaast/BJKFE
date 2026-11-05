@@ -56,7 +56,7 @@ button { font: inherit; color: inherit; }
 </style>
 </head>
 <body>
-<div id="stage" aria-label="3D 창고 시뮬레이션"></div>
+<div id="stage" role="img" aria-label="3D 창고 시뮬레이션"></div>
 
 <div class="top">
   <div class="brand glass"><h1>블록블라스트 3D 창고</h1><span>시뮬레이션 예시</span></div>
@@ -69,7 +69,8 @@ button { font: inherit; color: inherit; }
 
 <div class="legend glass" aria-label="범례">
   <span><i style="background:var(--ok)"></i>정상</span>
-  <span><i style="background:var(--low)"></i>부족</span>
+  <span><i style="background:var(--low)"></i>품목 부족</span>
+  <span><i style="background:#d3dde6"></i>빈 칸</span>
   <span><i style="background:var(--accent)"></i>선택·강조</span>
   <span><i style="background:#a9c8ee"></i>베어링</span>
   <span><i style="background:#f3e0a8"></i>체결류</span>
@@ -79,11 +80,18 @@ button { font: inherit; color: inherit; }
   <span><i style="background:#e6d3bd"></i>완제품</span>
 </div>
 
-<div class="info glass" id="info">
+<div class="info glass" id="info" aria-live="polite">
   <div class="eyebrow">칸 정보</div>
   <p class="hint" style="margin:0">드래그로 회전, 휠로 확대하고 선반 칸을 눌러 보세요.</p>
 </div>
 
+<script>
+  setTimeout(function () {
+    if (window.__whReady) return;
+    var info = document.getElementById('info');
+    if (info) info.innerHTML = '<div class="eyebrow">불러오기 실패</div><p class="hint" style="margin:0">3D 화면을 그리는 데 필요한 파일을 받지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.</p>';
+  }, 10000);
+</script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -354,6 +362,7 @@ function flyToLocs(locs) {
 
 /* 정보 카드 */
 const info = document.getElementById('info');
+const INFO_HOME = '<div class="eyebrow">칸 정보</div><p class="hint" style="margin:0">드래그로 회전, 휠로 확대하고 선반 칸을 눌러 보세요.</p>';
 function showInfo(loc) {
   const its = itemsAt(loc);
   info.innerHTML = `<div class="eyebrow">선택한 칸</div><h2>${loc}</h2>` + (its.length
@@ -380,7 +389,7 @@ renderer.domElement.addEventListener('pointerup', e => {
 });
 renderer.domElement.addEventListener('pointermove', e => { if (down) return; ui.hover = pick(e); renderer.domElement.style.cursor = ui.hover ? 'pointer' : 'grab'; });
 
-document.getElementById('btnAll').addEventListener('click', () => { ui.loc = null; ui.highlight = new Set(); goHome(); });
+document.getElementById('btnAll').addEventListener('click', () => { ui.loc = null; ui.highlight = new Set(); info.innerHTML = INFO_HOME; goHome(); });
 document.getElementById('btnTop').addEventListener('click', () => {
   if (ui.topView) return goHome();
   idleHome = false; setTop(true);
@@ -424,6 +433,7 @@ function animate(now) {
 }
 requestAnimationFrame(animate);
 flyTo(HOME.pos, HOME.target, 2600);
+window.__whReady = true;
 </script>
 </body>
 </html>
