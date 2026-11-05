@@ -41,6 +41,10 @@ jobs:
             ${{ env.IMAGE }}:${{ github.sha }}
             ${{ env.IMAGE }}:latest
           labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          # 시연 서버는 MSW 목업으로 돈다(백엔드에 아직 없는 3D 창고·외부 요인 API 때문).
+          # 실제 백엔드로 돌리려면 저장소 변수 USE_MOCKS 를 0 으로 둔다 (Settings → Secrets and variables → Actions → Variables)
+          build-args: |
+            NEXT_PUBLIC_USE_MOCKS=${{ vars.USE_MOCKS || '1' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
