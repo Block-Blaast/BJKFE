@@ -1,5 +1,6 @@
+import type { RiskLevel } from '@bjk/api/domain/part';
 import { CHECKS, type CheckLevel } from '@bjk/api/domain/review';
-import type { Review } from '@bjk/api/types/review';
+import type { Review, ReviewExternal } from '@bjk/api/types/review';
 
 import ComputedAt from '@/components/ui/ComputedAt';
 import InfoPanel, { DotTag, InfoSection, MeterCard, PropertyList } from '@/components/ui/InfoPanel';
@@ -14,6 +15,25 @@ const LEVEL_DOT: Record<CheckLevel, 'danger' | 'warning' | 'neutral'> = {
   긴급: 'danger',
   경고: 'warning',
   정보: 'neutral',
+};
+
+const RISK_DOT: Record<RiskLevel, 'danger' | 'warning' | 'neutral'> = {
+  높음: 'danger',
+  주의: 'warning',
+  정상: 'neutral',
+};
+
+const riskValue = ({ level, r }: { level: RiskLevel; r: number }) => (
+  <DotTag as="span" tone={RISK_DOT[level]}>
+    {level} · 위험도 {r.toFixed(2)}
+  </DotTag>
+);
+
+// 외부 요인이 이 검토에 어떻게 쓰였는지 한 줄로 (F-EXT-02, C-09)
+const externalNote = (external: ReviewExternal) => {
+  if (!external.import_dependent) return '국내 조달 부품이라 환율·해상운임을 반영하지 않아요.';
+  if (external.applied) return '위험이 높아 외부 리스크(C-09)로 판정과 의견서에 반영했어요.';
+  return '수입 의존 부품이에요. 지금은 위험이 낮아 판정에 영향이 없어요.';
 };
 
 // 검토 상세 정보 패널 (W-03). 절감 막대·미발주 위험·요청 속성·걸린 체크를 오른쪽에 모은다.
@@ -72,6 +92,22 @@ const ReviewInfoPanel = ({ review }: { review: Review }) => {
         />
         <ComputedAt at={review.computed_at} className="self-end" />
       </InfoSection>
+
+      {review.external ? (
+        <InfoSection title="외부 요인">
+          <p className="text-body-sm text-text-secondary">{externalNote(review.external)}</p>
+          <PropertyList
+            items={[
+              { label: '해상운임 (납기)', value: riskValue(review.external.lead) },
+              { label: '환율 (단가)', value: riskValue(review.external.price) },
+              {
+                label: '납기 구간 연휴',
+                value: review.external.holidays.length ? review.external.holidays.join(', ') : '없음',
+              },
+            ]}
+          />
+        </InfoSection>
+      ) : null}
 
       <InfoSection title="걸린 체크">
         {review.checks.length === 0 ? (
