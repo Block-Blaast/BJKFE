@@ -13,13 +13,13 @@ export const useRequestAudit = () => {
   return useMutation({
     mutationFn: ({ id, assigneeId }: { id: string; assigneeId: string }) =>
       requestAudit(id, { assignee_id: assigneeId }),
-    // 브리핑의 '실사 필요'도 같은 항목이라 함께 갱신한다. 3D 창고의 장부 의심 칸도 다시 받는다 (desk.md W-11)
+    // 브리핑의 '실사 필요'·대시보드 건수도 같은 항목이라 함께 갱신한다. 3D 창고의 장부 의심 칸도 다시 받는다 (desk.md W-11)
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.twin.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.audits.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.briefing.all }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.activity.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
       ]),
   });
 };
