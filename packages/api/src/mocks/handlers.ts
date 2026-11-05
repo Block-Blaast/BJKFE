@@ -40,6 +40,7 @@ import type { Part, StockMovement } from '../types/part';
 import { REVIEW_FIXTURES } from './fixtures/reviews';
 import { BASE_DATE, COMPUTED_AT, EQUIPMENT_FIXTURES } from './fixtures/factory';
 import { currentMaintenance, moqOf, recordPurchaseOrder, setupHandlers } from './setup';
+import { addDays, daysBetween } from './fixtures/simulate';
 import { createTwinHandlers } from './twin';
 
 const NETWORK_DELAY = 400;
@@ -51,11 +52,11 @@ const WARNING_MULTIPLIER = 5;
 const reviews = new Map(REVIEW_FIXTURES.map((r) => [r.id, structuredClone(r)]));
 const decisions = new Map<string, Review>();
 // 이미 결정된 고정 검토는 발주 기록도 이미 있다 (리포트 W-09)
-for (const r of [...reviews.values()].sort(
-  (a, b) => Date.parse(a.decision?.decided_at ?? '') - Date.parse(b.decision?.decided_at ?? ''),
-)) {
-  if (r.decision) recordPurchaseOrder(r);
-}
+// 결정 없는 검토를 먼저 거른다 — 정렬 비교에 NaN 이 섞이면 결정된 검토끼리의 순서도 보장되지 않는다
+const decidedFixtures = [...reviews.values()].flatMap((r) =>
+  r.decision ? [{ review: r, at: Date.parse(r.decision.decided_at) }] : [],
+);
+for (const { review } of decidedFixtures.sort((a, b) => a.at - b.at)) recordPurchaseOrder(review);
 const stock = new Map(PART_FIXTURES.map((p) => [p.part_id, p.stock]));
 
 // ---- 원장·부품 (F-LEDGER, F-MATCH-03, W-04·05) ----
@@ -93,13 +94,8 @@ const recordMovement = (
 // 실제 예측은 서버의 8주 경로 시뮬레이션(F-ANAL-07)이다. 목업은 화면을 그리기 위해 기존 지표로 단순 계산한다:
 // - 미발주: 오늘 재고에서 소진 예상일(t_out)까지 직선, 없으면 월 소모량(m)으로 감소. 입고 예정(O)은 도착일에 더한다.
 // - 발주 시: 위 선에 발주 수량을 오늘 + 늦을 때 납기(LT90, 없으면 LT50) 날에 더한다. 납기를 모르면 그리지 않는다.
-const DAY_MS = 24 * 60 * 60 * 1000;
 const kstDate = (iso: string | number) =>
   new Date(new Date(iso).getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-const addDays = (ymd: string, days: number) =>
-  new Date(Date.parse(`${ymd}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
-const daysBetween = (from: string, to: string) =>
-  Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS);
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
 const buildForecast = (p: MockPart, orderQty: number | null): StockForecast => {
@@ -922,7 +918,7 @@ export const handlers = [
     recordPurchaseOrder(review);
     // 승인한 수량은 그 부품의 입고 예정(O)이 된다 — 보통 납기(LT50) 뒤 도착. 3D 창고·예측 그래프가 바로 반영한다.
     // 날짜는 지표 기준일에서 센다(3D 예측의 0일과 같게).
-    const line = input.action === 'approveProposal' ? review.proposal : review.original;
+    const line = orderedLine(review);
     const ordered = PART_FIXTURES.find((p) => p.part_id === review.part.id);
     if (review.status === '발주됨' && ordered && line.qty > 0) {
       const eta = addDays(BASE_DATE, ordered.metrics.LT50 ?? 3);

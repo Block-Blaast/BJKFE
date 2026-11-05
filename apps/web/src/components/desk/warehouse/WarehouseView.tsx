@@ -90,6 +90,8 @@ const STEPS = [
 ] as const;
 
 const RECEIPT = { partId: 'pt-vbelt-a42', text: 'V벨트 A-42 10개 들어왔어요' } as const;
+const isReceiptCrate = (a: { part_id: string; kind: string }) =>
+  a.part_id === RECEIPT.partId && a.kind === 'ordered';
 const TICK_MS = 350;
 const ALL_LAYERS: TwinLayers = {
   status: true,
@@ -255,23 +257,25 @@ const WarehouseView = () => {
   };
 
   const dock = layout.data.zones.find((z) => z.kind === 'dock');
-  const waiting = data.arrivals.filter((a) => day < dayOf(base, a.eta));
-  const crates: (SceneCrate & { label: string; note: string })[] =
-    layers.dock && dock
-      ? waiting.map((a, i) => {
-          const part = partOf.get(a.part_id);
-          const flying = receiving && a.part_id === RECEIPT.partId && a.kind === 'ordered';
-          const target = positionOf.get(a.part_id);
-          return {
-            id: `${a.part_id}-${a.kind}`,
-            position: [dock.x - dock.width / 2 + 0.7 + (i % 5) * 1.15, 0.3, dock.z] as const,
-            flyTo: flying && target ? ([target[0], target[1] + 0.3, target[2]] as const) : null,
-            onLanded: flying ? () => finishReceipt() : undefined,
-            label: `${part?.name ?? a.part_id} ${a.qty}${part?.unit ?? ''}`,
-            note: `${a.kind === 'ordered' ? '발주됨' : '주문 대기'} · ${shortDate(a.eta)} 도착 예정`,
-          };
-        })
-      : [];
+  // 입고 장면의 상자는 층·날짜와 상관없이 남긴다 — 도중에 사라지면 onLanded 가 불리지 않아 장면이 멈춘다
+  const waiting = data.arrivals.filter(
+    (a) => (layers.dock && day < dayOf(base, a.eta)) || (receiving && isReceiptCrate(a)),
+  );
+  const crates: (SceneCrate & { label: string; note: string })[] = dock
+    ? waiting.map((a, i) => {
+        const part = partOf.get(a.part_id);
+        const flying = receiving && isReceiptCrate(a);
+        const target = positionOf.get(a.part_id);
+        return {
+          id: `${a.part_id}-${a.kind}`,
+          position: [dock.x - dock.width / 2 + 0.7 + (i % 5) * 1.15, 0.3, dock.z] as const,
+          flyTo: flying && target ? ([target[0], target[1] + 0.3, target[2]] as const) : null,
+          onLanded: flying ? () => finishReceipt() : undefined,
+          label: `${part?.name ?? a.part_id} ${a.qty}${part?.unit ?? ''}`,
+          note: `${a.kind === 'ordered' ? '발주됨' : '주문 대기'} · ${shortDate(a.eta)} 도착 예정`,
+        };
+      })
+    : [];
 
   const goStep = (index: number) => {
     const s = STEPS[index];
@@ -285,10 +289,9 @@ const WarehouseView = () => {
     setLayers(ALL_LAYERS);
     setFocus({ ...s.focus });
     if (index === 4) {
-      const ordered = noOrder.data?.arrivals.some(
-        (a) => a.part_id === RECEIPT.partId && a.kind === 'ordered',
-      );
-      if (ordered) setReceiving(true);
+      // 상자가 실제로 날아갈 수 있을 때만 시작한다 (도크·선반 위치가 없으면 착지하지 못한다)
+      const ordered = noOrder.data?.arrivals.some(isReceiptCrate);
+      if (ordered && dock && positionOf.has(RECEIPT.partId)) setReceiving(true);
       else setNotice('도크에 기다리는 V벨트 상자가 없어요. 이미 입고했어요.');
     }
   };

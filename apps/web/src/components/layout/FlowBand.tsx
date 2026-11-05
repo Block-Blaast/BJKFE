@@ -17,6 +17,8 @@ import type { ReviewStatus } from '@bjk/api/domain/review';
 import { DESK_FLOW, isUnder, type DeskFlowKey } from '@/constants/routes';
 import { useTodayActivity } from '@/hooks/activity/useTodayActivity';
 import { useReviews } from '@/hooks/review/useReviews';
+import { kstDay } from '@/utils/format';
+import { parseReviewFilters } from '@/utils/reviewFilters';
 
 import PendingReviewBadge from './PendingReviewBadge';
 
@@ -47,10 +49,11 @@ const FlowSteps = ({ pathname, reviewStatus }: FlowStepsProps) => {
   const pending = reviews.data?.filter((r) => r.status === '검토완료');
   const urgent = pending?.filter((r) => r.flags.includes('긴급')).length ?? 0;
   // "오늘"은 시계가 아니라 지표 기준일(computed_at)로 본다 — 렌더 중에는 시계를 읽지 않는다(react-hooks/purity).
-  // 두 값 모두 +09:00 문자열이라 앞 10자리가 그대로 한국 날짜다.
-  const baseDay = reviews.data?.[0]?.computed_at.slice(0, 10);
+  // 새로 올린 검토의 requested_at 은 UTC(Z)로 올 수 있어 둘 다 KST 날짜로 바꿔 비교한다.
+  const computedAt = reviews.data?.[0]?.computed_at;
+  const baseDay = computedAt ? kstDay(computedAt) : undefined;
   const reviewedToday = baseDay
-    ? reviews.data?.filter((r) => r.requested_at.slice(0, 10) === baseDay)
+    ? reviews.data?.filter((r) => kstDay(r.requested_at) === baseDay)
     : undefined;
 
   const counts: Record<DeskFlowKey, number | null> = {
@@ -95,7 +98,7 @@ const FlowSteps = ({ pathname, reviewStatus }: FlowStepsProps) => {
               </span>
               {step.label}
               {step.key === 'decide' ? (
-                <PendingReviewBadge />
+                <PendingReviewBadge count={count} />
               ) : (
                 <span
                   className={`text-label-md tabular-nums ${active ? '' : 'text-text-secondary'}`}
@@ -118,13 +121,9 @@ const FlowSteps = ({ pathname, reviewStatus }: FlowStepsProps) => {
 // usePathname·useSearchParams 는 요청 시점 값이라 반드시 <Suspense> 안에서 렌더링한다 (DeskTopBar 참고).
 const FlowBand = () => {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  return (
-    <FlowSteps
-      pathname={pathname}
-      reviewStatus={searchParams.get('status') === 'all' ? 'all' : 'pending'}
-    />
-  );
+  // ②·③ 판정은 검토함과 같은 파서를 써서, 검토함의 기본 status 가 바뀌어도 활성 단계가 따라간다
+  const { status } = parseReviewFilters(useSearchParams());
+  return <FlowSteps pathname={pathname} reviewStatus={status} />;
 };
 
 export const FlowBandFallback = () => <FlowSteps pathname={null} reviewStatus="pending" />;

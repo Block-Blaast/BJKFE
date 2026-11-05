@@ -10,12 +10,15 @@ export const useRecordReceipt = () => {
   return useMutation({
     mutationFn: async ({ text }: { text: string }) => {
       const turn = await sendChatMessage({ client_message_id: crypto.randomUUID(), text });
-      if (!turn.card || !('pending_id' in turn.card)) throw new Error(turn.reply);
+      // 부품 고르기(select)·수량 경고(warning)·실사(count) 카드는 사람이 봐야 하므로 바로 확정하지 않는다
+      if (turn.card?.type !== 'confirm') throw new Error(turn.reply);
       return confirmPending(turn.card.pending_id);
     },
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.parts.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.reviews.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.reports.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.twin.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.activity.all }),
       ]),

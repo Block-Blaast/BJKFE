@@ -108,12 +108,14 @@ const ChatThread = () => {
 
   const send = useMutation({ mutationFn: sendChatMessage });
   // 재고 부족 제안 → 검토 생성. 원장은 건드리지 않으므로 재고 쿼리는 무효화하지 않는다.
+  // 결정 대기 검토의 수정안은 3D 창고의 "발주하면" 예측에 들어가므로 twin 은 무효화한다.
   const raise = useMutation({
     mutationFn: createStockDraft,
     onSuccess: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.reviews.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.briefing.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.twin.all }),
       ]),
   });
   const confirm = useMutation({
@@ -126,9 +128,12 @@ const ChatThread = () => {
       partId?: string;
       adjustReason?: AdjustReason;
     }) => confirmPending(pendingId, { part_id: partId, adjust_reason: adjustReason }),
-    // 재고·원장이 바뀌고, 실사조정이면 장부 검증 항목이 닫히고 브리핑·수신함 숫자가 바뀐다
+    // 재고·원장이 바뀌고, 실사조정이면 장부 검증 항목이 닫히고 브리핑·수신함 숫자가 바뀐다.
+    // 입고면 발주 검토가 부분입고·입고완료로 넘어가 검토함·리포트·흐름 띠 숫자도 바뀐다.
     onSuccess: () =>
       Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.reviews.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.reports.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.audits.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.briefing.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.chat.inbox() }),

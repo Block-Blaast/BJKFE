@@ -68,6 +68,7 @@ const DOT_CLASS = {
 
 // 점 찍힌 작은 태그. 의미는 글씨가 전하고 점 색은 보조다 (원칙 9).
 // 목록(<ul>) 안이면 li, 버튼·표 칸 안이면 span 으로 그린다.
+// span 은 한 줄 칸에 들어가는 상태 태그라 줄바꿈하지 않고, li 는 긴 별칭·체크 이름이 좁은 패널에서 줄바꿈된다.
 export const DotTag = ({
   tone = 'neutral',
   as: Tag = 'li',
@@ -77,7 +78,11 @@ export const DotTag = ({
   as?: 'li' | 'span';
   children: ReactNode;
 }) => (
-  <Tag className="flex w-fit shrink-0 items-center gap-2 rounded-md border border-border-default bg-bg-surface px-2 py-1 text-label-sm whitespace-nowrap text-text-body">
+  <Tag
+    className={`flex w-fit items-center gap-2 rounded-md border border-border-default bg-bg-surface px-2 py-1 text-label-sm text-text-body ${
+      Tag === 'span' ? 'shrink-0 whitespace-nowrap' : ''
+    }`}
+  >
     <span aria-hidden className={`size-1.5 rounded-full ${DOT_CLASS[tone]}`} />
     {children}
   </Tag>
