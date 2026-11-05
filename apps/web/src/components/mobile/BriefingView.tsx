@@ -142,7 +142,7 @@ const BriefingView = () => {
                   <span className="text-label-lg text-text-heading">{item.part.name}</span>
                   <span className="text-body-sm text-text-body">{item.reason}</span>
                   <span className="text-body-sm text-text-secondary tabular-nums">
-                    장부상 {formatQty(item.ledger_qty, item.part.unit)} · 의심 등급 {item.grade}
+                    기록상 {formatQty(item.ledger_qty, item.part.unit)} · 우선순위 {item.grade}
                   </span>
                 </li>
               ))}
