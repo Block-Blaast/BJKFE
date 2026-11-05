@@ -21,7 +21,8 @@
     "./company": "./src/company.ts",
     "./setup": "./src/setup.ts",
     "./reports": "./src/reports.ts",
-    "./twin": "./src/twin.ts"
+    "./twin": "./src/twin.ts",
+    "./external": "./src/external.ts"
   },
   "scripts": {
     "lint": "eslint .",
