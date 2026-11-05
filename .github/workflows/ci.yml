@@ -24,7 +24,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm format:check
-      - run: pnpm exec next typegen
+      # 각 패키지 typecheck가 next typegen을 먼저 실행 (turbo)
       - run: pnpm typecheck
       - run: pnpm build
         env:
@@ -41,4 +41,17 @@ jobs:
         with:
           context: .
           push: false
+          load: true
+          tags: bjk-web:ci
           cache-from: type=gha,scope=web
+      # 배포 이미지가 실제로 뜨고 응답하는지 확인
+      - name: 컨테이너 기동 확인
+        run: |
+          docker run -d --name web -p 3000:3000 bjk-web:ci
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/ || true)
+            if [ "$code" != 000 ] && [ "$code" -lt 500 ]; then echo "HTTP $code"; exit 0; fi
+            sleep 2
+          done
+          docker logs web
+          exit 1
