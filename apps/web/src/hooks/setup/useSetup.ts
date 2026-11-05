@@ -2,17 +2,18 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { queryKeys } from '@bjk/api/queryKeys';
 import {
-  addSupplierPrice,
   completeMaintenance,
   confirmPartImport,
   createEquipment,
   createMaintenance,
   createSupplier,
+  saveSupplierPrice,
   setupQueries,
   uploadPartImport,
 } from '@bjk/api/setup';
 import type { ConfirmImportInput, SupplierPriceInput } from '@bjk/api/types/setup';
 
+export const useCategories = () => useQuery(setupQueries.categories());
 export const useEquipment = () => useQuery(setupQueries.equipment());
 export const useMaintenance = () => useQuery(setupQueries.maintenance());
 export const useSuppliers = () => useQuery(setupQueries.suppliers());
@@ -29,12 +30,13 @@ export const useConfirmPartImport = () => {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: ConfirmImportInput }) =>
       confirmPartImport(id, input),
-    // 부품·재고(초기 재고는 실사조정 기록)와 중복 의심 쌍이 함께 바뀐다
+    // 부품·재고(초기 재고는 실사조정 기록)와 중복 의심 쌍, 공급사 단가가 함께 바뀐다
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.parts.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.twin.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.mergeCandidates.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.setup.suppliers() }),
       ]),
   });
 };
@@ -51,9 +53,9 @@ export const useCompleteMaintenance = () =>
 export const useCreateSupplier = () =>
   useMutation({ mutationFn: createSupplier, onSettled: useInvalidateSetup() });
 
-export const useAddSupplierPrice = () =>
+export const useSaveSupplierPrice = () =>
   useMutation({
     mutationFn: ({ id, input }: { id: string; input: SupplierPriceInput }) =>
-      addSupplierPrice(id, input),
+      saveSupplierPrice(id, input),
     onSettled: useInvalidateSetup(),
   });
