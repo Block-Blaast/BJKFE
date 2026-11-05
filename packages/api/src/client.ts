@@ -118,6 +118,11 @@ export const requestBlob = async (path: string): Promise<Blob> => {
   return res.blob();
 };
 
+// 백엔드 목록은 { items, next_cursor }, 목업 목록은 배열이다. 둘 다 받아 배열로 돌려준다.
+// 화면에 "더 보기"가 없어 첫 페이지(limit=100)만 쓴다.
+export const itemsOf = <T>(raw: T[] | { items: T[] }): T[] =>
+  Array.isArray(raw) ? raw : raw.items;
+
 // 응답 래퍼 형식은 백엔드가 정해지면 여기서 벗긴다. 지금은 JSON 바디를 그대로 돌려준다.
 export const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const res = await sendWithRefresh(path, init);

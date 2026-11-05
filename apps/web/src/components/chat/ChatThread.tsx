@@ -12,6 +12,7 @@ import {
   confirmPending,
   createStockDraft,
   sendChatMessage,
+  sendCountReason,
 } from '@bjk/api/chat';
 import type { AdjustReason } from '@bjk/api/domain/audit';
 import { queryKeys } from '@bjk/api/queryKeys';
@@ -53,7 +54,7 @@ const errorText = (error: unknown) => {
 };
 
 // 채팅 기록 (M-02, F-CHAT-01~05)
-// TODO: LLM 오류가 반복되면 폼 입력으로 전환 (F-CHAT-01), 실사 요청 메시지 (F-CHAT-05)
+// TODO: LLM 오류가 반복되면 폼 입력으로 전환 (F-CHAT-01)
 const ChatThread = () => {
   const [messages, setMessages] = useState<Message[]>([GREETING]);
   const queryClient = useQueryClient();
@@ -137,6 +138,17 @@ const ChatThread = () => {
       ]),
   });
   const cancel = useMutation({ mutationFn: cancelPending });
+  // 사유를 받으면 의심 항목이 닫혀 장부 검증·브리핑 숫자가 바뀐다 (AUD-04)
+  const countReason = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: AdjustReason }) =>
+      sendCountReason(id, { reason }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.audits.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.briefing.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.activity.all }),
+      ]),
+  });
 
   const deliver = (id: string, text: string) => {
     setUserStatus(id, 'sending');
@@ -173,6 +185,20 @@ const ChatThread = () => {
     input: { partId?: string; adjustReason?: AdjustReason },
   ) => {
     if (card.type === 'unregistered') return;
+    if (card.type === 'count_reason') {
+      if (!input.adjustReason) return;
+      countReason.mutate(
+        { id: card.count_request_id, reason: input.adjustReason },
+        {
+          onSuccess: (turn) => {
+            resolveCard(messageId);
+            appendBotTurn(turn);
+          },
+          onError: (error) => appendBotTurn({ reply: errorText(error) }),
+        },
+      );
+      return;
+    }
     // 재고 부족 제안은 원장이 아니라 검토를 만든다 (F-NOTI-01). 수량은 서버가 정한다.
     if (card.type === 'reorder') {
       raise.mutate(card.draft_id, {
@@ -207,6 +233,11 @@ const ChatThread = () => {
       appendBotTurn({ reply: '알겠어요. 다음에 기록할 때 다시 알려드릴게요.' });
       return;
     }
+    if (card.type === 'count_reason') {
+      resolveCard(messageId);
+      appendBotTurn({ reply: '알겠어요. 사유는 관리자에게 직접 알려 주세요.' });
+      return;
+    }
     cancel.mutate(card.pending_id, {
       onSuccess: (turn) => {
         resolveCard(messageId);
@@ -223,7 +254,7 @@ const ChatThread = () => {
     inputRef.current?.focus();
   };
 
-  const busy = confirm.isPending || cancel.isPending || raise.isPending;
+  const busy = confirm.isPending || cancel.isPending || raise.isPending || countReason.isPending;
 
   return (
     <div className="-mx-4 -my-6 flex min-h-0 flex-1 flex-col">

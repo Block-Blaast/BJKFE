@@ -9,6 +9,7 @@ import Button from '@bjk/ui/components/Button';
 import { formatQty } from '@/utils/format';
 
 import CountCard from './CountCard';
+import CountReasonCard from './CountReasonCard';
 
 type ChatCardViewProps = {
   card: ChatCard;
@@ -47,6 +48,16 @@ const ChatCardView = ({ card, resolved, busy, onConfirm, onCancel }: ChatCardVie
         />
         {!resolved ? <Expiry at={card.expires_at} /> : null}
       </div>
+    );
+  }
+
+  if (card.type === 'count_reason') {
+    return (
+      <CountReasonCard
+        disabled={disabled}
+        onConfirm={(adjustReason) => onConfirm({ adjustReason })}
+        onCancel={onCancel}
+      />
     );
   }
 

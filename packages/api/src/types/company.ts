@@ -9,12 +9,14 @@ export type ReviewSettings = {
   price_min_ratio: number; // C-05 단가 이상(n ≥ 3): 평균 × N 초과도 함께 (기본 1.05)
   price_few_ratio: number; // C-05 단가 이상(n = 1~2): 평균 × N 초과 (기본 1.15)
   cheaper_ratio: number; // C-06 더 싼 공급사: 요청 단가 × N 이하 (기본 0.9)
-  supplier_keep_pct: number; // F-REVIEW-05 요청 공급사가 최저가와 N% 이내면 유지 (기본 3)
-  tier_increase_pct: number; // F-REVIEW-05 단가 구간 대안: 총액 증가 N% 이내 (기본 5)
+  // 아래 null 인 항목은 백엔드 설정(SYS-01)에 없는 값이다 — 화면에서 뺀다
+  supplier_keep_pct: number | null; // F-REVIEW-05 요청 공급사가 최저가와 N% 이내면 유지 (기본 3)
+  tier_increase_pct: number | null; // F-REVIEW-05 단가 구간 대안: 총액 증가 N% 이내 (기본 5)
   next_order_weeks: number; // F-REVIEW-02 대비 기간 T = LT90 + 다음 발주까지 N주 (기본 4)
   service_level: { A: number; B: number; C: number }; // F-ANAL-06 재주문점 서비스 수준 % (98·95·90)
   missed_p_out_pct: number; // F-MISSED-01 놓친 발주: 결품 확률 N% 이상 (기본 30)
-  missed_deadline_days: number; // F-MISSED-01 놓친 발주: 마감이 오늘 + N일 이내 (기본 3)
+  // F-MISSED-01 놓친 발주: 마감이 오늘 + N일 이내 (기본 3). 백엔드는 C-08 마감 임박 일수를 같이 쓴다 — null
+  missed_deadline_days: number | null;
 };
 
 // 알림 (F-NOTI-03): 조용한 시간에는 긴급도 모아서 아침에 보낸다
@@ -27,6 +29,8 @@ export type CompanySettings = {
   review: ReviewSettings;
   notifications: NotificationSettings;
   updated_at: string | null;
+  // [추가] 사장님이 바꿀 수 없는 항목 — 백엔드 시스템 값(system)으로, 검증(F-SIM) 결과로만 조정한다
+  locked?: (keyof ReviewSettings)[];
 };
 
 export type UpdateCompanySettingsInput = Pick<CompanySettings, 'review' | 'notifications'>;

@@ -31,8 +31,13 @@ const CandidateCard = ({ candidate }: { candidate: MergeCandidate }) => {
   return (
     <li className="flex flex-col gap-4 rounded-xl bg-bg-surface p-6 shadow-card">
       <div className="flex items-center gap-2">
-        <span className="text-label-lg text-text-heading">규격 {candidate.spec}</span>
-        <span className="text-body-sm text-text-secondary">{candidate.category}</span>
+        {/* 백엔드 후보(MAT-01)는 규격·카테고리를 주지 않는다 — 두 부품 이름으로 대신한다 */}
+        <span className="text-label-lg text-text-heading">
+          {candidate.spec ? `규격 ${candidate.spec}` : '같은 규격으로 보이는 두 부품'}
+        </span>
+        {candidate.category ? (
+          <span className="text-body-sm text-text-secondary">{candidate.category}</span>
+        ) : null}
       </div>
 
       <fieldset className="grid grid-cols-2 gap-3" disabled={candidate.status !== 'open' || busy}>

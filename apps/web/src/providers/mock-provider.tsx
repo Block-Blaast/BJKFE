@@ -4,9 +4,11 @@ import type { ReactNode } from 'react';
 
 import { setRequestGate } from '@bjk/api/client';
 
-// 목업으로만 처리하는 경로 — 3D 창고(twin)는 백엔드에 엔드포인트가 없어 프론트 목업으로 그린다.
-// 그 외 경로는 모두 실제 백엔드(BJK-AI-BE)로 보낸다. 백엔드에 거의 모든 API가 구현돼 있다.
-const MOCK_ONLY = /^\/api\/twin\//;
+// 목업으로만 처리하는 경로 — 백엔드에 엔드포인트가 없거나 형식이 정해지지 않은 화면이다.
+// - 3D 창고(twin): 백엔드에 API 가 없다
+// - 엑셀 이관(setup/part-imports): 백엔드 미리보기 줄 형식이 명세에 다 적혀 있지 않아 목업 형식으로 보낸다
+// 그 외 경로는 모두 실제 백엔드(BJK-AI-BE)로 보낸다.
+const MOCK_ONLY = /^\/api\/(twin\/|setup\/part-imports(\/|$))/;
 
 // MSW 목업으로 API 를 대신하는 조건.
 // - 개발 모드에서 백엔드 주소(NEXT_PUBLIC_API_URL)가 없을 때
@@ -32,7 +34,7 @@ if (SHOULD_MOCK && typeof window !== 'undefined') {
     // 핸들러는 ENDPOINTS 경로(/v1/..., /api/...) 그대로 같은 출처에서 잡는다. 그런데 client.ts 는
     // `${NEXT_PUBLIC_API_URL}${path}` 로 부르므로, 주소가 있는 빌드(배포: /api)에서는 요청이
     // /api/v1/parts · /api/api/twin/layout 처럼 앞에 주소가 붙어 나가 핸들러에 안 걸린다.
-    // 그 앞부분을 떼고 같은 출처 경로로 바꿔 판단한다. twin(3D 창고)만 목업이 응답하고,
+    // 그 앞부분을 떼고 같은 출처 경로로 바꿔 판단한다. 3D 창고·엑셀 이관(MOCK_ONLY)만 목업이 응답하고,
     // 나머지는 모두 실제 백엔드(BJK-AI-BE)로 흘려보낸다.
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     if (apiUrl) {

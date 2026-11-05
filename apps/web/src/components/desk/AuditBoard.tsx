@@ -70,7 +70,7 @@ const RequestForm = ({ audit }: { audit: AuditItem }) => {
 };
 
 const Outcome = ({ audit }: { audit: AuditItem }) => {
-  if (audit.result) {
+  if (audit.result && audit.ledger_qty !== null) {
     const diff = audit.result.counted_qty - audit.ledger_qty;
     return diff === 0 ? (
       <p className="text-body-sm text-text-success">
@@ -84,10 +84,18 @@ const Outcome = ({ audit }: { audit: AuditItem }) => {
       </p>
     );
   }
+  // 백엔드 목록은 실사 결과를 주지 않는다 — 닫힌 항목은 닫혔다는 것만 보인다
+  if (audit.status === 'resolved') {
+    return (
+      <p className="text-body-sm text-text-body tabular-nums">
+        실사로 확인을 마쳤어요 · 차이가 있었다면 실사조정이 기록됐어요
+      </p>
+    );
+  }
   if (audit.request) {
     return (
       <p className="text-body-sm text-text-body tabular-nums">
-        {audit.request.assignee.name}님께 실사 요청함 ·{' '}
+        {audit.request.assignee ? `${audit.request.assignee.name}님께 ` : ''}실사 요청함 ·{' '}
         {formatComputedAt(audit.request.requested_at)} · 응답을 기다리는 중
       </p>
     );
@@ -181,9 +189,12 @@ const AuditBoard = () => {
                 <span className="text-body-sm text-text-secondary">
                   {AUDIT_RULES[audit.rule].name} ({audit.rule})
                 </span>
-                <span className="ml-auto text-body-sm text-text-body tabular-nums">
-                  기록상 {formatQty(audit.ledger_qty, audit.part.unit)}
-                </span>
+                {/* 블라인드 실사(F-AUDIT-06): 백엔드는 응답 전 장부 수량을 주지 않는다 */}
+                {audit.ledger_qty !== null ? (
+                  <span className="ml-auto text-body-sm text-text-body tabular-nums">
+                    기록상 {formatQty(audit.ledger_qty, audit.part.unit)}
+                  </span>
+                ) : null}
               </div>
               <p className="text-body-md text-text-body">{audit.reason}</p>
               <Outcome audit={audit} />

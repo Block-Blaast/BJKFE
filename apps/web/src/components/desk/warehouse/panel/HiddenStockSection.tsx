@@ -66,7 +66,7 @@ const MergeDialog = ({ candidate, onClose }: MergeDialogProps) => {
     >
       <div className="flex flex-col gap-4">
         <h2 id={`merge-title-${candidate.id}`} className="text-h3 text-text-heading">
-          규격 {candidate.spec} 합치기
+          {candidate.spec ? `규격 ${candidate.spec}` : '두 부품'} 합치기
         </h2>
         <fieldset className="flex flex-col gap-2" disabled={merge.isPending}>
           <legend className="mb-2 text-label-md text-text-secondary">대표 부품</legend>
