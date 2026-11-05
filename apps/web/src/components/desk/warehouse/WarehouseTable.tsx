@@ -28,7 +28,7 @@ const VIEW_OPTIONS = [
 // 3D 씬(warehouse-3d.html)이 칸을 부르는 이름과 같아야 브릿지가 찾는다
 const locKey = (p: TwinPlacement) => `${p.rack_id}-${p.level}-${p.slot}`;
 
-// mocks/fixtures/factory.ts 의 formatLocation 과 같은 규칙 — 앱은 mocks 를 import 하지 않는다
+// 칸 위치 글씨 — 선반 id + 단·칸 (1단짜리 구역은 칸만)
 const formatLocation = (rack: TwinRack | undefined, p: TwinPlacement) =>
   rack && rack.levels === 1 ? `${rack.label} ${p.slot}칸` : `${p.rack_id} ${p.level}단 ${p.slot}칸`;
 
@@ -202,7 +202,7 @@ const WarehouseTable = () => {
             ))}
           </Select>
         </label>
-        <p role="status" className="ml-auto text-label-md text-text-secondary">
+        <p role="status" className="text-label-md text-text-secondary">
           부품 {rows.length}개
         </p>
       </div>
