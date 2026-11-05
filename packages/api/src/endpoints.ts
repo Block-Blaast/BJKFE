@@ -27,12 +27,14 @@ export const ENDPOINTS = {
   mergeCandidates: '/api/merge-candidates',
   merge: (id: string) => `/api/merge-candidates/${id}/merge`,
   dismissMerge: (id: string) => `/api/merge-candidates/${id}/dismiss`,
-  reviews: '/api/reviews',
+  // 발주 검토 — 백엔드 REV-01·02·05·07, 예측선(명세 밖 #258)
+  reviews: '/v1/reviews',
   myRequests: '/api/me/requests',
   briefing: '/api/briefing',
-  review: (id: string) => `/api/reviews/${id}`,
-  reviewDecision: (id: string) => `/api/reviews/${id}/decision`,
-  reviewForecast: (id: string) => `/api/reviews/${id}/forecast`,
+  review: (id: string) => `/v1/reviews/${id}`,
+  reviewDecision: (id: string) => `/v1/reviews/${id}/decision`,
+  reviewForecast: (id: string) => `/v1/reviews/${id}/forecast`,
+  reviewPdf: (id: string) => `/v1/reviews/${id}/pdf`,
   chatMessages: '/v1/chat/messages',
   chatInbox: '/api/chat/inbox',
   // 확인 카드 확정·취소 — 백엔드 CHAT-03·04 (카드 id = entry_id)
