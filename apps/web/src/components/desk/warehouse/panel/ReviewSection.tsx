@@ -39,7 +39,7 @@ const usePendingArrivals = () => {
 };
 
 // ApprovalActions 와 같은 기준: 적정이면 "승인", 수정 권고면 "수정안 승인".
-// 수량 0(발주 불필요 수용)은 도착 상자가 없어 여기 오지 않는다(목업 twin.ts 가 qty 0 을 뺀다)
+// 수량 0(발주 불필요 수용)은 도착 상자가 없어 여기 오지 않는다
 const approveLabelOf = (review: Review) =>
   review.verdict === '적정' ? '승인' : APPROVAL_ACTIONS.approveProposal;
 
