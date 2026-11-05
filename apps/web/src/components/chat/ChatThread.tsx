@@ -6,10 +6,18 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
 import { ApiError } from '@bjk/api/client';
-import { cancelPending, chatQueries, confirmPending, sendChatMessage } from '@bjk/api/chat';
+import {
+  cancelPending,
+  chatQueries,
+  confirmPending,
+  createStockDraft,
+  sendChatMessage,
+} from '@bjk/api/chat';
 import type { AdjustReason } from '@bjk/api/domain/audit';
 import { queryKeys } from '@bjk/api/queryKeys';
 import type { ChatCard, ChatTurn } from '@bjk/api/types/chat';
+
+import { useEquipment } from '@/hooks/setup/useSetup';
 
 import ChatCardView from './ChatCardView';
 
@@ -64,6 +72,11 @@ const ChatThread = () => {
   }));
   const shown = [messages[0], ...inboxMessages, ...messages.slice(1)];
   const [draft, setDraft] = useState('');
+  // 설비를 고르면 그 설비가 쓰는 부품이 칩으로 내려온다 ([추가] 입력 보조).
+  // 현장에서는 부품명이 아니라 "어느 기계를 손본다"가 먼저라서, 문장을 대신 써 준다.
+  const equipment = useEquipment();
+  const [pickedEquipment, setPickedEquipment] = useState<string | null>(null);
+  const picked = equipment.data?.find((e) => e.id === pickedEquipment) ?? null;
   const inputRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLLIElement>(null);
 
@@ -94,6 +107,17 @@ const ChatThread = () => {
     );
 
   const send = useMutation({ mutationFn: sendChatMessage });
+  // 재고 부족 제안 → 검토 생성. 원장은 건드리지 않으므로 재고 쿼리는 무효화하지 않는다.
+  // 결정 대기 검토의 수정안은 3D 창고의 "발주하면" 예측에 들어가므로 twin 은 무효화한다.
+  const raise = useMutation({
+    mutationFn: createStockDraft,
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.reviews.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.briefing.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.twin.all }),
+      ]),
+  });
   const confirm = useMutation({
     mutationFn: ({
       pendingId,
@@ -104,13 +128,17 @@ const ChatThread = () => {
       partId?: string;
       adjustReason?: AdjustReason;
     }) => confirmPending(pendingId, { part_id: partId, adjust_reason: adjustReason }),
-    // 재고·원장이 바뀌고, 실사조정이면 장부 검증 항목이 닫히고 브리핑·수신함 숫자가 바뀐다
+    // 재고·원장이 바뀌고, 실사조정이면 장부 검증 항목이 닫히고 브리핑·수신함 숫자가 바뀐다.
+    // 입고면 발주 검토가 부분입고·입고완료로 넘어가 검토함·리포트·흐름 띠 숫자도 바뀐다.
     onSuccess: () =>
       Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.reviews.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.reports.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.audits.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.briefing.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.chat.inbox() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.parts.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.twin.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.activity.all }),
       ]),
   });
@@ -145,6 +173,17 @@ const ChatThread = () => {
     input: { partId?: string; adjustReason?: AdjustReason },
   ) => {
     if (card.type === 'unregistered') return;
+    // 재고 부족 제안은 원장이 아니라 검토를 만든다 (F-NOTI-01). 수량은 서버가 정한다.
+    if (card.type === 'reorder') {
+      raise.mutate(card.draft_id, {
+        onSuccess: (turn) => {
+          resolveCard(messageId);
+          appendBotTurn(turn);
+        },
+        onError: (error) => appendBotTurn({ reply: errorText(error) }),
+      });
+      return;
+    }
     confirm.mutate(
       { pendingId: card.pending_id, ...input },
       {
@@ -163,6 +202,11 @@ const ChatThread = () => {
 
   const handleCancel = (messageId: string, card: ChatCard) => {
     if (card.type === 'unregistered') return;
+    if (card.type === 'reorder') {
+      resolveCard(messageId);
+      appendBotTurn({ reply: '알겠어요. 다음에 기록할 때 다시 알려드릴게요.' });
+      return;
+    }
     cancel.mutate(card.pending_id, {
       onSuccess: (turn) => {
         resolveCard(messageId);
@@ -172,12 +216,19 @@ const ChatThread = () => {
     });
   };
 
+  // 칩은 문장을 채워 줄 뿐이다 — 보내면 확인 카드(F-CHAT-02)를 그대로 거친다.
+  const insertPart = (name: string, qty: number, unit: string) => {
+    setDraft(`${name} ${qty}${unit} 씀`);
+    setPickedEquipment(null);
+    inputRef.current?.focus();
+  };
+
   const insertPhrase = (text: string) => {
     setDraft((prev) => (text.startsWith(' ') ? `${prev.trimEnd()}${text}` : `${text}${prev}`));
     inputRef.current?.focus();
   };
 
-  const busy = confirm.isPending || cancel.isPending;
+  const busy = confirm.isPending || cancel.isPending || raise.isPending;
 
   return (
     <div className="-mx-4 -my-6 flex min-h-0 flex-1 flex-col">
@@ -232,17 +283,48 @@ const ChatThread = () => {
       </ol>
 
       <div className="flex shrink-0 flex-col gap-2 border-t border-border-default bg-bg-surface px-4 py-3">
+        {equipment.data?.length ? (
+          <div className="flex gap-2 overflow-x-auto">
+            {equipment.data.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={pickedEquipment === item.id}
+                className={`h-11 shrink-0 rounded-full px-4 text-label-md ${
+                  pickedEquipment === item.id
+                    ? 'bg-bg-inverse text-text-on-inverse'
+                    : 'bg-bg-subtle text-text-body'
+                }`}
+                onClick={() => setPickedEquipment((prev) => (prev === item.id ? null : item.id))}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+        ) : null}
         <div className="flex gap-2 overflow-x-auto">
-          {QUICK_PHRASES.map(({ label, text }) => (
-            <button
-              key={label}
-              type="button"
-              className="h-11 shrink-0 rounded-full bg-bg-brand-subtle px-4 text-label-md text-text-brand active:bg-bg-brand-subtle-hover"
-              onClick={() => insertPhrase(text)}
-            >
-              {label}
-            </button>
-          ))}
+          {picked
+            ? picked.parts.map((part) => (
+                <button
+                  key={part.part_id}
+                  type="button"
+                  className="h-11 shrink-0 rounded-full bg-bg-brand-subtle px-4 text-label-md text-text-brand active:bg-bg-brand-subtle-hover"
+                  onClick={() => insertPart(part.part_name, part.qty, part.unit)}
+                >
+                  {part.part_name} {part.qty}
+                  {part.unit}
+                </button>
+              ))
+            : QUICK_PHRASES.map(({ label, text }) => (
+                <button
+                  key={label}
+                  type="button"
+                  className="h-11 shrink-0 rounded-full bg-bg-brand-subtle px-4 text-label-md text-text-brand active:bg-bg-brand-subtle-hover"
+                  onClick={() => insertPhrase(text)}
+                >
+                  {label}
+                </button>
+              ))}
         </div>
         <form
           className="flex items-center gap-2"

@@ -4,7 +4,7 @@ import { delay, http, HttpResponse } from 'msw';
 
 import { AUDIT_GRADE_ORDER } from '../domain/audit';
 import { MOVEMENT_TYPES } from '../domain/part';
-import { APPROVAL_ACTIONS } from '../domain/review';
+import { APPROVAL_ACTIONS, type ReviewFlag } from '../domain/review';
 import { ENDPOINTS } from '../endpoints';
 import type {
   ChatCard,
@@ -23,10 +23,10 @@ import type {
 } from '../types/auth';
 import type { AuditItem, MergeCandidate, MergeInput, RequestAuditInput } from '../types/audit';
 import type { Briefing } from '../types/briefing';
-import type { Review, ReviewDecisionInput } from '../types/review';
+import type { Review, ReviewCheck, ReviewDecisionInput } from '../types/review';
 import { AUDIT_FIXTURES, MERGE_FIXTURES } from './fixtures/audits';
 import { MOCK_COMPANY, MOCK_INVITES, MOCK_MEMBERS, MOCK_OWNER } from './fixtures/auth';
-import { PART_FIXTURES, type MockPart } from './fixtures/parts';
+import { LEDGER_FIXTURES, PART_FIXTURES, type MockPart } from './fixtures/parts';
 import type { Activity } from '../types/activity';
 import type {
   CompanySettings,
@@ -38,7 +38,10 @@ import type {
 import type { StockForecast, StockPoint } from '../types/forecast';
 import type { Part, StockMovement } from '../types/part';
 import { REVIEW_FIXTURES } from './fixtures/reviews';
-import { recordPurchaseOrder, setupHandlers } from './setup';
+import { BASE_DATE, COMPUTED_AT, EQUIPMENT_FIXTURES } from './fixtures/factory';
+import { currentMaintenance, moqOf, recordPurchaseOrder, setupHandlers } from './setup';
+import { addDays, daysBetween } from './fixtures/simulate';
+import { createTwinHandlers } from './twin';
 
 const NETWORK_DELAY = 400;
 const PENDING_TTL_MS = 10 * 60 * 1000;
@@ -48,27 +51,18 @@ const WARNING_MULTIPLIER = 5;
 // 브라우저 탭 하나 동안만 유지되는 상태. 새로고침하면 초기화된다.
 const reviews = new Map(REVIEW_FIXTURES.map((r) => [r.id, structuredClone(r)]));
 const decisions = new Map<string, Review>();
+// 이미 결정된 고정 검토는 발주 기록도 이미 있다 (리포트 W-09)
+// 결정 없는 검토를 먼저 거른다 — 정렬 비교에 NaN 이 섞이면 결정된 검토끼리의 순서도 보장되지 않는다
+const decidedFixtures = [...reviews.values()].flatMap((r) =>
+  r.decision ? [{ review: r, at: Date.parse(r.decision.decided_at) }] : [],
+);
+for (const { review } of decidedFixtures.sort((a, b) => a.at - b.at)) recordPurchaseOrder(review);
 const stock = new Map(PART_FIXTURES.map((p) => [p.part_id, p.stock]));
 
 // ---- 원장·부품 (F-LEDGER, F-MATCH-03, W-04·05) ----
-// 초기 재고는 엑셀 이관 때 실사조정(ADJUST)으로 들어간다 (F-SETUP-01). 이관 시각은 목업용으로 정했다.
-const IMPORTED_AT = '2026-11-01T09:00:00+09:00';
+// 지난 90일 사용 이력 — 엑셀 이관(ADJUST) → 출고·입고. 마지막 재고가 stock 과 같도록 만들어져 있다 (fixtures/parts.ts)
 const ledger = new Map<string, StockMovement[]>(
-  PART_FIXTURES.map((p) => [
-    p.part_id,
-    p.stock === null
-      ? []
-      : [
-          {
-            id: `mv-init-${p.part_id}`,
-            type: 'ADJUST',
-            qty: p.stock,
-            message: null,
-            reason: '초기 재고 (엑셀 이관)',
-            created_at: IMPORTED_AT,
-          },
-        ],
-  ]),
+  [...LEDGER_FIXTURES].map(([id, entries]) => [id, structuredClone(entries)]),
 );
 const pendingText = new Map<string, string>();
 const mergedInto = new Map<string, string>();
@@ -100,13 +94,8 @@ const recordMovement = (
 // 실제 예측은 서버의 8주 경로 시뮬레이션(F-ANAL-07)이다. 목업은 화면을 그리기 위해 기존 지표로 단순 계산한다:
 // - 미발주: 오늘 재고에서 소진 예상일(t_out)까지 직선, 없으면 월 소모량(m)으로 감소. 입고 예정(O)은 도착일에 더한다.
 // - 발주 시: 위 선에 발주 수량을 오늘 + 늦을 때 납기(LT90, 없으면 LT50) 날에 더한다. 납기를 모르면 그리지 않는다.
-const DAY_MS = 24 * 60 * 60 * 1000;
 const kstDate = (iso: string | number) =>
   new Date(new Date(iso).getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-const addDays = (ymd: string, days: number) =>
-  new Date(Date.parse(`${ymd}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
-const daysBetween = (from: string, to: string) =>
-  Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS);
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
 const buildForecast = (p: MockPart, orderQty: number | null): StockForecast => {
@@ -191,7 +180,7 @@ const partView = (p: MockPart): Part => {
     stock: own(p) + merged.reduce((sum, q) => sum + own(q), 0),
     incoming: p.incoming,
     hidden_stock: hidden.reduce((sum, q) => sum + own(q), 0),
-    risk: null,
+    risk: p.risk,
     location: p.location,
     supplier: p.supplier,
     aliases: merged.map((q) => q.part_name),
@@ -200,6 +189,81 @@ const partView = (p: MockPart): Part => {
 };
 const pending = new Map<string, Extract<ChatCard, { pending_id: string }>>();
 const seenMessages = new Map<string, ChatTurn>();
+
+// ---- 기록 중 재고 부족 초안 (F-NOTI-01 입구, [추가] 경로) ----
+// 출고를 기록한 뒤 재고가 재주문점 이하로 내려가면 제안 카드를 띄우고, 작업자가 누르면 여기서 검토를 만든다.
+// 수량·공급사·단가는 작업자가 말한 값이 아니라 부품 지표에서 나온다 — 작업자는 "올릴지"만 정한다.
+const drafts = new Map<string, string>();
+// 발주 건별 누적 입고 수량 ([추가]) — 부분입고·입고완료 전이에 쓴다 (F-APPROVAL-02)
+const received = new Map<string, number>();
+
+const OPEN_STATUSES: Review['status'][] = ['검토중', '검토완료', '발주됨', '부분입고'];
+// 이미 올라가 있으면 또 올리지 않는다 (중복 발주 C-03 을 입구에서 막는다)
+const openReviewFor = (partId: string) =>
+  [...reviews.values()].find((r) => r.part.id === partId && OPEN_STATUSES.includes(r.status));
+
+// 승인된 수량 — 수정안 승인이면 수정안, 아니면 원안 (F-APPROVAL-01)
+const orderedLine = (review: Review) =>
+  review.decision?.action === 'approveProposal' ? review.proposal : review.original;
+
+const equipmentUsing = (partId: string) =>
+  EQUIPMENT_FIXTURES.filter((e) => e.parts.some((p) => p.part_id === partId)).map((e) => e.name);
+
+const buildStockDraft = (p: MockPart): Review => {
+  const left = stock.get(p.part_id) ?? 0;
+  const { D95, m, LT90, reorder_point: reorderPoint, t_out: tOut, p_out: pOut, loss } = p.metrics;
+  const moq = moqOf(p.part_id);
+  const available = left + (p.incoming?.qty ?? 0);
+  const need = (D95 ?? reorderPoint ?? 0) + (m ?? 0) - available;
+  const qty = Math.max(moq ?? 1, Math.ceil(Math.max(need, 1)));
+  const unitPrice = p.supplier?.unit_price ?? null;
+  const line = {
+    qty,
+    supplier: p.supplier?.name ?? null,
+    unit_price: unitPrice,
+    total: unitPrice === null ? null : unitPrice * qty,
+  };
+  const checks: ReviewCheck[] = [
+    { code: 'C-07', level: '긴급', facts: { S: left, D95: D95 ?? 0, R: qty } },
+  ];
+  if (LT90 !== null) checks.push({ code: 'C-09', level: '정보', facts: { LT90 } });
+  const equipment = equipmentUsing(p.part_id);
+  const opinion = [
+    '적정 — 재고가 재주문점 아래로 내려갔어요.',
+    `현재 재고 ${left}${p.unit}, 재주문점은 ${reorderPoint ?? 0}${p.unit}이에요.`,
+    moq
+      ? `권장 발주량을 최소 주문 수량 ${moq}${p.unit}에 맞춰 ${qty}${p.unit}로 잡았어요.`
+      : `대비 기간 필요량에 맞춰 ${qty}${p.unit}를 권해요.`,
+  ];
+  if (tOut) {
+    opinion.push(
+      equipment.length
+        ? `발주하지 않으면 ${tOut}께 바닥나 ${equipment.join(' · ')}이(가) 멈춰요.`
+        : `발주하지 않으면 ${tOut}께 재고가 바닥나요.`,
+    );
+  }
+  const id = `rv-draft-${p.part_id}-${Date.now()}`;
+  const flags: ReviewFlag[] = pOut !== null && pOut >= 0.3 ? ['긴급'] : [];
+  return {
+    id,
+    status: '검토완료',
+    part: { id: p.part_id, name: p.part_name, unit: p.unit },
+    // 제안을 누른 사람이 올린 것으로 본다 — 올린 사람(requester)과 들어온 입구(origin)는 따로다
+    requester: 'worker',
+    origin: 'stock_draft',
+    requested_at: new Date().toISOString(),
+    decision: null,
+    verdict: '적정',
+    flags,
+    checks,
+    original: line,
+    proposal: { ...line, saving: 0 },
+    risk_if_not_ordered: { stockout_date: tOut, equipment, loss },
+    opinion: opinion.join('\n'),
+    snapshot_id: `snap-${id}`,
+    computed_at: p.metrics.computed_at ?? COMPUTED_AT,
+  };
+};
 
 const DECIDED_STATUS: Record<ReviewDecisionInput['action'], Review['status']> = {
   approveProposal: '발주됨',
@@ -492,6 +556,12 @@ const todayActivity = (): Activity[] => {
 
 export const handlers = [
   ...setupHandlers,
+  ...createTwinHandlers({
+    parts: () => PART_FIXTURES.filter((p) => !mergedInto.has(p.part_id)).map(partView),
+    reviews: () => [...reviews.values()],
+    audits: () => [...audits.values()],
+    maintenance: currentMaintenance,
+  }),
   http.get(ENDPOINTS.companySettings, async () => {
     await delay(NETWORK_DELAY);
     return HttpResponse.json(companySettings);
@@ -846,6 +916,14 @@ export const handlers = [
     };
     decisions.set(key, structuredClone(review));
     recordPurchaseOrder(review);
+    // 승인한 수량은 그 부품의 입고 예정(O)이 된다 — 보통 납기(LT50) 뒤 도착. 3D 창고·예측 그래프가 바로 반영한다.
+    // 날짜는 지표 기준일에서 센다(3D 예측의 0일과 같게).
+    const line = orderedLine(review);
+    const ordered = PART_FIXTURES.find((p) => p.part_id === review.part.id);
+    if (review.status === '발주됨' && ordered && line.qty > 0) {
+      const eta = addDays(BASE_DATE, ordered.metrics.LT50 ?? 3);
+      ordered.incoming = { qty: (ordered.incoming?.qty ?? 0) + line.qty, eta };
+    }
     return HttpResponse.json(review);
   }),
 
@@ -860,6 +938,17 @@ export const handlers = [
         text: `${a.part.name} 지금 몇 개 있나요? 장부상 ${a.ledger_qty}${a.part.unit}예요.\n예: "${a.part.name} 세어보니 ${a.ledger_qty}${a.part.unit}"`,
         created_at: a.request!.requested_at,
       }));
+    // 입고 검수 안내 ([추가]) — 승인된 발주는 도착할 때 작업자가 수량을 확인한다 (F-APPROVAL-02)
+    for (const review of reviews.values()) {
+      if (review.status !== '발주됨' && review.status !== '부분입고') continue;
+      const rest = orderedLine(review).qty - (received.get(review.id) ?? 0);
+      if (rest <= 0) continue;
+      items.push({
+        id: `inbox-${review.id}`,
+        text: `${review.part.name} ${rest}${review.part.unit} 도착 예정이에요. 들어오면 알려 주세요.\n예: "${review.part.name} ${rest}${review.part.unit} 들어왔어요"`,
+        created_at: review.decision?.decided_at ?? review.requested_at,
+      });
+    }
     return HttpResponse.json(items);
   }),
 
@@ -924,6 +1013,11 @@ export const handlers = [
 
     pending.delete(card.pending_id);
     const sign = card.intent === '입고' ? 1 : -1;
+    // 입고 기록은 기다리던 입고 예정(O)을 그만큼 줄인다 — 도크의 상자가 선반으로 들어간다
+    if (card.intent === '입고' && part.incoming) {
+      const left = part.incoming.qty - card.qty;
+      part.incoming = left > 0 ? { ...part.incoming, qty: left } : null;
+    }
     const before = stock.get(part.part_id);
     const after = before === null || before === undefined ? null : before + sign * card.qty;
     stock.set(part.part_id, card.intent === '실사' ? card.qty : after);
@@ -938,7 +1032,74 @@ export const handlers = [
       left === null || left === undefined
         ? `${card.intent} 완료.`
         : `${card.intent} 완료. 남은 재고 ${left}${part.unit}`;
-    return HttpResponse.json({ reply } satisfies ChatTurn);
+    const turn: ChatTurn = { reply };
+
+    // 입고 검수 ([추가]) — 기다리던 발주 건의 상태를 함께 옮긴다 (F-APPROVAL-02)
+    if (card.intent === '입고') {
+      const order = [...reviews.values()].find(
+        (r) => r.part.id === part.part_id && (r.status === '발주됨' || r.status === '부분입고'),
+      );
+      if (order) {
+        const orderedQty = orderedLine(order).qty;
+        const got = (received.get(order.id) ?? 0) + card.qty;
+        received.set(order.id, got);
+        order.status = got >= orderedQty ? '입고완료' : '부분입고';
+        turn.reply =
+          order.status === '입고완료'
+            ? `${reply}\n발주 ${orderedQty}${part.unit}을 입고완료로 바꿨어요.`
+            : `${reply}\n발주 ${orderedQty}${part.unit} 중 ${got}${part.unit} 들어왔어요(부분입고).`;
+      }
+    }
+
+    // 출고로 재고가 재주문점 아래로 내려가면 제안한다 (F-NOTI-01 "기록 중 재고 부족 초안")
+    const reorderPoint = part.metrics.reorder_point;
+    if (
+      card.intent === '출고' &&
+      reorderPoint !== null &&
+      left !== null &&
+      left !== undefined &&
+      left <= reorderPoint
+    ) {
+      const open = openReviewFor(part.part_id);
+      if (open) {
+        turn.reply = `${turn.reply}\n재주문점 ${reorderPoint}${part.unit} 아래지만, 이미 올라가 있어요(${open.status}).`;
+      } else {
+        const draftId = crypto.randomUUID();
+        drafts.set(draftId, part.part_id);
+        turn.card = {
+          type: 'reorder',
+          draft_id: draftId,
+          part: partRef(part),
+          stock: left,
+          reorder_point: reorderPoint,
+          unit: part.unit,
+        };
+      }
+    }
+    return HttpResponse.json(turn);
+  }),
+
+  // 재고 부족 제안을 검토로 올린다 (F-NOTI-01 stock_draft). 작업자는 "올릴지"만 정하고 수량은 여기서 나온다.
+  http.post(ENDPOINTS.chatStockDraft(':draftId'), async ({ params }) => {
+    await delay(NETWORK_DELAY);
+    const draftId = String(params.draftId);
+    const partId = drafts.get(draftId);
+    const part = partId ? PART_FIXTURES.find((p) => p.part_id === partId) : undefined;
+    if (!part) return HttpResponse.json({ message: '제안을 찾을 수 없어요.' }, { status: 404 });
+    drafts.delete(draftId);
+    const open = openReviewFor(part.part_id);
+    if (open) {
+      return HttpResponse.json({
+        reply: '이미 올라가 있어요. 사장님 결정을 기다리는 중이에요.',
+        review_id: open.id,
+      } satisfies ChatTurn);
+    }
+    const review = buildStockDraft(part);
+    reviews.set(review.id, review);
+    return HttpResponse.json({
+      reply: `${review.part.name} ${review.proposal.qty}${review.part.unit}로 검토해서 사장님께 올렸어요. 결정되면 알려드릴게요.`,
+      review_id: review.id,
+    } satisfies ChatTurn);
   }),
 
   http.post(ENDPOINTS.chatPendingCancel(':pendingId'), async ({ params }) => {

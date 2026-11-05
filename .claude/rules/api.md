@@ -50,7 +50,9 @@ paths:
 - 개발 모드에서 `NEXT_PUBLIC_API_URL`이 없으면 MSW가 API를 대신합니다. 핸들러·고정 데이터는 `packages/api/src/mocks/`, 시작은 `apps/web/src/providers/mock-provider.tsx`.
 - 임시 계약(타입 `packages/api/src/types/`, 경로 `endpoints.ts`)은 명세서 필드를 따릅니다. 명세서에 없는 필드는 `// [추가]`로 표시합니다. OpenAPI가 나오면 생성 타입으로 교체하고 `[추가]` 필드부터 백엔드와 맞춥니다.
 - 로그인 테스트 계정(PIN·이메일·초대 토큰)은 `packages/api/src/mocks/fixtures/auth.ts`에만 둡니다. 실제 계정 정보는 어디에도 쓰지 않습니다.
-- 목업 데이터는 명세서 예시 값만 씁니다. 명세서에 없는 값은 지어내지 말고 `null`로 둡니다.
+- 목업 데이터는 명세서 예시 값을 우선합니다. 명세서 예시 숫자는 바꾸지 않습니다.
+  - 예외: 시연용 **가상 공장**(`mocks/fixtures/factory.ts`)의 부품·설비·공급사·이력은 명세서에 없는 값입니다. 파일 머리 주석에 "가상"임을 밝히고, 지표는 `fixtures/parts.ts`의 계산식으로만 만듭니다(손으로 숫자를 지어 넣지 않음).
+  - 사용 이력은 부품 ID 씨앗의 결정적 난수로 만듭니다. 시연할 때마다 같은 화면이 나와야 합니다.
 - 화면 렌더링을 막지 않습니다. 워커가 뜰 때까지는 `request()`만 기다립니다(`setRequestGate`).
 
 ## 서버 상태 vs 클라이언트 상태

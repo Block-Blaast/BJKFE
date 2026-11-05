@@ -20,6 +20,10 @@ export const confirmPending = (pendingId: string, input: ConfirmPendingInput = {
 export const cancelPending = (pendingId: string) =>
   request<ChatTurn>(ENDPOINTS.chatPendingCancel(pendingId), { method: 'POST' });
 
+// 재고 부족 제안을 검토로 올린다 (F-NOTI-01 stock_draft). 수량은 서버가 부품 지표로 정한다.
+export const createStockDraft = (draftId: string) =>
+  request<ChatTurn>(ENDPOINTS.chatStockDraft(draftId), { method: 'POST' });
+
 export const getChatInbox = () => request<ChatInboxItem[]>(ENDPOINTS.chatInbox);
 
 export const chatQueries = {

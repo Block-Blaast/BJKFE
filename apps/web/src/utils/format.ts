@@ -23,6 +23,10 @@ const computedAtFormat = new Intl.DateTimeFormat('ko-KR', {
 // 예: "11. 5. 03:00"
 export const formatComputedAt = (iso: string) => computedAtFormat.format(new Date(iso));
 
+// ISO 시각 → KST 날짜 'YYYY-MM-DD'. 서버 시각은 +09:00 과 Z(UTC)가 섞여 와서 앞 10자리를 자르면 날짜가 어긋난다.
+const kstDayFormat = new Intl.DateTimeFormat('en-CA', { timeZone: KST });
+export const kstDay = (iso: string) => kstDayFormat.format(new Date(iso));
+
 // 'YYYY-MM-DD' (서버 날짜) → "11월 8일"
 export const formatDate = (ymd: string) => {
   const [, month, day] = ymd.split('-').map(Number);

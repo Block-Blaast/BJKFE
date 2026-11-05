@@ -13,6 +13,7 @@ const useInvalidateAfterMerge = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.mergeCandidates.all }),
       queryClient.invalidateQueries({ queryKey: queryKeys.reviews.all }),
       queryClient.invalidateQueries({ queryKey: queryKeys.parts.all }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.twin.all }),
     ]);
 };
 

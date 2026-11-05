@@ -13,8 +13,17 @@ export const DEMAND_PATTERNS = {
 } as const;
 export type DemandPattern = keyof typeof DEMAND_PATTERNS;
 
-// 카테고리 기본값 (F-SETUP-03 표)
-export const CATEGORIES = ['베어링', 'V벨트·전동벨트', '볼트·너트', '절삭유·윤활유'] as const;
+// 카테고리 기본값 (F-SETUP-03 표). 뒤의 넷은 [추가] — 명세서 표에 없고, 금속가공 현장 목업(v2)에 맞춰 붙였다.
+export const CATEGORIES = [
+  '베어링',
+  'V벨트·전동벨트',
+  '볼트·너트',
+  '절삭유·윤활유',
+  '씰·오링',
+  '공압·유압',
+  '절삭공구',
+  '필터',
+] as const;
 export type Category = (typeof CATEGORIES)[number];
 
 export const IMPORT_DEPENDENCIES = ['높음', '중간', '낮음'] as const;
@@ -29,6 +38,11 @@ export const CATEGORY_DEFAULTS: Record<
   'V벨트·전동벨트': { importDependency: '중간', factors: ['환율', '명절'], hsCode: '4010' },
   '볼트·너트': { importDependency: '낮음', factors: ['명절(국내)'], hsCode: '7318' },
   '절삭유·윤활유': { importDependency: '중간', factors: ['환율', '명절'], hsCode: '석유제품군' },
+  // [추가] HS 코드는 품목 대분류만 적었다
+  '씰·오링': { importDependency: '중간', factors: ['환율', '명절'], hsCode: '4016' },
+  '공압·유압': { importDependency: '높음', factors: ['환율', '해상운임'], hsCode: '8481' },
+  절삭공구: { importDependency: '높음', factors: ['환율', '해상운임'], hsCode: '8207' },
+  필터: { importDependency: '낮음', factors: ['명절(국내)'], hsCode: '8421' },
 };
 
 // 외부 요인 위험도 (F-EXT-02: |z| < 1 정상, 1~2 주의, 2 이상 높음)

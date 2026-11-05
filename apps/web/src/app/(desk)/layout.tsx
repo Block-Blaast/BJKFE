@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 
+import DeskSubNav from '@/components/layout/DeskSubNav';
 import DeskTopBar from '@/components/layout/DeskTopBar';
 
 // 웹 화면(PC). 데스크톱 전용이라 최소 폭(1280px)을 둔다.
@@ -9,6 +10,9 @@ const DeskLayout = ({ children }: { children: ReactNode }) => {
     <div className="flex min-h-dvh min-w-7xl flex-col bg-bg-canvas p-5">
       <div className="flex flex-1 flex-col gap-6 rounded-xl bg-bg-page p-6">
         <DeskTopBar />
+        <Suspense fallback={null}>
+          <DeskSubNav />
+        </Suspense>
         <main className="flex flex-1 flex-col">{children}</main>
       </div>
     </div>

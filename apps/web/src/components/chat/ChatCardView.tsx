@@ -1,6 +1,6 @@
 'use client';
 
-import { TriangleAlert, CircleHelp, PackagePlus } from 'lucide-react';
+import { TriangleAlert, CircleHelp, PackagePlus, TrendingDown } from 'lucide-react';
 
 import type { AdjustReason } from '@bjk/api/domain/audit';
 import type { ChatCard } from '@bjk/api/types/chat';
@@ -88,6 +88,33 @@ const ChatCardView = ({ card, resolved, busy, onConfirm, onCancel }: ChatCardVie
           </Button>
         </div>
         {!resolved ? <Expiry at={card.expires_at} /> : null}
+      </div>
+    );
+  }
+
+  // 재고 부족 제안 (F-NOTI-01 stock_draft). 수량을 묻지 않는 것이 핵심 — 작업자는 올릴지만 정한다.
+  if (card.type === 'reorder') {
+    return (
+      <div className="flex flex-col gap-3 rounded-xl border border-border-brand bg-bg-surface p-5">
+        <span className="flex items-center gap-1 text-label-md text-text-brand">
+          <TrendingDown size={16} aria-hidden className="text-icon-brand" />
+          재주문점 아래예요
+        </span>
+        <p className="text-body-md text-text-body tabular-nums">
+          {card.part.part_name} 재고 {formatQty(card.stock, card.unit)} · 재주문점{' '}
+          {formatQty(card.reorder_point, card.unit)}
+        </p>
+        <p className="text-body-sm text-text-secondary">
+          몇 개 시킬지는 검토가 정해요. 사장님께 올릴까요?
+        </p>
+        <div className="flex gap-2">
+          <Button className="flex-1" disabled={disabled} onClick={() => onConfirm({})}>
+            사장님께 올리기
+          </Button>
+          <Button variant="secondary" disabled={disabled} onClick={onCancel}>
+            나중에
+          </Button>
+        </div>
       </div>
     );
   }

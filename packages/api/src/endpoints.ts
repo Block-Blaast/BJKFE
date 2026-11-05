@@ -31,6 +31,8 @@ export const ENDPOINTS = {
   chatInbox: '/api/chat/inbox',
   chatPendingConfirm: (pendingId: string) => `/api/chat/pending/${pendingId}/confirm`,
   chatPendingCancel: (pendingId: string) => `/api/chat/pending/${pendingId}/cancel`,
+  // [추가] 기록 중 재고 부족 초안 (F-NOTI-01) — 작업자가 제안을 누르면 검토를 만든다
+  chatStockDraft: (draftId: string) => `/api/chat/drafts/${draftId}`,
   // 기준 정보 (W-08, F-SETUP)
   partImports: '/api/setup/part-imports',
   partImportConfirm: (id: string) => `/api/setup/part-imports/${id}/confirm`,
@@ -42,4 +44,7 @@ export const ENDPOINTS = {
   // 리포트 (W-09)
   purchaseOrders: '/api/purchase-orders',
   simReports: '/api/sim-reports',
+  // [추가] 디지털 트윈 — 명세서에 없는 화면
+  twinLayout: '/api/twin/layout',
+  twinProjection: '/api/twin/projection',
 } as const;
