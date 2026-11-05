@@ -11,7 +11,6 @@ const authAll = ['auth'] as const;
 const auditsAll = ['audits'] as const;
 const chatAll = ['chat'] as const;
 const partsAll = ['parts'] as const;
-const activityAll = ['activity'] as const;
 const companyAll = ['company'] as const;
 const mergeAll = ['merge-candidates'] as const;
 const setupAll = ['setup'] as const;
@@ -19,6 +18,9 @@ const setupAll = ['setup'] as const;
 const twinAll = ['twin'] as const;
 const reportsAll = ['reports'] as const;
 const externalAll = ['external'] as const;
+const dashboardAll = ['dashboard'] as const;
+const activityAll = ['activity'] as const;
+const notificationsAll = ['notifications'] as const;
 
 export const queryKeys = {
   reviews: {
@@ -44,11 +46,6 @@ export const queryKeys = {
     all: companyAll,
     settings: () => [...companyAll, 'settings'] as const,
   },
-  // 기록·결정이 생기면 activity.all 도 무효화한다 (SSE 연동 전까지)
-  activity: {
-    all: activityAll,
-    today: () => [...activityAll, 'today'] as const,
-  },
   chat: {
     all: chatAll,
     inbox: () => [...chatAll, 'inbox'] as const,
@@ -66,6 +63,22 @@ export const queryKeys = {
     equipment: () => [...setupAll, 'equipment'] as const,
     maintenance: () => [...setupAll, 'maintenance'] as const,
     suppliers: () => [...setupAll, 'suppliers'] as const,
+    categories: () => [...setupAll, 'categories'] as const,
+    calendar: () => [...setupAll, 'calendar'] as const,
+  },
+  // 대시보드 요약 (DSH-02) — 기록·결정이 생기면 함께 무효화한다
+  dashboard: {
+    all: dashboardAll,
+    summary: () => [...dashboardAll, 'summary'] as const,
+  },
+  // 기록·결정이 생기면 activity.all 도 무효화한다 (SSE 연동 전까지)
+  activity: {
+    all: activityAll,
+    today: () => [...activityAll, 'today'] as const,
+  },
+  notifications: {
+    all: notificationsAll,
+    list: () => [...notificationsAll, 'list'] as const,
   },
   // 승인이 생기면 reports.all 도 무효화한다 (발주 기록·PDF는 승인 직후 만들어진다)
   reports: {
