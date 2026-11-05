@@ -6,13 +6,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
 import { ApiError } from '@bjk/api/client';
-import {
-  cancelPending,
-  chatQueries,
-  confirmPending,
-  createStockDraft,
-  sendChatMessage,
-} from '@bjk/api/chat';
+import { cancelPending, chatQueries, confirmPending, sendChatMessage } from '@bjk/api/chat';
 import type { AdjustReason } from '@bjk/api/domain/audit';
 import { queryKeys } from '@bjk/api/queryKeys';
 import type { ChatCard, ChatTurn } from '@bjk/api/types/chat';
@@ -57,7 +51,8 @@ const errorText = (error: unknown) => {
 const ChatThread = () => {
   const [messages, setMessages] = useState<Message[]>([GREETING]);
   const queryClient = useQueryClient();
-  // 시스템이 먼저 보낸 메시지(실사 요청 등)는 인사말 바로 다음에 보여준다 (F-AUDIT-06)
+  // 시스템이 먼저 보낸 메시지(응답 대기 실사 요청)는 인사말 바로 다음에 보여준다 (F-AUDIT-06, GET /v1/chat/inbox)
+  // 숫자로 답하면 서버가 실사 응답(COUNT)으로 처리하고 인박스에서 뺀다
   const inbox = useQuery(chatQueries.inbox());
   const inboxMessages: Message[] = (inbox.data ?? []).map((item) => ({
     id: item.id,
@@ -101,17 +96,6 @@ const ChatThread = () => {
     );
 
   const send = useMutation({ mutationFn: sendChatMessage });
-  // 재고 부족 제안 → 검토 생성. 원장은 건드리지 않으므로 재고 쿼리는 무효화하지 않는다.
-  // 결정 대기 검토의 수정안은 3D 창고의 "발주하면" 예측에 들어가므로 twin 은 무효화한다.
-  const raise = useMutation({
-    mutationFn: createStockDraft,
-    onSuccess: () =>
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.reviews.all }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.briefing.all }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.twin.all }),
-      ]),
-  });
   const confirm = useMutation({
     mutationFn: ({
       pendingId,
@@ -130,10 +114,9 @@ const ChatThread = () => {
         queryClient.invalidateQueries({ queryKey: queryKeys.reports.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.audits.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.briefing.all }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.chat.inbox() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.parts.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.twin.all }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.activity.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
       ]),
   });
   const cancel = useMutation({ mutationFn: cancelPending });
@@ -146,6 +129,8 @@ const ChatThread = () => {
         onSuccess: (turn) => {
           setUserStatus(id, 'sent');
           appendBotTurn(turn);
+          // 실사 응답이면 인박스에서 빠진다
+          void queryClient.invalidateQueries({ queryKey: queryKeys.chat.inbox() });
         },
         onError: (error) => {
           setUserStatus(id, 'failed');
@@ -173,17 +158,6 @@ const ChatThread = () => {
     input: { partId?: string; adjustReason?: AdjustReason },
   ) => {
     if (card.type === 'unregistered') return;
-    // 재고 부족 제안은 원장이 아니라 검토를 만든다 (F-NOTI-01). 수량은 서버가 정한다.
-    if (card.type === 'reorder') {
-      raise.mutate(card.draft_id, {
-        onSuccess: (turn) => {
-          resolveCard(messageId);
-          appendBotTurn(turn);
-        },
-        onError: (error) => appendBotTurn({ reply: errorText(error) }),
-      });
-      return;
-    }
     confirm.mutate(
       { pendingId: card.pending_id, ...input },
       {
@@ -202,11 +176,6 @@ const ChatThread = () => {
 
   const handleCancel = (messageId: string, card: ChatCard) => {
     if (card.type === 'unregistered') return;
-    if (card.type === 'reorder') {
-      resolveCard(messageId);
-      appendBotTurn({ reply: '알겠어요. 다음에 기록할 때 다시 알려드릴게요.' });
-      return;
-    }
     cancel.mutate(card.pending_id, {
       onSuccess: (turn) => {
         resolveCard(messageId);
@@ -217,13 +186,14 @@ const ChatThread = () => {
   };
 
   // 칩은 문장을 채워 줄 뿐이다 — 보내면 확인 카드(F-CHAT-02)를 그대로 거친다.
-  const insertPart = (name: string, qty: number, unit: string) => {
-    setDraft(`${name} ${qty}${unit} 씀`);
+  // 백엔드 설비 정보에는 부품 단위가 없어 '개'로 쓴다
+  const insertPart = (name: string, qty: number) => {
+    setDraft(`${name} ${qty}개 씀`);
     setPickedEquipment(null);
     inputRef.current?.focus();
   };
 
-  const busy = confirm.isPending || cancel.isPending || raise.isPending;
+  const busy = confirm.isPending || cancel.isPending;
 
   return (
     <div className="-mx-4 -my-6 flex min-h-0 flex-1 flex-col">
@@ -279,7 +249,7 @@ const ChatThread = () => {
 
       <div className="flex shrink-0 flex-col gap-2 border-t border-border-default bg-bg-surface px-4 py-3">
         {equipment.data?.length ? (
-          <div className="flex gap-2 overflow-x-auto">
+          <div className="flex flex-wrap gap-2">
             {equipment.data.map((item) => (
               <button
                 key={item.id}
@@ -299,16 +269,15 @@ const ChatThread = () => {
         ) : null}
         {/* 설비를 고르면 그 설비의 정비 부품을 버튼으로 보여 준다. 고르지 않았을 때는 버튼 줄을 두지 않는다 */}
         {picked ? (
-          <div className="flex gap-2 overflow-x-auto">
+          <div className="flex flex-wrap gap-2">
             {picked.parts.map((part) => (
               <button
                 key={part.part_id}
                 type="button"
                 className="h-11 shrink-0 rounded-full bg-bg-brand-subtle px-4 text-label-md text-text-brand active:bg-bg-brand-subtle-hover"
-                onClick={() => insertPart(part.part_name, part.qty, part.unit)}
+                onClick={() => insertPart(part.part_name, part.qty)}
               >
-                {part.part_name} {part.qty}
-                {part.unit}
+                {part.part_name} {part.qty}개
               </button>
             ))}
           </div>
