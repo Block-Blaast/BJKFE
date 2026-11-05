@@ -1,35 +1,38 @@
-// 회사 설정·직원·초대 (W-10) — 임시 계약. 값의 뜻과 기본값은 명세서를, HTTP 형식은 임시로 정했다.
-// 백엔드 OpenAPI 가 나오면 생성된 타입으로 교체하고, 이 파일을 지운다.
+// 회사 설정·직원·초대 (W-10) — 백엔드 SYS-01(docs/api-spec/system.md), AUTH-06·09(auth.md) 형식.
 import type { Role } from '../domain/auth';
 
-// 검토 기준값 — "기준값은 회사별 설정값이며 F-SIM 으로 조정한다" (F-REVIEW-04)
+// 검토 기준값 — 사장님이 바꾸는 값 (SYS-01 review). 허용 범위는 서버가 검사한다
 export type ReviewSettings = {
-  deadline_days: number; // C-08 마감 임박: 마감까지 N일 이하 (기본 5)
-  price_sigma: number; // C-05 단가 이상(n ≥ 3): 평균 + Nσ 초과 (기본 2)
-  price_min_ratio: number; // C-05 단가 이상(n ≥ 3): 평균 × N 초과도 함께 (기본 1.05)
-  price_few_ratio: number; // C-05 단가 이상(n = 1~2): 평균 × N 초과 (기본 1.15)
-  cheaper_ratio: number; // C-06 더 싼 공급사: 요청 단가 × N 이하 (기본 0.9)
-  supplier_keep_pct: number; // F-REVIEW-05 요청 공급사가 최저가와 N% 이내면 유지 (기본 3)
-  tier_increase_pct: number; // F-REVIEW-05 단가 구간 대안: 총액 증가 N% 이내 (기본 5)
-  next_order_weeks: number; // F-REVIEW-02 대비 기간 T = LT90 + 다음 발주까지 N주 (기본 4)
-  service_level: { A: number; B: number; C: number }; // F-ANAL-06 재주문점 서비스 수준 % (98·95·90)
-  missed_p_out_pct: number; // F-MISSED-01 놓친 발주: 결품 확률 N% 이상 (기본 30)
-  missed_deadline_days: number; // F-MISSED-01 놓친 발주: 마감이 오늘 + N일 이내 (기본 3)
+  service_level: { A: number; B: number; C: number }; // F-ANAL-06 재주문점 서비스 수준, 0.80~0.995
+  next_order_weeks: number; // F-REVIEW-02 대비 기간 T = LT90 + 다음 발주까지 N주 (1~8)
+  c02_months: number; // C-02 장기 재고화 기준 개월 (3~24)
+  c05_sigma: number; // C-05 단가 이상: 평균 + Nσ 초과 (1~3)
+  c06_ratio: number; // C-06 더 싼 공급사: 요청 단가 × N 이하 (0.5~0.95)
+  c08_days: number; // C-08 마감 임박: 마감까지 N일 이하 (1~14)
 };
 
 // 알림 (F-NOTI-03): 조용한 시간에는 긴급도 모아서 아침에 보낸다
-export type NotificationSettings = {
-  quiet_start: string; // 'HH:mm' (기본 21:00)
-  quiet_end: string; // 'HH:mm' (기본 07:00)
+export type NotifySettings = {
+  quiet_hours: { start: string; end: string }; // 'HH:MM'
+  briefing_time: string; // 'HH:MM', 06:00~10:00
+};
+
+// 시뮬레이션 결과로만 조정하는 시스템 값 — 사장님은 읽기만 한다 (PATCH 하면 400)
+export type SystemSettings = {
+  c05_min_ratio: number;
+  c05_small_n_ratio: number;
+  missed_p_out_min: number;
+  [key: string]: number;
 };
 
 export type CompanySettings = {
+  notify: NotifySettings;
   review: ReviewSettings;
-  notifications: NotificationSettings;
-  updated_at: string | null;
+  system: SystemSettings;
+  updated_at: string | null; // 기본값 그대로면 null
 };
 
-export type UpdateCompanySettingsInput = Pick<CompanySettings, 'review' | 'notifications'>;
+export type UpdateCompanySettingsInput = Pick<CompanySettings, 'notify' | 'review'>;
 
 // 사장님은 가입으로만 생긴다. 초대·역할 변경은 작업자 ↔ 관리자만 (F-AUTH-01·03)
 export type StaffRole = Exclude<Role, 'owner'>;
