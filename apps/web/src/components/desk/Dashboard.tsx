@@ -9,7 +9,7 @@ import {
   Inbox,
   Info,
   Package,
-  PackageX,
+  PackageCheck,
   TriangleAlert,
   type LucideIcon,
 } from 'lucide-react';
@@ -17,30 +17,21 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import type { AuditGrade } from '@bjk/api/domain/audit';
-import type { ActivityKind } from '@bjk/api/types/activity';
-import type { Part } from '@bjk/api/types/part';
 
 import { entryLabelOf } from '@/components/review/labels';
 import VerdictTags from '@/components/review/VerdictTags';
 import ComputedAt from '@/components/ui/ComputedAt';
 import IconCircle, { type IconCircleTone } from '@/components/ui/IconCircle';
 import Tag, { type TagTone } from '@/components/ui/Tag';
-import { useTodayActivity } from '@/hooks/activity/useTodayActivity';
 import { useAudits } from '@/hooks/audit/useAudits';
-import { useParts } from '@/hooks/part/useParts';
+import { useTodayActivity } from '@/hooks/activity/useTodayActivity';
+import { useDashboardSummary } from '@/hooks/dashboard/useDashboardSummary';
 import { useReviews } from '@/hooks/review/useReviews';
-import { formatDate, formatQty, formatWon } from '@/utils/format';
+import { formatComputedAt, formatDate, formatWon } from '@/utils/format';
 import { TABLE, TD, TH, TR } from '@/components/ui/table';
 
 const EMPTY = '—';
 const TOP = 5;
-
-const timeFormat = new Intl.DateTimeFormat('ko-KR', {
-  timeZone: 'Asia/Seoul',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-});
 
 const Card = ({
   title,
@@ -118,47 +109,12 @@ const Stat = ({
   </div>
 );
 
-// 결품 위험 순위: 명세서 우선순위는 P_out × L (F-ANAL-08). 값이 없으면 소진 예상일이 이른 순으로 대신한다.
-const riskOrder = (parts: Part[]) => {
-  const scored = parts.filter((p) => p.metrics.p_out !== null && p.metrics.loss !== null);
-  if (scored.length > 0) {
-    return {
-      byPriority: true,
-      items: [...scored].sort(
-        (a, b) => b.metrics.p_out! * b.metrics.loss! - a.metrics.p_out! * a.metrics.loss!,
-      ),
-    };
-  }
-  return {
-    byPriority: false,
-    items: parts
-      .filter((p) => p.metrics.t_out !== null)
-      .sort((a, b) => a.metrics.t_out!.localeCompare(b.metrics.t_out!)),
-  };
-};
-
-// 단가가 등록된 부품만 계산할 수 있다
-const tiedUpValue = (parts: Part[]) => {
-  const priced = parts.filter((p) => p.supplier?.unit_price);
-  return {
-    total: priced.reduce((sum, p) => sum + p.stock * (p.supplier!.unit_price ?? 0), 0),
-    priced: priced.length,
-    all: parts.length,
-  };
-};
+const percent = new Intl.NumberFormat('ko-KR', { style: 'percent', maximumFractionDigits: 0 });
 
 const GRADE_TAG: Record<AuditGrade, { tone: TagTone; icon: LucideIcon }> = {
   높음: { tone: 'danger', icon: TriangleAlert },
   중간: { tone: 'warning', icon: CircleAlert },
   낮음: { tone: 'neutral', icon: Info },
-};
-
-const ACTIVITY_ICON: Record<ActivityKind, LucideIcon> = {
-  movement: Package,
-  review_created: Inbox,
-  review_decided: Inbox,
-  audit_requested: ClipboardCheck,
-  audit_resolved: ClipboardCheck,
 };
 
 const EXTERNAL_FACTORS = [
@@ -169,21 +125,19 @@ const EXTERNAL_FACTORS = [
 
 const ROW = 'border-t border-border-default first:border-t-0';
 
-// 대시보드 (W-01). 다른 화면과 같은 쿼리를 써서, 승인·실사·기록이 생기면 함께 갱신된다.
+// 대시보드 (W-01). 숫자 카드·결품 위험·오늘 기록은 대시보드 요약(DSH-02) 하나로 받는다 — 우선순위·묶인 재고 금액은 서버가 계산한다.
+// 목록 카드(검토·의심 항목)는 다른 화면과 같은 쿼리를 써서, 승인·실사·기록이 생기면 함께 갱신된다.
 // 카드마다 따로 불러와서 하나가 실패해도 나머지는 보인다.
-// 왼쪽(결품 위험·오늘 활동)과 오른쪽(검토·의심·외부 요인)을 독립 열로 쌓아, 카드 높이가 달라도 빈틈이 생기지 않게 한다.
+// 왼쪽(결품 위험·오늘 기록)과 오른쪽(검토·의심·외부 요인)을 독립 열로 쌓아, 카드 높이가 달라도 빈틈이 생기지 않게 한다.
 // TODO(W-01): SSE(stock.changed, review.created, review.decided, audit.flagged)로 실시간 갱신
 const Dashboard = () => {
+  const summary = useDashboardSummary();
+  const activity = useTodayActivity();
   const reviews = useReviews({ status: 'pending' });
   const audits = useAudits({ status: 'active' });
-  const parts = useParts({});
-  const activity = useTodayActivity();
 
-  const urgent = reviews.data?.filter((r) => r.flags.includes('긴급')).length ?? 0;
-  const highAudits = audits.data?.filter((a) => a.grade === '높음').length ?? 0;
-  const risk = parts.data ? riskOrder(parts.data) : null;
-  const value = parts.data ? tiedUpValue(parts.data) : null;
-  const computedAt = parts.data?.find((p) => p.metrics.computed_at)?.metrics.computed_at;
+  const s = summary.data;
+  const computedAt = s?.computed_at;
 
   return (
     <div className="flex flex-col gap-6">
@@ -206,134 +160,137 @@ const Dashboard = () => {
           hero
           icon={Inbox}
           label="결정 대기 검토"
-          value={reviews.data ? `${reviews.data.length}건` : EMPTY}
-          note={urgent ? `긴급 ${urgent}건` : undefined}
+          value={s ? `${s.pending_reviews.count}건` : EMPTY}
+          note={s?.pending_reviews.urgent ? `긴급 ${s.pending_reviews.urgent}건` : undefined}
         />
         <Stat
           icon={ClipboardCheck}
           tone="inverse"
           label="확인할 재고"
-          value={audits.data ? `${audits.data.length}건` : EMPTY}
-          note={highAudits ? `높음 ${highAudits}건` : undefined}
+          value={s ? `${s.audit_flags.open}건` : EMPTY}
+          note={s?.audit_flags.high ? `높음 ${s.audit_flags.high}건` : undefined}
         />
         <Stat
-          icon={PackageX}
+          icon={PackageCheck}
           tone="gradient"
-          label="결품 위험 부품"
-          value={risk ? `${risk.items.length}종` : EMPTY}
-          note={risk && !risk.byPriority ? '소진 예상일이 있는 부품' : undefined}
+          label="주문 대기 발주"
+          value={s ? `${s.awaiting_order}건` : EMPTY}
+          note={s ? '승인 후 주문 표시 전' : undefined}
         />
         <Stat
           icon={Coins}
           label="묶인 재고 금액"
-          value={value ? (value.priced ? formatWon(value.total) : EMPTY) : EMPTY}
-          note={value ? `단가 등록 ${value.priced}/${value.all}종 기준` : undefined}
+          value={s ? formatWon(s.tied_up_stock_amount) : EMPTY}
+          note={s ? '180일 동안 안 나간 재고' : undefined}
         />
       </div>
 
       <div className="grid grid-cols-5 items-start gap-5">
         <div className="col-span-3 flex flex-col gap-5">
           <Card title="결품 위험 상위 5" href="/parts">
-            {parts.isPending ? (
+            {summary.isPending ? (
               <Muted>불러오는 중이에요…</Muted>
-            ) : parts.isError ? (
-              <Muted>부품을 불러오지 못했어요.</Muted>
-            ) : risk!.items.length === 0 ? (
-              <Muted>소진이 예상되는 부품이 없어요.</Muted>
+            ) : summary.isError ? (
+              <Muted>결품 위험을 불러오지 못했어요.</Muted>
+            ) : summary.data.risk_top5.length === 0 ? (
+              <Muted>결품 위험을 계산한 부품이 아직 없어요.</Muted>
             ) : (
-              <>
-                <table className={`${TABLE} tabular-nums`}>
-                  <thead>
-                    <tr>
-                      <th scope="col" className={`${TH} text-left`}>
-                        부품
-                      </th>
-                      <th scope="col" className={`${TH} text-right`}>
-                        현재 재고
-                      </th>
-                      <th scope="col" className={`${TH} text-right`}>
-                        소진 예상
-                      </th>
-                      <th scope="col" className={`${TH} text-right`}>
-                        발주 마감
-                      </th>
+              <table className={`${TABLE} tabular-nums`}>
+                <thead>
+                  <tr>
+                    <th scope="col" className={`${TH} text-left`}>
+                      부품
+                    </th>
+                    <th scope="col" className={`${TH} text-right`}>
+                      결품 확률
+                    </th>
+                    <th scope="col" className={`${TH} text-right`}>
+                      예상 손실
+                    </th>
+                    <th scope="col" className={`${TH} text-right`}>
+                      소진 예상
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summary.data.risk_top5.map((r) => (
+                    <tr key={r.part_id} className={TR}>
+                      <td className={TD}>
+                        <Link
+                          href={`/parts/${r.part_id}`}
+                          className="flex items-center gap-3 text-label-md text-text-heading hover:text-text-brand"
+                        >
+                          <span className="flex size-9 items-center justify-center rounded-full bg-bg-subtle text-text-secondary">
+                            <Boxes size={16} aria-hidden />
+                          </span>
+                          {r.name}
+                        </Link>
+                      </td>
+                      <td className={`${TD} text-right text-text-body`}>
+                        {percent.format(r.p_out)}
+                      </td>
+                      <td className={`${TD} text-right text-text-body`}>{formatWon(r.loss)}</td>
+                      <td className={`${TD} text-right text-text-heading`}>
+                        {r.t_out ? formatDate(r.t_out) : EMPTY}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {risk!.items.slice(0, TOP).map((p) => (
-                      <tr key={p.id} className={TR}>
-                        <td className={TD}>
-                          <Link
-                            href={`/parts/${p.id}`}
-                            className="flex items-center gap-3 text-label-md text-text-heading hover:text-text-brand"
-                          >
-                            <span className="flex size-9 items-center justify-center rounded-full bg-bg-subtle text-text-secondary">
-                              <Boxes size={16} aria-hidden />
-                            </span>
-                            {p.name}
-                          </Link>
-                        </td>
-                        <td className={`${TD} text-right text-text-body`}>
-                          {formatQty(p.stock, p.unit)}
-                        </td>
-                        <td className={`${TD} text-right text-text-body`}>
-                          {p.metrics.t_out ? formatDate(p.metrics.t_out) : EMPTY}
-                        </td>
-                        <td className={`${TD} text-right text-text-heading`}>
-                          {p.metrics.t_deadline ? formatDate(p.metrics.t_deadline) : EMPTY}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {!risk!.byPriority ? (
-                  <Muted>
-                    결품 확률 × 예상 손실(우선순위)이 아직 계산 전이라 소진 예상일이 이른 순이에요.
-                  </Muted>
-                ) : null}
-              </>
+                  ))}
+                </tbody>
+              </table>
             )}
           </Card>
 
-          <Card title="오늘 활동">
-            {activity.isPending ? (
+          {/* 건수는 대시보드 요약, 항목별 흐름은 오늘 활동(GET /v1/activity/today, 백엔드 PR 278 머지 후)에서 온다 */}
+          <Card title="오늘 기록">
+            {summary.isPending ? (
               <Muted>불러오는 중이에요…</Muted>
-            ) : activity.isError ? (
-              <Muted>활동을 불러오지 못했어요.</Muted>
-            ) : activity.data.length === 0 ? (
-              <Muted>오늘은 아직 기록이 없어요.</Muted>
+            ) : summary.isError ? (
+              <Muted>오늘 기록을 불러오지 못했어요.</Muted>
             ) : (
-              <ol className="flex flex-col">
-                {activity.data.map((event) => {
-                  const Icon = ACTIVITY_ICON[event.kind];
-                  const body = (
-                    <>
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-bg-subtle text-text-secondary">
-                        <Icon size={16} aria-hidden />
-                      </span>
-                      <span className="flex-1 text-body-sm text-text-body">{event.text}</span>
-                      <span className="shrink-0 text-label-sm text-text-secondary tabular-nums">
-                        {timeFormat.format(new Date(event.at))}
-                      </span>
-                    </>
-                  );
-                  return (
-                    <li key={event.id} className={ROW}>
-                      {event.href ? (
-                        <Link
-                          href={event.href}
-                          className="flex items-center gap-3 py-3 hover:text-text-brand"
-                        >
-                          {body}
-                        </Link>
-                      ) : (
-                        <div className="flex items-center gap-3 py-3">{body}</div>
-                      )}
-                    </li>
-                  );
-                })}
-              </ol>
+              <dl className="grid grid-cols-3 gap-3">
+                {(
+                  [
+                    ['입출고 기록', summary.data.today.movements, Package],
+                    ['새 검토', summary.data.today.reviews_created, Inbox],
+                    ['결정', summary.data.today.decisions, ClipboardCheck],
+                  ] as const
+                ).map(([label, count, Icon]) => (
+                  <div key={label} className="flex items-center gap-3 rounded-md bg-bg-page p-4">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-bg-subtle text-text-secondary">
+                      <Icon size={16} aria-hidden />
+                    </span>
+                    <div className="flex flex-col">
+                      <dt className="text-label-sm text-text-secondary">{label}</dt>
+                      <dd className="text-h3 text-text-heading tabular-nums">{count}건</dd>
+                    </div>
+                  </div>
+                ))}
+              </dl>
             )}
+            {activity.data?.length ? (
+              <ul className="flex flex-col">
+                {activity.data.map((a) => (
+                  <li key={a.id} className={`flex items-center justify-between gap-3 py-3 ${ROW}`}>
+                    {a.href ? (
+                      <Link
+                        href={a.href}
+                        className="truncate text-body-sm text-text-body hover:text-text-brand"
+                      >
+                        {a.text}
+                      </Link>
+                    ) : (
+                      <span className="truncate text-body-sm text-text-body">{a.text}</span>
+                    )}
+                    <time
+                      dateTime={a.at}
+                      className="shrink-0 text-label-sm text-text-secondary tabular-nums"
+                    >
+                      {formatComputedAt(a.at)}
+                    </time>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </Card>
         </div>
         <div className="col-span-2 flex flex-col gap-5">
