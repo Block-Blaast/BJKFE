@@ -3,215 +3,230 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>블록블라스트 3D 창고</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<title>3D 창고</title>
 <style>
-/* Layout: 화면 전체가 3D 창고 시뮬레이션. 위에 작은 컨트롤, 칸을 누르면 정보 카드. 프로젝트 톤에 맞춘 연한 하늘색 단일 테마 */
+/*
+ * 3D 창고(W-11) — 바깥 React 화면(/warehouse)이 iframe 으로 띄우고 window.warehouse 로 데이터를 넣는다.
+ * 이 파일은 계산하지 않고 받은 TwinLayout / TwinProjection 을 그리기만 한다. 정보 카드·범례·버튼은 바깥 오버레이가 맡는다.
+ *
+ * 색은 두 종류다.
+ * 1) 의미가 있는 색(상태·강조·설비 경광등)은 바깥 문서의 토큰(packages/ui/src/tokens.css)을 읽는다.
+ *    아래 --color-* 값은 단독으로 열어 parent 를 못 읽을 때의 대체값이며, tokens.css 값을 그대로 옮겨 둔 것이다.
+ * 2) --look-* 는 지금 창고 외형(하늘색 배경, 파란 조립식 랙, 파스텔 상자, 노란 지게차, 타일 바닥)을 만드는 색이다.
+ *    tokens.css 에 맞는 토큰이 없어(예: 배경 #eef5fb 는 brand-50 #eaf4ff 와 다르다) 외형 유지를 우선해 이 한 곳에 모았다.
+ * 이 파일의 색은 모두 이 :root 블록에만 있다. 스크립트도 여기서 읽는다.
+ */
 :root {
   color-scheme: light;
-  --sky: #eef5fb;
-  --ink: #23384a;
-  --muted: #6a8195;
-  --line: #d3e2ee;
-  --card: rgba(255, 255, 255, 0.86);
-  --accent: #4a9fe0;
-  --ok: #6cc79a;
-  --low: #ef8e7d;
-  --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  /* 1) 토큰 대체값 (tokens.css 와 같은 이름·같은 값) */
+  --color-gray-0: #ffffff;
+  --color-gray-50: #f7f8fa;
+  --color-gray-200: #e4e7ec;
+  --color-gray-300: #d0d5dd;
+  --color-gray-400: #98a2b3;
+  --color-gray-500: #667085;
+  --color-gray-700: #344054;
+  --color-gray-900: #101828;
+  --color-brand-200: #a9d2ff;
+  --color-brand-400: #2f96ff;
+  --color-brand-500: #0e7dff;
+  --color-brand-600: #0a68db;
+  --color-green-500: #22b573;
+  --color-orange-50: #ffebd6;
+  --color-orange-500: #ff8a1f;
+  --color-red-50: #ffe9ec;
+  --color-red-500: #f2415a;
+  --color-sub-500: #fbd725;
+  --text-secondary: var(--color-gray-500);
+  /* 2) 외형 색 — 맞는 토큰이 없다 */
+  --look-sky: #eef5fb;
+  --look-ground: #cfdfec;
+  --look-tile: #f6f9fc;
+  --look-tile-line: #dde8f1;
+  --look-floor-line: #9fcbec;
+  --look-zone-text: rgba(110, 170, 220, 0.75);
+  --look-pillar: #e2eaf1;
+  --look-upright: #86b9e3;
+  --look-beam: #bcdaf2;
+  --look-deck: #e6edf3;
+  --look-sign: #3a86c4;
+  --look-edge: #8aa6bd;
+  --look-forklift: #f3e0a8;
+  --look-forklift-dark: #8d9fae;
+  --look-steel: #c8d4de;
+  --look-pallet: #dcc9ad;
+  --look-crate-1: #a9c8ee;
+  --look-crate-2: #f3e0a8;
+  --look-crate-3: #f1c0b6;
+  --look-crate-4: #bfe2cc;
+  --look-crate-5: #d4dbe1;
+  --look-crate-6: #e6d3bd;
+  --font-body: 'Pretendard Variable', Pretendard, system-ui, sans-serif;
 }
 html, body { height: 100%; margin: 0; }
-body { background: var(--sky); color: var(--ink); font-family: var(--font-body); font-size: 14px; overflow: hidden; }
-button { font: inherit; color: inherit; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+body { background: var(--look-sky); color: var(--color-gray-700); font-family: var(--font-body); font-size: 14px; overflow: hidden; }
 #stage { position: fixed; inset: 0; }
 #stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
-.glass { background: var(--card); backdrop-filter: blur(10px); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 6px 20px rgba(60, 110, 150, 0.12); }
-.top { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 14px); left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; pointer-events: none; }
-.top > * { pointer-events: auto; }
-.brand { padding: 9px 14px; display: flex; align-items: baseline; gap: 10px; }
-.brand h1 { margin: 0; font-size: 15px; font-weight: 600; }
-.brand span { font-size: 12px; color: var(--muted); }
-.btns { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
-.btn { padding: 8px 13px; cursor: pointer; font-size: 13px; }
-.btn:hover, .btn[aria-pressed="true"] { border-color: var(--accent); color: #2f7fc0; }
-.legend { position: fixed; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); left: max(16px, env(safe-area-inset-left, 0px)); padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); max-width: min(560px, calc(100% - 32px)); }
-.legend span { display: inline-flex; align-items: center; gap: 6px; }
-.legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
-.info { position: fixed; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); right: max(16px, env(safe-area-inset-right, 0px)); width: min(280px, calc(100% - 32px)); padding: 14px 16px; display: grid; gap: 8px; }
-.info .eyebrow { font-size: 11px; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
-.info h2 { margin: 0; font-family: var(--font-mono); font-size: 20px; font-weight: 600; }
-.info .row { display: flex; justify-content: space-between; gap: 8px; padding: 7px 10px; background: rgba(238, 245, 251, 0.9); border-radius: 8px; }
-.info .row b { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 600; }
-.info .empty { color: var(--muted); font-size: 13px; }
-.pill { font-size: 11px; padding: 1px 7px; border-radius: 99px; background: #fde4df; color: #b5503f; margin-left: 4px; }
-.hint { font-size: 12px; color: var(--muted); }
-@media (max-width: 640px) {
-  .brand span { display: none; }
-  .info { bottom: calc(env(safe-area-inset-bottom, 0px) + 110px); }
-}
+#fail { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; padding: 16px; text-align: center; color: var(--text-secondary); font-size: 15px; font-weight: 500; }
+#fail.show { display: flex; }
 </style>
 </head>
 <body>
-<div id="stage" role="img" aria-label="3D 창고 시뮬레이션"></div>
-
-<div class="top">
-  <div class="brand glass"><h1>블록블라스트 3D 창고</h1><span>시뮬레이션 예시</span></div>
-  <div class="btns">
-    <button class="btn glass" id="btnFind" type="button">숨은 재고 찾기 예시</button>
-    <button class="btn glass" id="btnAll" type="button">전체 보기</button>
-    <button class="btn glass" id="btnTop" type="button" aria-pressed="false">탑뷰</button>
-  </div>
-</div>
-
-<div class="legend glass" aria-label="범례">
-  <span><i style="background:var(--ok)"></i>정상</span>
-  <span><i style="background:var(--low)"></i>품목 부족</span>
-  <span><i style="background:#d3dde6"></i>빈 칸</span>
-  <span><i style="background:var(--accent)"></i>선택·강조</span>
-  <span><i style="background:#a9c8ee"></i>베어링</span>
-  <span><i style="background:#f3e0a8"></i>체결류</span>
-  <span><i style="background:#f1c0b6"></i>기계 부품</span>
-  <span><i style="background:#bfe2cc"></i>전기</span>
-  <span><i style="background:#d4dbe1"></i>원자재</span>
-  <span><i style="background:#e6d3bd"></i>완제품</span>
-</div>
-
-<div class="info glass" id="info" aria-live="polite">
-  <div class="eyebrow">칸 정보</div>
-  <p class="hint" style="margin:0">드래그로 회전, 휠로 확대하고 선반 칸을 눌러 보세요.</p>
-</div>
+<div id="stage" role="img" aria-label="3D 창고"></div>
+<div id="fail" role="alert">3D를 불러오지 못했습니다</div>
 
 <script>
-  setTimeout(function () {
-    if (window.__whReady) return;
-    var info = document.getElementById('info');
-    if (info) info.innerHTML = '<div class="eyebrow">불러오기 실패</div><p class="hint" style="margin:0">3D 화면을 그리는 데 필요한 파일을 받지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.</p>';
-  }, 10000);
+  // 안전망: 모듈이 끝까지 준비되지 않으면(파일을 못 받음·WebGL 없음 등) 빈 하늘색 대신 안내를 띄운다.
+  window.__whFail = function (err) {
+    if (err) console.error('[warehouse-3d]', err);
+    var el = document.getElementById('fail');
+    if (el) el.className = 'show';
+  };
+  setTimeout(function () { if (!window.__whReady) window.__whFail(); }, 10000);
 </script>
 <script type="importmap">
 { "imports": {
-  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  "three": "/vendor/three/three.module.js",
+  "three/addons/controls/OrbitControls.js": "/vendor/three/OrbitControls.js"
 } }
 </script>
 <script type="module">
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+let THREE, OrbitControls;
+try {
+  THREE = await import('three');
+  ({ OrbitControls } = await import('three/addons/controls/OrbitControls.js'));
+} catch (err) {
+  window.__whFail(err);
+  throw err;
+}
 
-/* ---------- 예시 데이터 ---------- */
-const ZONES = [
-  { id: 'A', name: '원자재', x0: -22, x1: -6 },
-  { id: 'B', name: '부품', x0: -5, x1: 15 },
-  { id: 'C', name: '완제품', x0: 16, x1: 29 },
-];
-const SHELVES = [
-  { code: 'A-01', x: -14, z: -6, levels: 4, slots: 4 },
-  { code: 'A-02', x: -14, z: 1, levels: 4, slots: 4 },
-  { code: 'B-01', x: 0, z: -6, levels: 4, slots: 4 },
-  { code: 'B-02', x: 0, z: 1, levels: 4, slots: 4 },
-  { code: 'B-03', x: 10, z: -6, levels: 4, slots: 4 },
-  { code: 'B-04', x: 10, z: 1, levels: 4, slots: 4 },
-  { code: 'C-01', x: 22.5, z: -6, levels: 3, slots: 4 },
-  { code: 'C-02', x: 22.5, z: 1, levels: 3, slots: 4 },
-];
-const CAT = { bearing: '#a9c8ee', fastener: '#f3e0a8', mech: '#f1c0b6', elec: '#bfe2cc', raw: '#d4dbe1', product: '#e6d3bd' };
-const ITEMS = [
-  ['b6205', '6205 베어링', 'bearing', '개', 20], ['b6305', '6305 베어링', 'bearing', '개', 10],
-  ['m8', 'M8 볼트', 'fastener', '개', 200], ['m6', 'M6 볼트', 'fastener', '개', 200], ['n8', 'M8 너트', 'fastener', '개', 200], ['w8', 'M8 와셔', 'fastener', '개', 200],
-  ['belt', '모터 벨트 A-42', 'mech', '개', 4], ['coup', '커플링 19-19', 'mech', '개', 4], ['oring', 'O링 P20', 'mech', '개', 50],
-  ['hose', '유압 호스 1/2', 'mech', '개', 6], ['grease', '그리스 카트리지', 'mech', '개', 6], ['tape', '테프론 테이프', 'mech', '개', 20],
-  ['relay', '릴레이 24V', 'elec', '개', 10], ['fuse', '퓨즈 10A', 'elec', '개', 30], ['cable', '전선 2.5SQ', 'elec', '롤', 2],
-  ['sheet', 'SUS 판재 2T', 'raw', '장', 5], ['pipe', '각파이프 30×30', 'raw', '개', 10], ['paint', '방청 도료', 'raw', '통', 3],
-  ['pump', '펌프 하우징 PH-200', 'product', '개', 3], ['imp', '임펠러 PH-200', 'product', '개', 3], ['box', '포장 박스 대', 'product', '개', 30],
-].map(([id, name, cat, unit, min]) => ({ id, name, color: CAT[cat], unit, min }));
-const STOCK = [
-  ['A-01-1-1', 'sheet', 8], ['A-01-1-2', 'sheet', 4], ['A-01-1-3', 'pipe', 14], ['A-01-2-1', 'paint', 2],
-  ['A-01-2-2', 'grease', 9], ['A-01-3-1', 'cable', 1], ['A-01-4-1', 'pipe', 8],
-  ['A-02-1-1', 'b6205', 30], ['A-02-2-1', 'grease', 6], ['A-02-2-3', 'tape', 25], ['A-02-3-4', 'm8', 120], ['A-02-4-2', 'sheet', 6],
-  ['B-01-1-1', 'oring', 60], ['B-01-1-2', 'coup', 3], ['B-01-2-3', 'b6205', 12], ['B-01-2-4', 'b6305', 8],
-  ['B-01-3-1', 'oring', 40], ['B-01-4-4', 'tape', 30],
-  ['B-02-1-1', 'm8', 180], ['B-02-1-2', 'm6', 260], ['B-02-1-3', 'n8', 300], ['B-02-1-4', 'w8', 220],
-  ['B-02-2-2', 'm6', 120], ['B-02-3-3', 'n8', 200], ['B-02-4-1', 'w8', 150],
-  ['B-03-1-1', 'hose', 7], ['B-03-2-1', 'relay', 12], ['B-03-2-2', 'fuse', 40], ['B-03-3-1', 'belt', 2],
-  ['B-03-3-3', 'fuse', 25], ['B-03-4-2', 'relay', 8],
-  ['B-04-1-1', 'imp', 2], ['B-04-1-2', 'pump', 4], ['B-04-2-2', 'hose', 3], ['B-04-3-1', 'pump', 3],
-  ['C-01-1-1', 'box', 40], ['C-01-1-2', 'box', 15], ['C-01-2-1', 'box', 30], ['C-01-3-3', 'box', 20],
-  ['C-02-1-1', 'pump', 5], ['C-02-2-2', 'box', 25],
-].map(([loc, itemId, qty]) => ({ loc, itemId, qty }));
+/* ---------- 색 ---------- */
+// 의미 색은 바깥 토큰 → 이 문서의 대체값 순으로, 외형 색은 이 문서의 :root 에서 읽는다.
+const ownStyle = getComputedStyle(document.documentElement);
+let parentStyle = null;
+try { if (window.parent !== window) parentStyle = getComputedStyle(window.parent.document.documentElement); } catch { parentStyle = null; }
+const token = (name) => (parentStyle && parentStyle.getPropertyValue(name).trim()) || ownStyle.getPropertyValue(name).trim();
+const look = (name) => ownStyle.getPropertyValue(`--look-${name}`).trim();
+const C = {
+  sky: look('sky'), ground: look('ground'), tile: look('tile'), tileLine: look('tile-line'),
+  floorLine: look('floor-line'), zoneText: look('zone-text'), pillar: look('pillar'),
+  upright: look('upright'), beam: look('beam'), deck: look('deck'), sign: look('sign'), edge: look('edge'),
+  forklift: look('forklift'), forkliftDark: look('forklift-dark'), steel: look('steel'), pallet: look('pallet'),
+  crates: [1, 2, 3, 4, 5, 6].map((i) => look(`crate-${i}`)),
+  white: token('--color-gray-0'),
+  ok: token('--color-green-500'),
+  low: token('--color-orange-500'),
+  risk: token('--color-red-500'),
+  suspect: token('--color-gray-900'),
+  hidden: token('--color-brand-500'),
+  glow: token('--color-brand-400'),
+  ledOff: token('--color-gray-300'),
+  machine: token('--color-gray-200'),
+  machineTrim: token('--color-gray-400'),
+  machineDark: token('--color-gray-500'),
+  warnTint: token('--color-orange-50'),
+  downTint: token('--color-red-50'),
+  tape: token('--color-sub-500'),
+  proposal: token('--color-brand-600'),
+  proposalFill: token('--color-brand-200'),
+};
+document.body.style.background = C.sky;
 
-const itemById = Object.fromEntries(ITEMS.map(i => [i.id, i]));
-const ALL_LOCS = SHELVES.flatMap(s => { const o = []; for (let l = 1; l <= s.levels; l++) for (let i = 1; i <= s.slots; i++) o.push(`${s.code}-${l}-${i}`); return o; });
-const totalOf = id => STOCK.filter(s => s.itemId === id).reduce((a, s) => a + s.qty, 0);
-const itemsAt = loc => STOCK.filter(s => s.loc === loc && s.qty > 0);
-const isLow = id => totalOf(id) < itemById[id].min;
-const slotStatus = loc => { const its = itemsAt(loc); if (!its.length) return 'empty'; return its.some(s => isLow(s.itemId)) ? 'low' : 'ok'; };
-const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+/* ---------- 글꼴 ---------- */
+// 바깥 페이지가 next/font 로 Pretendard 를 이미 받았다. 같은 파일을 이 문서에도 등록해 캔버스 글씨(간판)에 쓴다.
+const FONT = "'Pretendard Variable', Pretendard, system-ui, sans-serif";
+const fontReady = (async () => {
+  try {
+    const sheets = window.parent !== window ? [...window.parent.document.styleSheets] : [];
+    for (const sheet of sheets) {
+      let rules; try { rules = sheet.cssRules; } catch { continue; }
+      for (const rule of rules) {
+        if (!(rule instanceof window.parent.CSSFontFaceRule)) continue;
+        const family = rule.style.getPropertyValue('font-family');
+        const src = rule.style.getPropertyValue('src');
+        if (!/pretendard/i.test(family + src)) continue;
+        const absolute = src.replace(/url\((['"]?)([^'")]+)\1\)/g, (_, q, u) => `url("${new URL(u, sheet.href || location.href).href}")`);
+        const face = new FontFace('Pretendard Variable', absolute, { weight: rule.style.getPropertyValue('font-weight') || '45 920' });
+        document.fonts.add(face);
+        await face.load();
+        return true;
+      }
+    }
+  } catch (err) { console.warn('[warehouse-3d] 글꼴 등록 실패', err); }
+  return false;
+})();
 
-const ui = { loc: null, hover: null, highlight: new Set(), topView: false };
+/* ---------- 상수 (m) ---------- */
+const SLOT_W = 0.9, LEVEL_H = 0.75, DEPTH = 0.62, BASE = 0.15;
+const CRATE_H = 0.18, CRATE_STEP = 0.19, STACK = 3;
+const CEILING = 6;
+const AISLE_X = 0.4; // 보관 구역과 가공 라인 사이 통로 (지게차가 다닌다)
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const dayOf = (base, ymd) => Math.round((Date.parse(`${ymd}T00:00:00Z`) - Date.parse(`${base}T00:00:00Z`)) / DAY_MS);
+const at = (arr, day) => (Array.isArray(arr) && arr.length ? arr[Math.min(day, arr.length - 1)] : undefined);
+const locOf = (rackId, level, slot) => `${rackId}-${level}-${slot}`;
 
 /* ---------- 장면 ---------- */
-const SKY = 0xeef5fb;
 const stage = document.getElementById('stage');
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+} catch (err) {
+  window.__whFail(err);
+  throw err;
+}
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+// 0.160 의 PCFSoftShadowMap 은 0.186 에서 없어졌다(경고 후 PCF 로 바뀜). PCF + shadow.radius 로 같은 부드러운 그림자를 낸다.
+renderer.shadowMap.type = THREE.PCFShadowMap;
 stage.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(SKY);
-scene.fog = new THREE.Fog(SKY, 60, 120);
+scene.background = new THREE.Color(C.sky);
+scene.fog = new THREE.Fog(C.sky, 30, 60);
 const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 300);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.maxPolarAngle = Math.PI / 2.08;
-controls.minDistance = 3;
-controls.maxDistance = 95;
 controls.autoRotateSpeed = 0.35;
-const CENTER = new THREE.Vector3(4, 1.5, -2.5);
-const HOME = { pos: new THREE.Vector3(-17, 19, 25), target: CENTER.clone() };
-const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-camera.position.set(46, 50, 62);
-controls.target.copy(CENTER);
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0xcfdfec, 2.2));
-const key = new THREE.DirectionalLight(0xffffff, 1.3);
-key.position.set(-18, 34, 22);
-key.target.position.copy(CENTER);
+scene.add(new THREE.HemisphereLight(C.white, C.ground, 2.2));
+const key = new THREE.DirectionalLight(C.white, 1.3);
 key.castShadow = true;
 key.shadow.mapSize.set(2048, 2048);
-Object.assign(key.shadow.camera, { left: -38, right: 38, top: 26, bottom: -26, near: 1, far: 120 });
 key.shadow.bias = -0.0004;
 key.shadow.radius = 6;
 scene.add(key, key.target);
 
-/* 바닥 */
-const FLOOR = { x0: -26, x1: 32, z0: -14, z1: 12 };
-function tileTexture() {
-  const c = document.createElement('canvas'); c.width = c.height = 256;
-  const g = c.getContext('2d');
-  g.fillStyle = '#f6f9fc'; g.fillRect(0, 0, 256, 256);
-  g.strokeStyle = '#dde8f1'; g.lineWidth = 2; g.strokeRect(0, 0, 256, 256);
-  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(29, 13); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
-  return t;
-}
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(FLOOR.x1 - FLOOR.x0, FLOOR.z1 - FLOOR.z0), new THREE.MeshStandardMaterial({ map: tileTexture(), roughness: 0.9 }));
-floor.rotation.x = -Math.PI / 2;
-floor.position.set((FLOOR.x0 + FLOOR.x1) / 2, 0, (FLOOR.z0 + FLOOR.z1) / 2);
-floor.receiveShadow = true;
-scene.add(floor);
-const lineMat = new THREE.MeshBasicMaterial({ color: 0x9fcbec });
-const strip = (x0, x1, z, w = 0.14) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, w), lineMat); m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, 0.012, z); scene.add(m); };
-const stripZ = (x, z0, z1, w = 0.14) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, z1 - z0), lineMat); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.012, (z0 + z1) / 2); scene.add(m); };
-[-7.4, -4.6, -0.4, 2.4].forEach(z => strip(FLOOR.x0 + 1, FLOOR.x1 - 1, z));
-ZONES.forEach(z => { stripZ(z.x0, -12, 10); stripZ(z.x1, -12, 10); });
+// 레이아웃이 바뀔 때만 다시 만드는 것들
+let world = null; // THREE.Group
+let view = { center: new THREE.Vector3(), home: { pos: new THREE.Vector3(), target: new THREE.Vector3() }, span: 22 };
 
-function textTexture(text, { fg = '#23384a', bg = 'rgba(255,255,255,0.95)', size = 64, pad = 22, weight = '600', radius = 14 } = {}) {
+/* ---------- 재질·도형 공용 ---------- */
+const std = (color, opts = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.6, ...opts });
+const basic = (color, opts = {}) => new THREE.MeshBasicMaterial({ color, ...opts });
+const M = {
+  upright: std(C.upright, { roughness: 0.55, metalness: 0.1 }),
+  beam: std(C.beam, { roughness: 0.55, metalness: 0.1 }),
+  deck: std(C.deck, { roughness: 0.7 }),
+  pillar: std(C.pillar, { roughness: 0.9 }),
+  floorLine: basic(C.floorLine),
+  tape: basic(C.tape),
+  edge: new THREE.LineBasicMaterial({ color: C.edge, transparent: true, opacity: 0.45 }),
+  ledOff: basic(C.ledOff),
+  machineDark: std(C.machineDark, { roughness: 0.7 }),
+  machineTrim: std(C.machineTrim, { roughness: 0.5, metalness: 0.3 }),
+  pallet: std(C.pallet, { roughness: 0.9 }),
+};
+const crateGeo = new THREE.BoxGeometry(SLOT_W * 0.79, CRATE_H, DEPTH * 0.82);
+const crateEdges = new THREE.EdgesGeometry(crateGeo);
+const ledGeo = new THREE.BoxGeometry(0.17, 0.04, 0.02);
+const beamGeo = new THREE.CylinderGeometry(0.28, 0.42, 1, 32, 1, true); beamGeo.translate(0, 0.5, 0);
+const STATUS_COLOR = { normal: null, low: C.low, risk: C.risk, out: C.risk, suspect: C.suspect };
+
+function textTexture(text, { fg = C.sign, bg = C.white, size = 64, pad = 22, weight = '600', radius = 14 } = {}) {
   const c = document.createElement('canvas'); const ctx = c.getContext('2d');
-  const f = `${weight} ${size}px "IBM Plex Sans KR", "Apple SD Gothic Neo", sans-serif`;
+  const f = `${weight} ${size}px ${FONT}`;
   ctx.font = f;
   const w = Math.ceil(ctx.measureText(text).width) + pad * 2, h = Math.ceil(size + pad * 1.4);
   c.width = w; c.height = h; ctx.font = f;
@@ -220,105 +235,267 @@ function textTexture(text, { fg = '#23384a', bg = 'rgba(255,255,255,0.95)', size
   const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
   return { tex, aspect: w / h };
 }
-ZONES.forEach(z => {
-  const { tex, aspect } = textTexture(`${z.id}  ${z.name}`, { bg: null, fg: 'rgba(110,170,220,0.75)', size: 120 });
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(2.2 * aspect, 2.2), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
-  m.rotation.x = -Math.PI / 2; m.position.set((z.x0 + z.x1) / 2, 0.02, 6.6); scene.add(m);
-});
-const pillarMat = new THREE.MeshStandardMaterial({ color: 0xe2eaf1, roughness: 0.9 });
-[[-24, -12], [4.5, -12], [30, -12]].forEach(([x, z]) => {
-  const p = new THREE.Mesh(new THREE.BoxGeometry(0.8, 11, 0.8), pillarMat);
-  p.position.set(x, 5.5, z); p.castShadow = true; p.receiveShadow = true; scene.add(p);
-});
 
-/* 랙 */
-const SLOT_W = 1.8, LEVEL_H = 1.5, DEPTH = 1.25, BASE = 0.3;
-const uprightMat = new THREE.MeshStandardMaterial({ color: 0x86b9e3, roughness: 0.55, metalness: 0.1 });
-const beamMat = new THREE.MeshStandardMaterial({ color: 0xbcdaf2, roughness: 0.55, metalness: 0.1 });
-const deckMat = new THREE.MeshStandardMaterial({ color: 0xe6edf3, roughness: 0.7 });
-const LED = { ok: new THREE.MeshBasicMaterial({ color: 0x6cc79a }), low: new THREE.MeshBasicMaterial({ color: 0xef8e7d }), empty: new THREE.MeshBasicMaterial({ color: 0xd3dde6 }) };
-const GLOW = new THREE.Color(0x4a9fe0);
-const slotByLoc = new Map();
-const hitMeshes = [];
-const ledGeo = new THREE.BoxGeometry(0.34, 0.08, 0.04);
-
-for (const s of SHELVES) {
-  const g = new THREE.Group(); g.position.set(s.x, 0, s.z); scene.add(g);
-  const W = s.slots * SLOT_W, H = BASE + s.levels * LEVEL_H;
-  const add = (geo, mat, x, y, z, shadow = true) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); if (shadow) { m.castShadow = true; m.receiveShadow = true; } g.add(m); return m; };
-  const upGeo = new THREE.BoxGeometry(0.12, H + 0.25, 0.12);
-  for (const x of [-W / 2, 0, W / 2]) {
-    for (const z of [-DEPTH / 2, DEPTH / 2]) add(upGeo, uprightMat, x, (H + 0.25) / 2, z);
-    for (let k = 0; k < Math.floor(H / 1.1); k++) { const br = add(new THREE.BoxGeometry(0.05, 1.45, 0.05), uprightMat, x, 0.6 + k * 1.1, 0, false); br.rotation.x = (k % 2 ? 1 : -1) * 0.95; }
-  }
-  for (let l = 0; l < s.levels; l++) {
-    const y = BASE + l * LEVEL_H;
-    for (const z of [-DEPTH / 2, DEPTH / 2]) add(new THREE.BoxGeometry(W, 0.16, 0.09), beamMat, 0, y - 0.04, z);
-    add(new THREE.BoxGeometry(W - 0.04, 0.035, DEPTH), deckMat, 0, y + 0.05, 0);
-  }
-  for (const z of [-DEPTH / 2, DEPTH / 2]) add(new THREE.BoxGeometry(W, 0.16, 0.09), beamMat, 0, H, z);
-  const { tex, aspect } = textTexture(s.code, { fg: '#3a86c4', size: 96, pad: 30, radius: 18 });
-  const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.0 * aspect, 1.0), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
-  sign.position.set(0, H + 1.0, DEPTH / 2 + 0.02); g.add(sign);
-  const back = sign.clone(); back.rotation.y = Math.PI; back.position.z = -DEPTH / 2 - 0.02; g.add(back);
-  for (const sx of [-0.36 * aspect, 0.36 * aspect]) add(new THREE.BoxGeometry(0.03, 0.5, 0.03), uprightMat, sx, H + 0.3, DEPTH / 2, false);
-
-  for (let l = 1; l <= s.levels; l++) for (let i = 1; i <= s.slots; i++) {
-    const loc = `${s.code}-${l}-${i}`;
-    const lx = -W / 2 + SLOT_W * (i - 0.5);
-    const base = BASE + (l - 1) * LEVEL_H + 0.07;
-    const mat = new THREE.MeshBasicMaterial({ color: GLOW, transparent: true, opacity: 0, depthWrite: false });
-    const hit = new THREE.Mesh(new THREE.BoxGeometry(SLOT_W * 0.96, LEVEL_H * 0.86, DEPTH * 1.02), mat);
-    hit.position.set(lx, base + LEVEL_H * 0.43, 0); hit.userData.loc = loc; g.add(hit); hitMeshes.push(hit);
-    const led = new THREE.Mesh(ledGeo, LED[slotStatus(loc)]);
-    led.position.set(lx, base - 0.13, DEPTH / 2 + 0.07); g.add(led);
-    slotByLoc.set(loc, { group: g, hit, mat, local: new THREE.Vector3(lx, base, 0), beam: null });
-  }
-}
-
-/* 상자 */
-const edgeMat = new THREE.LineBasicMaterial({ color: 0x8aa6bd, transparent: true, opacity: 0.45 });
-const crateMats = new Map();
-const crateMat = hex => { if (!crateMats.has(hex)) crateMats.set(hex, new THREE.MeshStandardMaterial({ color: hex, roughness: 0.75 })); return crateMats.get(hex); };
-for (const loc of ALL_LOCS) {
-  const slot = slotByLoc.get(loc);
-  const its = itemsAt(loc).slice(0, 3);
-  const colW = (SLOT_W * 0.88) / Math.max(1, its.length);
-  its.forEach((s, k) => {
-    const n = Math.max(1, Math.min(3, 1 + Math.floor(Math.log10(s.qty + 1) * 1.1)));
-    for (let j = 0; j < n; j++) {
-      const geo = new THREE.BoxGeometry(colW * 0.9, 0.36, DEPTH * 0.82);
-      const box = new THREE.Mesh(geo, crateMat(itemById[s.itemId].color));
-      box.castShadow = true; box.receiveShadow = true;
-      const p = slot.local.clone();
-      p.x += -SLOT_W * 0.44 + colW * (k + 0.5) + (j % 2 ? 0.03 : -0.03);
-      p.y += 0.38 * (j + 0.5);
-      slot.group.localToWorld(p);
-      box.position.copy(p);
-      box.rotation.y = (j % 2 ? 1 : -1) * 0.04;
-      box.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat));
-      scene.add(box);
-    }
+function disposeTree(obj) {
+  obj.traverse((o) => {
+    if (o.geometry && !SHARED_GEO.has(o.geometry)) o.geometry.dispose();
+    const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
+    for (const m of mats) { if (SHARED_MAT.has(m)) continue; if (m.map) m.map.dispose(); m.dispose(); }
   });
 }
+const SHARED_GEO = new Set([crateGeo, crateEdges, ledGeo, beamGeo]);
+const SHARED_MAT = new Set(Object.values(M));
 
-/* 강조 빛기둥 */
-const beamGeo = new THREE.CylinderGeometry(0.55, 0.85, 1, 32, 1, true); beamGeo.translate(0, 0.5, 0);
-function beamFor(loc) {
-  const s = slotByLoc.get(loc);
-  if (s.beam) return s.beam;
-  const m = new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ color: GLOW, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }));
-  const p = s.local.clone(); s.group.localToWorld(p);
-  m.position.copy(p); m.scale.set(1, 12 - p.y, 1); m.visible = false; scene.add(m);
-  s.beam = m; return m;
+/* ---------- 바닥 ---------- */
+function tileTexture(w, d) {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = C.tile; g.fillRect(0, 0, 256, 256);
+  g.strokeStyle = C.tileLine; g.lineWidth = 2; g.strokeRect(0, 0, 256, 256);
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(w, d); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  return t;
+}
+function hatchTexture(w, d) {
+  const scale = 64;
+  const c = document.createElement('canvas'); c.width = Math.ceil(w * scale); c.height = Math.ceil(d * scale);
+  const g = c.getContext('2d');
+  g.fillStyle = C.tape; g.globalAlpha = 0.35;
+  for (let i = -c.height; i < c.width + c.height; i += 48) {
+    g.beginPath(); g.moveTo(i, 0); g.lineTo(i + 20, 0); g.lineTo(i + 20 - c.height, c.height); g.lineTo(i - c.height, c.height); g.closePath(); g.fill();
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  return t;
 }
 
-/* 지게차 */
+function buildFloor(layout, root) {
+  const { width: W, depth: D } = layout.size;
+  const FW = W + 4, FD = D + 4;
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(FW, FD), new THREE.MeshStandardMaterial({ map: tileTexture(FW, FD), roughness: 0.9 }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  root.add(floor);
+  const strip = (mat, x0, x1, z0, z1, y = 0.012) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(Math.max(0.07, x1 - x0), Math.max(0.07, z1 - z0)), mat);
+    m.rotation.x = -Math.PI / 2; m.position.set((x0 + x1) / 2, y, (z0 + z1) / 2); root.add(m);
+  };
+  const outline = (mat, z, w = 0.07) => {
+    const x0 = z.x - z.width / 2, x1 = z.x + z.width / 2, z0 = z.z - z.depth / 2, z1 = z.z + z.depth / 2;
+    strip(mat, x0, x1, z0 - w / 2, z0 + w / 2); strip(mat, x0, x1, z1 - w / 2, z1 + w / 2);
+    strip(mat, x0 - w / 2, x0 + w / 2, z0, z1); strip(mat, x1 - w / 2, x1 + w / 2, z0, z1);
+  };
+  for (const z of layout.zones) {
+    if (z.kind === 'dock') {
+      const hatch = new THREE.Mesh(new THREE.PlaneGeometry(z.width, z.depth), new THREE.MeshBasicMaterial({ map: hatchTexture(z.width, z.depth), transparent: true, depthWrite: false }));
+      hatch.rotation.x = -Math.PI / 2; hatch.position.set(z.x, 0.011, z.z); root.add(hatch);
+      outline(M.tape, z, 0.09);
+    } else {
+      outline(M.floorLine, z);
+    }
+    // 구역 이름 — 바닥에 크게, 앞쪽(+z) 가장자리 안쪽.
+    // 글씨 위쪽이 화면 위(-z)로 가게 눕힌다. rotation.z = PI 를 더하면 기본 시점(+z 쪽에서 내려다봄)에서 뒤집혀 보인다.
+    const { tex, aspect } = textTexture(z.label, { bg: null, fg: z.kind === 'dock' ? C.machineDark : C.zoneText, size: 120 });
+    const h = z.kind === 'dock' ? 0.55 : 0.9;
+    const label = new THREE.Mesh(new THREE.PlaneGeometry(h * aspect, h), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
+    label.rotation.x = -Math.PI / 2;
+    label.position.set(z.x, 0.02, z.kind === 'dock' ? z.z + z.depth / 2 + 0.45 : z.z + z.depth / 2 - h * 0.75);
+    root.add(label);
+  }
+  // 뒤쪽 기둥 (장식)
+  for (const x of [-W / 2 + 0.4, 0, W / 2 - 0.4]) {
+    const p = new THREE.Mesh(new THREE.BoxGeometry(0.4, 5.5, 0.4), M.pillar);
+    p.position.set(x, 2.75, -D / 2 - 0.2); p.castShadow = true; p.receiveShadow = true; root.add(p);
+  }
+}
+
+/* ---------- 랙과 칸 ---------- */
+const slots = new Map(); // loc → { loc, rack, level, slot, group, local, hit, mat, led, crates[], crateMat, outOutline, hiddenOutline, beam, placement, pastel }
+const hitMeshes = [];
+
+function buildRack(rack, index, root) {
+  const g = new THREE.Group(); g.position.set(rack.x, 0, rack.z); g.rotation.y = rack.rotation || 0; root.add(g);
+  const W = rack.slots * SLOT_W, H = BASE + rack.levels * LEVEL_H;
+  const add = (geo, mat, x, y, z, shadow = true) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); if (shadow) { m.castShadow = true; m.receiveShadow = true; } g.add(m); return m; };
+  const upGeo = new THREE.BoxGeometry(0.06, H + 0.12, 0.06);
+  const braceGeo = new THREE.BoxGeometry(0.025, 0.72, 0.025);
+  const posts = rack.slots > 2 ? [-W / 2, 0, W / 2] : [-W / 2, W / 2];
+  for (const x of posts) {
+    for (const z of [-DEPTH / 2, DEPTH / 2]) add(upGeo, M.upright, x, (H + 0.12) / 2, z);
+    for (let k = 0; k < Math.floor(H / 0.55); k++) { const br = add(braceGeo, M.upright, x, 0.3 + k * 0.55, 0, false); br.rotation.x = (k % 2 ? 1 : -1) * 0.95; }
+  }
+  const beamGeoW = new THREE.BoxGeometry(W, 0.08, 0.045);
+  const deckGeo = new THREE.BoxGeometry(W - 0.02, 0.018, DEPTH);
+  for (let l = 0; l < rack.levels; l++) {
+    const y = BASE + l * LEVEL_H;
+    for (const z of [-DEPTH / 2, DEPTH / 2]) add(beamGeoW, M.beam, 0, y - 0.02, z);
+    add(deckGeo, M.deck, 0, y + 0.025, 0);
+  }
+  for (const z of [-DEPTH / 2, DEPTH / 2]) add(beamGeoW, M.beam, 0, H, z);
+  const { tex, aspect } = textTexture(`${rack.label} · ${rack.purpose}`, { size: 96, pad: 30, radius: 18 });
+  const signH = 0.42;
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(signH * aspect, signH), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+  sign.position.set(0, H + 0.5, DEPTH / 2 + 0.01); g.add(sign);
+  const back = sign.clone(); back.rotation.y = Math.PI; back.position.z = -DEPTH / 2 - 0.01; g.add(back);
+  const postGeo = new THREE.BoxGeometry(0.015, 0.3, 0.015);
+  for (const sx of [-0.36 * signH * aspect, 0.36 * signH * aspect]) add(postGeo, M.upright, sx, H + 0.15, DEPTH / 2, false);
+
+  const pastel = C.crates[index % C.crates.length];
+  for (let l = 1; l <= rack.levels; l++) for (let i = 1; i <= rack.slots; i++) {
+    const loc = locOf(rack.id, l, i);
+    const lx = -W / 2 + SLOT_W * (i - 0.5);
+    const base = BASE + (l - 1) * LEVEL_H + 0.035;
+    const mat = basic(C.glow, { transparent: true, opacity: 0, depthWrite: false });
+    const hit = new THREE.Mesh(new THREE.BoxGeometry(SLOT_W * 0.96, LEVEL_H * 0.86, DEPTH * 1.02), mat);
+    hit.position.set(lx, base + LEVEL_H * 0.43, 0); hit.userData.loc = loc; g.add(hit); hitMeshes.push(hit);
+    const led = new THREE.Mesh(ledGeo, M.ledOff);
+    led.position.set(lx, base - 0.065, DEPTH / 2 + 0.035); g.add(led);
+    slots.set(loc, { loc, rack, level: l, slot: i, group: g, local: new THREE.Vector3(lx, base, 0), hit, mat, led, crates: [], crateMat: null, outOutline: null, hiddenOutline: null, beam: null, placement: null, pastel });
+  }
+}
+
+// 부품이 놓인 칸: 상자 3개(수량에 따라 보이는 개수가 바뀜), 비어 있음 윤곽, 숨은 재고 윤곽, 상태 LED
+function fillSlot(s, placement) {
+  s.placement = placement;
+  s.crateMat = std(s.pastel, { roughness: 0.75, emissive: C.hidden, emissiveIntensity: 0 });
+  s.ledMat = basic(C.ok);
+  s.led.material = s.ledMat;
+  for (let j = 0; j < STACK; j++) {
+    const box = new THREE.Mesh(crateGeo, s.crateMat);
+    box.castShadow = true; box.receiveShadow = true;
+    box.position.set(s.local.x + (j % 2 ? 0.015 : -0.015), s.local.y + CRATE_STEP * (j + 0.5), 0);
+    box.rotation.y = (j % 2 ? 1 : -1) * 0.04;
+    box.add(new THREE.LineSegments(crateEdges, M.edge));
+    s.group.add(box); s.crates.push(box);
+  }
+  const outlineBox = (w, h, d, color) => {
+    const geo = new THREE.EdgesGeometry(new THREE.BoxGeometry(w, h, d));
+    const line = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color }));
+    line.position.set(s.local.x, s.local.y + h / 2, 0); line.visible = false; s.group.add(line); return line;
+  };
+  s.outOutline = outlineBox(SLOT_W * 0.79, CRATE_STEP * STACK, DEPTH * 0.82, C.risk);
+  s.hiddenOutline = outlineBox(SLOT_W * 0.92, CRATE_STEP * STACK + 0.08, DEPTH * 0.95, C.hidden);
+}
+
+function slotWorld(loc, lift = LEVEL_H * 0.4) {
+  const s = slots.get(loc); if (!s) return null;
+  const p = s.local.clone(); p.y += lift; return s.group.localToWorld(p);
+}
+function beamFor(s) {
+  if (s.beam) return s.beam;
+  const m = new THREE.Mesh(beamGeo, basic(C.glow, { transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }));
+  const p = slotWorld(s.loc, 0);
+  m.position.copy(p); m.scale.set(1, Math.max(0.5, CEILING - p.y), 1); m.visible = false; m.raycast = () => {};
+  world.add(m); s.beam = m; return m;
+}
+
+/* ---------- 설비 ---------- */
+// 단순한 상자·원통 조합. 모양보다 "어디에 무슨 설비가 있나"가 구분되면 된다.
+// part: [도형, 재질키, x, y, z] — 도형은 ['box', w, h, d] 또는 ['cyl', r, len, 축('x'|'y'|'z')]
+const SHAPES = {
+  lathe: { // CNC 선반: 긴 베드 + 왼쪽 주축대 + 척 + 오른쪽 심압대 + 조작반
+    parts: [
+      [['box', 2.6, 0.85, 1.0], 'body', 0, 0.425, 0],
+      [['box', 0.7, 0.6, 0.85], 'body', -0.9, 1.15, -0.05],
+      [['cyl', 0.24, 0.16, 'x'], 'trim', -0.47, 1.1, 0.05],
+      [['box', 1.6, 0.06, 0.3], 'trim', 0.25, 0.88, 0.1],
+      [['box', 0.32, 0.36, 0.45], 'body', 0.95, 1.06, 0.05],
+      [['box', 0.08, 0.5, 0.4], 'dark', 1.34, 1.15, 0.35],
+    ],
+    top: 1.45, beacon: [-1.1, 1.45, -0.35],
+  },
+  mill: { // 머시닝센터: 넓은 받침 + 뒤쪽 기둥 + 주축 머리 + 작업대
+    parts: [
+      [['box', 1.8, 0.9, 1.6], 'body', 0, 0.45, 0],
+      [['box', 0.8, 1.4, 0.6], 'body', 0, 1.6, -0.45],
+      [['box', 0.5, 0.5, 0.6], 'trim', 0, 1.9, 0.1],
+      [['box', 0.08, 0.35, 0.08], 'dark', 0, 1.48, 0.25],
+      [['box', 1.4, 0.1, 0.7], 'dark', 0, 0.95, 0.3],
+    ],
+    top: 2.3, beacon: [0.35, 2.3, -0.6],
+  },
+  press: { // 유압 프레스: 받침 + 기둥 두 개 + 위 크라운 + 램 + 유압 실린더
+    parts: [
+      [['box', 1.4, 0.6, 1.0], 'body', 0, 0.3, 0],
+      [['box', 0.25, 1.8, 0.25], 'body', -0.55, 1.5, 0],
+      [['box', 0.25, 1.8, 0.25], 'body', 0.55, 1.5, 0],
+      [['box', 1.5, 0.4, 1.0], 'body', 0, 2.6, 0],
+      [['box', 0.85, 0.28, 0.7], 'trim', 0, 1.65, 0],
+      [['box', 0.9, 0.08, 0.7], 'dark', 0, 0.64, 0],
+      [['cyl', 0.2, 0.4, 'y'], 'trim', 0, 3.0, 0],
+    ],
+    top: 3.2, beacon: [0.6, 2.8, -0.35],
+  },
+  compressor: { // 공기압축기: 눕힌 탱크 + 위 모터 + 받침 다리
+    parts: [
+      [['cyl', 0.38, 1.8, 'x'], 'body', 0, 0.55, 0],
+      [['box', 0.1, 0.2, 0.6], 'dark', -0.7, 0.1, 0],
+      [['box', 0.1, 0.2, 0.6], 'dark', 0.7, 0.1, 0],
+      [['box', 0.65, 0.45, 0.5], 'trim', 0.25, 1.15, 0],
+      [['box', 0.3, 0.35, 0.35], 'dark', -0.4, 1.1, 0],
+    ],
+    top: 1.4, beacon: [-0.75, 1.0, 0],
+  },
+  conveyor: { // 컨베이어: 긴 벨트 + 다리 + 양 끝 롤러
+    parts: [
+      [['box', 4.0, 0.1, 0.7], 'dark', 0, 0.8, 0],
+      [['box', 4.0, 0.12, 0.06], 'body', 0, 0.85, 0.38],
+      [['box', 4.0, 0.12, 0.06], 'body', 0, 0.85, -0.38],
+      [['cyl', 0.08, 0.72, 'z'], 'trim', -2.0, 0.8, 0],
+      [['cyl', 0.08, 0.72, 'z'], 'trim', 2.0, 0.8, 0],
+      ...[-1.7, -0.6, 0.6, 1.7].map((x) => [['box', 0.08, 0.75, 0.7], 'body', x, 0.375, 0]),
+    ],
+    top: 1.1, beacon: [2.1, 0.9, -0.38],
+  },
+};
+const equipments = new Map(); // id → { e, group, bodyMats[], edgeMats[], lamp, lampMat, ring, ringMat, stop, anchor, status }
+
+function buildEquipment(e, root) {
+  const shape = SHAPES[e.kind] || SHAPES.lathe;
+  const g = new THREE.Group(); g.position.set(e.x, 0, e.z); root.add(g);
+  const bodyMat = std(C.machine, { roughness: 0.7 });
+  const edgeMat = new THREE.LineBasicMaterial({ color: C.machineDark, transparent: true, opacity: 0.55 });
+  const mats = { body: bodyMat, trim: M.machineTrim, dark: M.machineDark };
+  for (const [geoSpec, matKey, x, y, z] of shape.parts) {
+    let geo;
+    if (geoSpec[0] === 'box') geo = new THREE.BoxGeometry(geoSpec[1], geoSpec[2], geoSpec[3]);
+    else {
+      geo = new THREE.CylinderGeometry(geoSpec[1], geoSpec[1], geoSpec[2], 24);
+      if (geoSpec[3] === 'x') geo.rotateZ(Math.PI / 2);
+      if (geoSpec[3] === 'z') geo.rotateX(Math.PI / 2);
+    }
+    const m = new THREE.Mesh(geo, mats[matKey]); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true;
+    if (matKey === 'body') m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), edgeMat));
+    g.add(m);
+  }
+  // 경광등: 기둥 + 등 — 가동 초록 / 위험 주황 / 정지 빨강 점멸
+  const [bx, by, bz] = shape.beacon;
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.4, 8), M.machineDark); pole.position.set(bx, by + 0.2, bz); g.add(pole);
+  const lampMat = basic(C.ok, { transparent: true });
+  const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.22, 16), lampMat); lamp.position.set(bx, by + 0.5, bz); g.add(lamp);
+  const haloMat = basic(C.risk, { transparent: true, opacity: 0, depthWrite: false });
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 12), haloMat); halo.position.copy(lamp.position); halo.raycast = () => {}; g.add(halo);
+  // 바닥 고리 — 위험·정지일 때만
+  const box3 = new THREE.Box3().setFromObject(g);
+  const foot = Math.hypot(Math.max(Math.abs(box3.min.x - e.x), Math.abs(box3.max.x - e.x)), Math.max(Math.abs(box3.min.z - e.z), Math.abs(box3.max.z - e.z)));
+  const ringMat = basic(C.risk, { transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
+  const ring = new THREE.Mesh(new THREE.RingGeometry(foot + 0.15, foot + 0.35, 48), ringMat);
+  ring.rotation.x = -Math.PI / 2; ring.position.y = 0.015; ring.visible = false; g.add(ring);
+  // 이름 간판 (항상 카메라를 본다)
+  const name = textTexture(e.name, { size: 64, pad: 22 });
+  const nameSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: name.tex, transparent: true }));
+  const nameH = 0.32; nameSprite.scale.set(nameH * name.aspect, nameH, 1); nameSprite.position.set(0, shape.top + 0.45, 0); g.add(nameSprite);
+  // 정지 표시 — 이름 위 빨간 표지
+  const stopTex = textTexture('정지 예상', { fg: C.white, bg: C.risk, size: 64, pad: 24, weight: '700' });
+  const stop = new THREE.Sprite(new THREE.SpriteMaterial({ map: stopTex.tex, transparent: true }));
+  const stopH = 0.4; stop.scale.set(stopH * stopTex.aspect, stopH, 1); stop.position.set(0, shape.top + 0.95, 0); stop.visible = false; g.add(stop);
+  equipments.set(e.id, { e, group: g, bodyMat, edgeMat, lamp, lampMat, halo, haloMat, ring, ringMat, stop, stopBaseY: stop.position.y, anchor: new THREE.Vector3(e.x, shape.top, e.z), status: 'normal' });
+}
+
+/* ---------- 지게차 (장식) ---------- */
 function forklift() {
   const f = new THREE.Group();
-  const body = new THREE.MeshStandardMaterial({ color: 0xf3e0a8, roughness: 0.6 });
-  const dark = new THREE.MeshStandardMaterial({ color: 0x8d9fae, roughness: 0.7 });
-  const steel = new THREE.MeshStandardMaterial({ color: 0xc8d4de, roughness: 0.5, metalness: 0.3 });
+  const body = std(C.forklift);
+  const dark = std(C.forkliftDark, { roughness: 0.7 });
+  const steel = std(C.steel, { roughness: 0.5, metalness: 0.3 });
   const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; f.add(m); return m; };
   add(new THREE.BoxGeometry(1.3, 0.7, 2.0), body, 0, 0.65, 0);
   add(new THREE.BoxGeometry(1.3, 0.5, 0.5), dark, 0, 0.75, -0.95);
@@ -329,48 +506,225 @@ function forklift() {
   for (const x of [-0.3, 0.3]) add(new THREE.BoxGeometry(0.12, 0.05, 1.2), steel, x, 0.32, 1.75);
   const wheel = new THREE.CylinderGeometry(0.32, 0.32, 0.25, 20); wheel.rotateZ(Math.PI / 2);
   for (const x of [-0.68, 0.68]) for (const z of [-0.6, 0.65]) add(wheel, dark, x, 0.32, z);
-  add(new THREE.BoxGeometry(1.1, 0.14, 1.1), new THREE.MeshStandardMaterial({ color: 0xdcc9ad, roughness: 0.9 }), 0, 0.42, 1.75);
-  add(new THREE.BoxGeometry(0.95, 0.6, 0.95), crateMat(CAT.product), 0, 0.79, 1.75);
+  add(new THREE.BoxGeometry(1.1, 0.14, 1.1), M.pallet, 0, 0.42, 1.75);
+  add(new THREE.BoxGeometry(0.95, 0.6, 0.95), std(C.crates[5], { roughness: 0.75 }), 0, 0.79, 1.75);
+  f.scale.setScalar(0.5);
+  f.traverse((o) => { o.raycast = () => {}; });
   return f;
 }
-const lift = forklift();
-lift.position.set(-18, 0, -2.5);
-scene.add(lift);
-let liftDir = 1;
+let lift = null, liftDir = 1, liftReach = 6;
+
+/* ---------- 상태 ---------- */
+const state = {
+  layout: null, layoutKey: '', projection: null, projectionKey: '', day: 0,
+  layers: { status: true, hidden: true, suspect: true, impact: true, dock: true },
+  selected: null, highlight: new Set(), hover: null,
+};
+let binByPart = new Map();
+let equipProjById = new Map();
+let impactGroup = null;
+let dockGroup = null;
+let dockCrates = []; // { arrivalDay, mesh }
+
+function buildLayout(layout) {
+  if (world) { scene.remove(world); disposeTree(world); }
+  slots.clear(); hitMeshes.length = 0; equipments.clear(); impactGroup = null; dockGroup = null; dockCrates = [];
+  world = new THREE.Group(); scene.add(world);
+  buildFloor(layout, world);
+  layout.racks.forEach((r, i) => buildRack(r, i, world));
+  for (const p of layout.placements) { const s = slots.get(locOf(p.rack_id, p.level, p.slot)); if (s && !s.placement) fillSlot(s, p); }
+  for (const e of layout.equipment) buildEquipment(e, world);
+  lift = forklift(); liftReach = Math.max(1, layout.size.depth / 2 - 1.5); lift.position.set(AISLE_X, 0, -liftReach); world.add(lift);
+  impactGroup = new THREE.Group(); world.add(impactGroup);
+  dockGroup = new THREE.Group(); world.add(dockGroup);
+
+  // 카메라·조명·안개를 바닥 크기에 맞춘다
+  const { width: W, depth: D } = layout.size;
+  const span = Math.max(W, D);
+  view.span = span;
+  view.center.set(0, 0.8, 0);
+  view.home.target.set(0, 0.6, span * 0.06);
+  view.home.pos.set(-0.4 * span, 0.72 * span, 1.0 * span).add(view.home.target);
+  const dist = view.home.pos.distanceTo(view.center);
+  scene.fog.near = dist * 1.55; scene.fog.far = dist * 3.1;
+  controls.minDistance = 1.5; controls.maxDistance = dist * 2.4;
+  key.position.set(-0.8 * span, 1.5 * span, span); key.target.position.copy(view.center);
+  const half = span * 0.75;
+  Object.assign(key.shadow.camera, { left: -half, right: half, top: half, bottom: -half, near: 1, far: span * 4 });
+  key.shadow.camera.updateProjectionMatrix();
+}
+
+function indexProjection(p) {
+  binByPart = new Map((p?.bins || []).map((b) => [b.part_id, b]));
+  equipProjById = new Map((p?.equipment || []).map((e) => [e.equipment_id, e]));
+  buildDock();
+}
+
+// 칸에 칠할 표시. 우선순위는 바깥이 정한 status 를 그대로 쓴다: 비어 있음·결품 위험 > 장부 의심 > 재주문점 이하 > 정상.
+// 층을 끄면 그 의미의 색을 빼고 정상으로 그린다.
+function binLook(bin, day) {
+  const s = at(bin.status, day) || 'normal';
+  if (state.layers.status && (s === 'out' || s === 'risk')) return s;
+  if (state.layers.suspect && bin.audit) return 'suspect';
+  if (state.layers.status && s === 'low') return 'low';
+  return 'normal';
+}
+// 상자 개수(0~3): 재주문점 2배를 가득으로 본다. 재주문점이 없으면 기간 중 최대 재고를 기준으로.
+function crateCount(bin, day) {
+  const q = Number(at(bin.qty, day) ?? 0);
+  if (!(q > 0)) return 0;
+  const ref = bin.reorder_point > 0 ? bin.reorder_point * 2 : Math.max(1, ...bin.qty.map(Number));
+  return Math.max(1, Math.min(STACK, Math.ceil((STACK * q) / ref)));
+}
+
+function applySlots() {
+  for (const s of slots.values()) {
+    if (!s.placement) continue;
+    const bin = binByPart.get(s.placement.part_id);
+    if (!bin) { s.crates.forEach((c, k) => { c.visible = k < 2; }); s.crateMat.color.set(s.pastel); s.ledMat.color.set(C.ok); s.outOutline.visible = false; s.hiddenOutline.visible = false; s.look = 'normal'; continue; }
+    const lk = binLook(bin, state.day);
+    const n = lk === 'out' ? 0 : crateCount(bin, state.day);
+    s.crates.forEach((c, k) => { c.visible = k < n; });
+    s.crateMat.color.set(STATUS_COLOR[lk] || s.pastel);
+    s.ledMat.color.set(lk === 'normal' ? C.ok : STATUS_COLOR[lk]);
+    s.outOutline.visible = lk === 'out';
+    s.hiddenOutline.visible = state.layers.hidden && !!bin.same_spec_group;
+    s.look = lk;
+  }
+}
+
+function applyEquipment() {
+  for (const q of equipments.values()) {
+    const proj = equipProjById.get(q.e.id);
+    const status = state.layers.impact && proj ? at(proj.status, state.day) || 'normal' : 'normal';
+    q.status = status;
+    q.lampMat.color.set(status === 'down' ? C.risk : status === 'warn' ? C.low : C.ok);
+    q.bodyMat.color.set(status === 'down' ? C.downTint : status === 'warn' ? C.warnTint : C.machine);
+    q.edgeMat.color.set(status === 'down' ? C.risk : C.machineDark);
+    q.edgeMat.opacity = status === 'down' ? 0.9 : 0.55;
+    q.ringMat.color.set(status === 'down' ? C.risk : C.low);
+    q.ring.visible = status !== 'normal';
+    q.stop.visible = status === 'down';
+    q.haloMat.opacity = 0;
+  }
+}
+
+// 위험·정지 설비 ↔ 그날 원인 부품 칸을 잇는 선. 날짜·층이 바뀔 때 이 묶음만 다시 만든다.
+function buildImpact() {
+  if (!impactGroup) return;
+  disposeTree(impactGroup); impactGroup.clear();
+  impactGroup.visible = state.layers.impact;
+  if (!state.layers.impact || !state.layout) return;
+  const placementsByPart = new Map();
+  for (const p of state.layout.placements) {
+    const list = placementsByPart.get(p.part_id) || []; list.push(locOf(p.rack_id, p.level, p.slot)); placementsByPart.set(p.part_id, list);
+  }
+  for (const q of equipments.values()) {
+    if (q.status === 'normal') continue;
+    const proj = equipProjById.get(q.e.id);
+    const causes = at(proj?.cause_part_ids, state.day) || [];
+    const severe = q.status === 'down';
+    const mat = basic(severe ? C.risk : C.low, { transparent: true, opacity: severe ? 0.95 : 0.8 });
+    for (const partId of causes) {
+      for (const loc of placementsByPart.get(partId) || []) {
+        const a = slotWorld(loc, CRATE_STEP * 1.5); if (!a) continue;
+        const b = q.anchor.clone();
+        const mid = a.clone().lerp(b, 0.5); mid.y = Math.max(a.y, b.y) + 1.6;
+        const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a, mid, b), 48, severe ? 0.045 : 0.03, 6, false), mat);
+        tube.raycast = () => {};
+        impactGroup.add(tube);
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(severe ? 0.09 : 0.07, 12, 8), mat); dot.position.copy(a); dot.raycast = () => {}; impactGroup.add(dot);
+      }
+    }
+  }
+}
+
+// 입고 도크의 상자 — 발주됨(실선 상자) / 발주하면(반투명 + 점선 테두리). 도착일(eta)까지 도크에 있고, 다음 날부터는 선반 재고에 들어간다.
+function buildDock() {
+  if (!dockGroup) return;
+  disposeTree(dockGroup); dockGroup.clear(); dockCrates = [];
+  const p = state.projection; const layout = state.layout;
+  if (!p || !layout) return;
+  const docks = layout.zones.filter((z) => z.kind === 'dock');
+  if (!docks.length) return;
+  const arrivals = [...(p.arrivals || [])].sort((a, b) => (a.eta < b.eta ? -1 : a.eta > b.eta ? 1 : a.kind === b.kind ? 0 : a.kind === 'ordered' ? -1 : 1));
+  const CW = 0.8, CD = 0.75;
+  const cells = [];
+  for (const z of docks) {
+    const cols = Math.max(1, Math.floor(z.width / CW)), rows = Math.max(1, Math.floor(z.depth / CD));
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) cells.push(new THREE.Vector3(z.x - z.width / 2 + CW * (c + 0.5) + (z.width - cols * CW) / 2, 0, z.z - z.depth / 2 + CD * (r + 0.5) + (z.depth - rows * CD) / 2));
+  }
+  const boxGeo = new THREE.BoxGeometry(0.62, 0.48, 0.56);
+  const palletGeo = new THREE.BoxGeometry(0.7, 0.08, 0.64);
+  const orderedMat = std(C.crates[5], { roughness: 0.85 });
+  const proposalMat = std(C.proposalFill, { roughness: 0.85, transparent: true, opacity: 0.4, depthWrite: false });
+  const dashMat = new THREE.LineDashedMaterial({ color: C.proposal, dashSize: 0.07, gapSize: 0.05 });
+  arrivals.forEach((a, i) => {
+    const cell = cells[i % cells.length]; const layer = Math.floor(i / cells.length);
+    const g = new THREE.Group(); g.position.set(cell.x, layer * 0.58, cell.z);
+    const proposal = a.kind === 'proposal';
+    const pallet = new THREE.Mesh(palletGeo, proposal ? proposalMat : M.pallet); pallet.position.y = 0.04; pallet.receiveShadow = true; g.add(pallet);
+    const box = new THREE.Mesh(boxGeo, proposal ? proposalMat : orderedMat); box.position.y = 0.32; box.castShadow = !proposal; box.receiveShadow = true; g.add(box);
+    if (proposal) { const e = new THREE.LineSegments(new THREE.EdgesGeometry(boxGeo), dashMat); e.computeLineDistances(); box.add(e); }
+    else box.add(new THREE.LineSegments(new THREE.EdgesGeometry(boxGeo), M.edge));
+    g.traverse((o) => { o.raycast = () => {}; });
+    dockGroup.add(g);
+    dockCrates.push({ arrivalDay: dayOf(p.base_date, a.eta), group: g });
+  });
+}
+function applyDock() {
+  if (!dockGroup) return;
+  dockGroup.visible = state.layers.dock;
+  for (const d of dockCrates) d.group.visible = state.day <= d.arrivalDay;
+}
+
+function applyAll() {
+  if (!state.layout) return;
+  applySlots(); applyEquipment(); buildImpact(); applyDock();
+}
+
+/* ---------- 카메라 ---------- */
+let fly = null, idleHome = true, topView = false, introDone = false;
+function flyCam(pos, target, dur = 950) {
+  controls.autoRotate = false;
+  if (reduced) { camera.position.copy(pos); controls.target.copy(target); fly = null; return; }
+  fly = { p0: camera.position.clone(), t0: controls.target.clone(), p1: pos.clone(), t1: target.clone(), start: performance.now(), dur };
+}
+function goHome(dur = 1100) { idleHome = true; topView = false; flyCam(view.home.pos, view.home.target, dur); }
+function goTop() {
+  idleHome = false; topView = true;
+  const { width: W, depth: D } = state.layout.size;
+  const vfov = THREE.MathUtils.degToRad(camera.fov);
+  const h = (Math.max(D + 2, (W + 2) / camera.aspect) / 2 / Math.tan(vfov / 2)) * 1.05;
+  flyCam(new THREE.Vector3(view.center.x, h, view.center.z + 0.01), new THREE.Vector3(view.center.x, 0, view.center.z));
+}
+function goLocs(locs) {
+  const pts = locs.map((l) => slotWorld(l)).filter(Boolean);
+  if (!pts.length) return;
+  idleHome = false; topView = false;
+  if (pts.length === 1) { const t = pts[0]; flyCam(t.clone().add(new THREE.Vector3(0.8, 0.8, 3.2)), t); return; }
+  const c = pts.reduce((a, p) => a.add(p), new THREE.Vector3()).multiplyScalar(1 / pts.length);
+  const span = Math.max(...pts.map((p) => p.distanceTo(c)));
+  flyCam(c.clone().add(new THREE.Vector3(-1, 3.5 + span * 0.7, 5 + span * 1.1)), c);
+}
+function goEquipment(id) {
+  const q = equipments.get(id); if (!q) return;
+  idleHome = false; topView = false;
+  const t = new THREE.Vector3(q.e.x, 1, q.e.z);
+  flyCam(t.clone().add(new THREE.Vector3(2.4, 3.4, 6.2)), t);
+}
 
 function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / Math.max(1, h); camera.updateProjectionMatrix(); }
 addEventListener('resize', resize); resize();
+camera.position.set(30, 32, 40);
 
-/* 카메라 */
-let fly = null, idleHome = true;
-function flyTo(pos, target, dur = 950) {
-  controls.autoRotate = false;
-  if (reduced) { camera.position.copy(pos); controls.target.copy(target); return; }
-  fly = { p0: camera.position.clone(), t0: controls.target.clone(), p1: pos.clone(), t1: target.clone(), start: performance.now(), dur };
-}
-function setTop(on) { ui.topView = on; document.getElementById('btnTop').setAttribute('aria-pressed', String(on)); }
-function goHome() { idleHome = true; setTop(false); flyTo(HOME.pos, HOME.target, 1100); }
-const slotWorld = loc => { const s = slotByLoc.get(loc); const p = s.local.clone(); p.y += LEVEL_H * 0.4; return s.group.localToWorld(p); };
-function flyToSlot(loc) { idleHome = false; setTop(false); const t = slotWorld(loc); flyTo(t.clone().add(new THREE.Vector3(1.6, 1.6, 6.4)), t); }
-function flyToLocs(locs) {
-  idleHome = false; setTop(false);
-  const pts = locs.map(slotWorld);
-  const c = pts.reduce((a, p) => a.add(p), new THREE.Vector3()).multiplyScalar(1 / pts.length);
-  const span = Math.max(...pts.map(p => p.distanceTo(c)));
-  flyTo(c.clone().add(new THREE.Vector3(-2, 7 + span * 0.7, 10 + span * 1.1)), c);
-}
+/* ---------- 바깥으로 알리기 ---------- */
+const post = (type, payload = {}) => {
+  try { window.parent.postMessage({ source: 'warehouse-3d', type, ...payload }, location.origin); } catch (err) { console.warn('[warehouse-3d] postMessage 실패', err); }
+};
 
-/* 정보 카드 */
-const info = document.getElementById('info');
-const INFO_HOME = '<div class="eyebrow">칸 정보</div><p class="hint" style="margin:0">드래그로 회전, 휠로 확대하고 선반 칸을 눌러 보세요.</p>';
-function showInfo(loc) {
-  const its = itemsAt(loc);
-  info.innerHTML = `<div class="eyebrow">선택한 칸</div><h2>${loc}</h2>` + (its.length
-    ? its.map(s => { const it = itemById[s.itemId]; return `<div class="row"><span>${esc(it.name)}${isLow(it.id) ? '<span class="pill">부족</span>' : ''}</span><b>${s.qty}${esc(it.unit)}</b></div>`; }).join('')
-    : '<p class="empty" style="margin:0">비어 있는 칸이에요.</p>');
-}
-function selectSlot(loc) { ui.loc = loc; ui.highlight = new Set(); showInfo(loc); flyToSlot(loc); }
-
+/* ---------- 입력 ---------- */
+// 선택 상태는 들고 있지 않는다. 누르면 알리기만 하고, 그리는 강조는 바깥이 select()/highlight() 로 지시한 것뿐이다.
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
 function pick(ev) {
   const r = renderer.domElement.getBoundingClientRect();
@@ -380,31 +734,67 @@ function pick(ev) {
   return hit ? hit.object.userData.loc : null;
 }
 let down = null;
-renderer.domElement.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; fly = null; controls.autoRotate = false; idleHome = false; });
-renderer.domElement.addEventListener('pointerup', e => {
+renderer.domElement.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY }; fly = null; controls.autoRotate = false; idleHome = false; });
+renderer.domElement.addEventListener('pointerup', (e) => {
   if (!down) return;
   const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y); down = null;
-  if (moved > 6) return;
-  const loc = pick(e); if (loc) selectSlot(loc);
+  if (moved > 6 || !state.layout) return;
+  const loc = pick(e);
+  post('select', { loc, partId: loc ? slots.get(loc)?.placement?.part_id ?? null : null });
 });
-renderer.domElement.addEventListener('pointermove', e => { if (down) return; ui.hover = pick(e); renderer.domElement.style.cursor = ui.hover ? 'pointer' : 'grab'; });
+renderer.domElement.addEventListener('pointermove', (e) => {
+  if (down || !state.layout) return;
+  const loc = pick(e);
+  renderer.domElement.style.cursor = loc ? 'pointer' : 'grab';
+  if (loc !== state.hover) { state.hover = loc; post('hover', { loc }); }
+});
+renderer.domElement.addEventListener('pointerleave', () => { if (state.hover) { state.hover = null; post('hover', { loc: null }); } });
 
-document.getElementById('btnAll').addEventListener('click', () => { ui.loc = null; ui.highlight = new Set(); info.innerHTML = INFO_HOME; goHome(); });
-document.getElementById('btnTop').addEventListener('click', () => {
-  if (ui.topView) return goHome();
-  idleHome = false; setTop(true);
-  flyTo(new THREE.Vector3(CENTER.x, 58, CENTER.z + 0.01), new THREE.Vector3(CENTER.x, 0, CENTER.z));
-});
-document.getElementById('btnFind').addEventListener('click', () => {
-  const rows = STOCK.filter(s => s.itemId === 'b6205');
-  ui.loc = null; ui.highlight = new Set(rows.map(s => s.loc));
-  info.innerHTML = `<div class="eyebrow">숨은 재고 찾기</div><h2 style="font-family:var(--font-body)">6205 베어링</h2>
-    <p class="hint" style="margin:0">"베어링 작은 거"로 등록된 재고까지 찾아 ${rows.length}곳을 표시했어요.</p>` +
-    rows.map(s => `<div class="row"><span style="font-family:var(--font-mono)">${s.loc}</span><b>${s.qty}개</b></div>`).join('');
-  flyToLocs(rows.map(s => s.loc));
+/* ---------- 바깥 API ---------- */
+const guard = (name, fn) => (...args) => { try { return fn(...args); } catch (err) { console.error(`[warehouse-3d] ${name} 실패`, err); } };
+const clampDay = (d) => { const max = state.projection?.horizon_days ?? 0; const n = Math.round(Number(d) || 0); return Math.max(0, Math.min(max, n)); };
+
+window.warehouse = {
+  // layout 이 바뀌면 랙·구역·설비·도크를 다시 만든다. projection·day 만 바뀌면 색·상자 수량만 갱신한다.
+  setData: guard('setData', ({ layout, projection, day } = {}) => {
+    let layoutChanged = false;
+    if (layout) {
+      const k = JSON.stringify(layout);
+      if (k !== state.layoutKey) { state.layout = layout; state.layoutKey = k; buildLayout(layout); layoutChanged = true; }
+    }
+    if (projection !== undefined) {
+      const k = JSON.stringify(projection);
+      if (k !== state.projectionKey || layoutChanged) { state.projection = projection; state.projectionKey = k; indexProjection(projection); }
+    } else if (layoutChanged) indexProjection(state.projection);
+    if (day !== undefined) state.day = clampDay(day); else state.day = clampDay(state.day);
+    applyAll();
+    if (layoutChanged && !introDone) { introDone = true; goHome(2600); }
+  }),
+  setDay: guard('setDay', (day) => { const d = clampDay(day); if (d === state.day) return; state.day = d; applyAll(); }),
+  setLayers: guard('setLayers', (layers = {}) => {
+    for (const k of Object.keys(state.layers)) if (typeof layers[k] === 'boolean') state.layers[k] = layers[k];
+    applyAll();
+  }),
+  select: guard('select', (loc) => { state.selected = loc && slots.has(loc) ? loc : null; }),
+  highlight: guard('highlight', (locs) => { state.highlight = new Set((Array.isArray(locs) ? locs : []).filter((l) => slots.has(l))); }),
+  flyTo: guard('flyTo', (target) => {
+    if (!state.layout) return;
+    if (target === 'home') return goHome();
+    if (target === 'top') return topView ? goHome() : goTop();
+    if (target && Array.isArray(target.locs)) return goLocs(target.locs);
+    if (target && target.equipmentId) return goEquipment(target.equipmentId);
+  }),
+};
+
+// 글꼴이 늦게 도착하면 간판 글씨를 Pretendard 로 다시 그린다(레이아웃을 한 번 다시 만든다).
+fontReady.then((loaded) => {
+  if (!loaded || !state.layout) return;
+  const keepCam = { p: camera.position.clone(), t: controls.target.clone() };
+  buildLayout(state.layout); indexProjection(state.projection); applyAll();
+  camera.position.copy(keepCam.p); controls.target.copy(keepCam.t);
 });
 
-/* 루프 */
+/* ---------- 루프 ---------- */
 let last = performance.now();
 function animate(now) {
   requestAnimationFrame(animate);
@@ -414,26 +804,40 @@ function animate(now) {
     const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
     camera.position.lerpVectors(fly.p0, fly.p1, e);
     controls.target.lerpVectors(fly.t0, fly.t1, e);
-    if (k === 1) { fly = null; if (idleHome && !reduced && !ui.topView) controls.autoRotate = true; }
+    if (k === 1) { fly = null; if (idleHome && !reduced && !topView) controls.autoRotate = true; }
   }
   controls.update();
-  if (!reduced) {
-    lift.position.x += liftDir * 2.4 * dt;
-    if (lift.position.x > 27) liftDir = -1;
-    if (lift.position.x < -19) liftDir = 1;
-    lift.rotation.y = liftDir > 0 ? Math.PI / 2 : -Math.PI / 2;
+  if (lift && !reduced) {
+    lift.position.z += liftDir * 1.1 * dt;
+    if (lift.position.z > liftReach) liftDir = -1;
+    if (lift.position.z < -liftReach) liftDir = 1;
+    lift.rotation.y = liftDir > 0 ? 0 : Math.PI;
   }
+  const t = now / 1000;
   const pulse = reduced ? 0.5 : 0.5 + 0.5 * Math.sin(now / 200);
-  for (const [loc, s] of slotByLoc) {
-    const sel = loc === ui.loc, hl = ui.highlight.has(loc);
-    s.mat.opacity = sel ? 0.28 + 0.12 * pulse : hl ? 0.14 + 0.2 * pulse : loc === ui.hover ? 0.14 : 0;
-    if (sel || hl || s.beam) { const b = beamFor(loc); b.visible = sel || hl; b.material.opacity = 0.08 + 0.1 * pulse; }
+  const blink = reduced ? 1 : Math.sin(t * 7) > 0 ? 1 : 0.15;
+  for (const s of slots.values()) {
+    const sel = s.loc === state.selected, hl = state.highlight.has(s.loc);
+    s.mat.opacity = sel ? 0.28 + 0.12 * pulse : hl ? 0.14 + 0.2 * pulse : s.loc === state.hover ? 0.14 : 0;
+    if (sel || hl || s.beam) { const b = beamFor(s); b.visible = sel || hl; b.material.opacity = 0.08 + 0.1 * pulse; }
+    if (s.crateMat) s.crateMat.emissiveIntensity = s.look === 'suspect' && !reduced ? 0.35 + 0.35 * Math.sin(t * 4) : 0;
+  }
+  for (const q of equipments.values()) {
+    if (q.status === 'down') {
+      q.lampMat.opacity = blink;
+      q.haloMat.opacity = 0.35 * blink;
+      q.ringMat.opacity = reduced ? 0.6 : 0.35 + 0.35 * pulse;
+      q.stop.position.y = q.stopBaseY + (reduced ? 0 : Math.sin(t * 3) * 0.06);
+    } else {
+      q.lampMat.opacity = 1;
+      q.ringMat.opacity = q.status === 'warn' ? 0.35 : 0;
+    }
   }
   renderer.render(scene, camera);
 }
 requestAnimationFrame(animate);
-flyTo(HOME.pos, HOME.target, 2600);
 window.__whReady = true;
+post('ready');
 </script>
 </body>
 </html>
