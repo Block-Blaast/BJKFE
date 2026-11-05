@@ -1,6 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 
-import { request } from './client';
+import { ApiError, itemsOf, request } from './client';
+import type { AdjustReason } from './domain/audit';
 import { ENDPOINTS } from './endpoints';
 import { queryKeys } from './queryKeys';
 import type {
@@ -9,6 +10,7 @@ import type {
   ChatIntent,
   ChatTurn,
   ConfirmPendingInput,
+  CountReasonInput,
   SendChatInput,
 } from './types/chat';
 
@@ -35,6 +37,8 @@ type BackendMessage = {
   intent: BackendIntent;
   reply: string;
   cards: BackendCard[];
+  // COUNT 로 실사 요청에 답했을 때만 온다 — 차이 사유(AUD-04)를 보낼 곳
+  count_request_id?: string | null;
 };
 
 const INTENT_LABEL: Record<BackendIntent, ChatIntent> = {
@@ -94,6 +98,12 @@ const isBackendMessage = (raw: unknown): raw is BackendMessage =>
 
 // 카드가 여러 장(품목 여러 개)이면 첫 장만 보이고, 나머지는 답변 문장으로 알린다. TODO: 여러 카드 그리기
 const toTurn = (raw: BackendMessage): ChatTurn => {
+  if (raw.count_request_id) {
+    return {
+      reply: raw.reply,
+      card: { type: 'count_reason', count_request_id: raw.count_request_id },
+    };
+  }
   const [first, ...rest] = raw.cards;
   const card = first ? toCard(first) : undefined;
   const fallback =
@@ -110,16 +120,23 @@ export const sendChatMessage = async (input: SendChatInput): Promise<ChatTurn> =
   return isBackendMessage(raw) ? toTurn(raw) : raw;
 };
 
-// 백엔드 확정 응답은 reply(+ 발주 요청이면 review_id)에 원장 정보가 붙어 온다. 화면은 답변·검토 id만 쓴다
+// 백엔드 확정 응답은 reply(+ 발주 요청이면 review_id)에 원장 정보가 붙어 온다. 화면은 답변·검토 id만 쓴다.
+// 출고로 재주문점 아래가 되면 백엔드가 재고 부족 초안 검토를 스스로 만든다(triggered.draft_review_id) —
+// 작업자가 누를 단계가 없어 답변에 알림만 붙인다. 시스템 초안은 작업자가 열 수 없어(404) 링크는 주지 않는다.
+type ConfirmResponse = ChatTurn & { triggered?: { draft_review_id: string | null } };
+
 export const confirmPending = async (
   pendingId: string,
   input: ConfirmPendingInput = {},
 ): Promise<ChatTurn> => {
-  const raw = await request<ChatTurn>(ENDPOINTS.chatPendingConfirm(pendingId), {
+  const raw = await request<ConfirmResponse>(ENDPOINTS.chatPendingConfirm(pendingId), {
     method: 'POST',
     body: JSON.stringify(input),
   });
-  return { reply: raw.reply, card: raw.card, review_id: raw.review_id };
+  const draft = raw.triggered?.draft_review_id
+    ? '\n재고가 재주문점 아래로 내려가 발주 검토를 사장님께 올렸어요.'
+    : '';
+  return { reply: `${raw.reply}${draft}`, card: raw.card, review_id: raw.review_id };
 };
 
 // 백엔드 취소 응답은 { entry_id, status } 뿐이라 답변이 없다
@@ -134,7 +151,35 @@ export const cancelPending = async (pendingId: string): Promise<ChatTurn> => {
 export const createStockDraft = (draftId: string) =>
   request<ChatTurn>(ENDPOINTS.chatStockDraft(draftId), { method: 'POST' });
 
-export const getChatInbox = () => request<ChatInboxItem[]>(ENDPOINTS.chatInbox);
+// 백엔드는 { items }, 목업은 배열을 준다
+export const getChatInbox = async () =>
+  itemsOf(await request<ChatInboxItem[] | { items: ChatInboxItem[] }>(ENDPOINTS.chatInbox));
+
+const REASON: Record<AdjustReason, string> = {
+  분실: 'lost',
+  '기록 누락': 'missing_record',
+  파손: 'damaged',
+  기타: 'other',
+};
+
+// 실사 차이 사유 (AUD-04). 차이가 없어 이미 닫힌 요청은 409 — 고를 사유가 없다는 뜻이라 안내만 한다
+export const sendCountReason = async (
+  countRequestId: string,
+  input: CountReasonInput,
+): Promise<ChatTurn> => {
+  try {
+    await request(ENDPOINTS.countRequest(countRequestId), {
+      method: 'PATCH',
+      body: JSON.stringify({ reason: REASON[input.reason], note: input.note }),
+    });
+    return { reply: `사유(${input.reason})를 기록하고 확인 요청을 닫았어요.` };
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 409) {
+      return { reply: '장부와 차이가 없어 고를 사유가 없어요.' };
+    }
+    throw error;
+  }
+};
 
 export const chatQueries = {
   inbox: () =>
