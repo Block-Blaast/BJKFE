@@ -119,7 +119,10 @@ const ReviewDetail = ({ id, layout }: ReviewDetailProps) => {
       <h1 className={`${layout === 'desk' ? 'text-h1' : 'text-h2'} text-text-heading`}>
         {review.part.name}
       </h1>
-      <VerdictTags verdict={review.verdict} flags={review.flags} />
+      {/* 판정은 화면에 들어올 때 "쿵" 하고 붙는다 — 이 화면의 결론이라 가장 먼저 눈이 가게 */}
+      <div className="w-fit origin-left animate-verdict-thud">
+        <VerdictTags verdict={review.verdict} flags={review.flags} />
+      </div>
       <ComputedAt at={review.computed_at} />
     </header>
   );

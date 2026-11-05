@@ -104,6 +104,70 @@
   }
 }
 
+/*
+ * 검토 연출 (ReviewSteps, ReviewDetail)
+ * - step-in: 줄·태그가 아래에서 살짝 올라오며 나타남
+ * - verdict-thud: 판정 칩이 크게 떨어져 "쿵" 하고 붙음 — 살짝 눌렸다 튀어 오르며 멈춘다
+ * - stagger: 자식이 차례로 step-in (최대 6개까지 시간차, 그 뒤는 같이)
+ */
+@utility animate-step-in {
+  animation: step-in 320ms var(--vt-ease-out) both;
+}
+@utility animate-verdict-thud {
+  animation: verdict-thud 520ms cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+@utility animate-stagger {
+  & > * {
+    animation: step-in 360ms var(--vt-ease-out) both;
+  }
+  & > :nth-child(2) {
+    animation-delay: 70ms;
+  }
+  & > :nth-child(3) {
+    animation-delay: 140ms;
+  }
+  & > :nth-child(4) {
+    animation-delay: 210ms;
+  }
+  & > :nth-child(5) {
+    animation-delay: 280ms;
+  }
+  & > :nth-child(n + 6) {
+    animation-delay: 350ms;
+  }
+}
+
+@keyframes step-in {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+@keyframes verdict-thud {
+  0% {
+    opacity: 0;
+    scale: 1.8;
+  }
+  55% {
+    opacity: 1;
+    scale: 0.94;
+  }
+  75% {
+    scale: 1.04;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-step-in,
+  .animate-verdict-thud,
+  .animate-stagger > * {
+    animation: none;
+  }
+}
+
 /* 3D 위에 뜬 패널처럼 좁은 스크롤 영역 — 굵은 기본 스크롤바가 카드를 가리지 않게 얇고 투명한 바탕으로 */
 @utility scrollbar-thin {
   scrollbar-width: thin;
