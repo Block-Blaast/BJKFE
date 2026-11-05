@@ -14,10 +14,19 @@ import { useWarehouseStore } from '@/stores/warehouseStore';
 
 export type WarehouseFlyTarget = 'home' | 'top' | { locs: string[] };
 
-// 3D 는 projection 의 오늘 재고(qty[0])만 그린다
+// 3D 가 물품 모양(부품함·코일·캔 등)과 라벨을 고를 때 쓰는 부품 이름·카테고리
+export type WarehousePartInfo = {
+  id: string;
+  name: string;
+  category: string | null;
+};
+
+// 3D 는 projection 의 오늘 재고(qty[0])만 그린다.
+// parts 가 없으면(부품 목록을 받기 전) 3D 는 part_id 로 모양을 고른다 — 목업 id(pt-bearing-…)일 때만 맞는다
 export type WarehouseDataPayload = {
   layout: TwinLayout;
   projection: TwinProjection;
+  parts?: WarehousePartInfo[];
 };
 
 type WarehouseApi = {
