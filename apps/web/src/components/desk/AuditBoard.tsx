@@ -16,7 +16,7 @@ import FolderCard from '@/components/ui/FolderCard';
 import Segmented from '@/components/ui/Segmented';
 import { useAudits, useCompanyStaff, useRequestAudit } from '@/hooks/audit/useAudits';
 import { apiErrorMessage } from '@/utils/apiError';
-import { formatComputedAt, formatQty } from '@/utils/format';
+import { formatComputedAt } from '@/utils/format';
 
 const GRADE_TAG: Record<AuditGrade, { tone: TagTone; icon: LucideIcon }> = {
   높음: { tone: 'danger', icon: TriangleAlert },
@@ -69,26 +69,19 @@ const RequestForm = ({ audit }: { audit: AuditItem }) => {
   );
 };
 
+// 실사 결과(센 수량·차이·사유)는 목록 응답에 없어 상태와 바뀐 시각만 보여준다
 const Outcome = ({ audit }: { audit: AuditItem }) => {
-  if (audit.result) {
-    const diff = audit.result.counted_qty - audit.ledger_qty;
-    return diff === 0 ? (
-      <p className="text-body-sm text-text-success">
-        이상 없음 — 30일 동안 같은 규칙으로 다시 띄우지 않아요.
-      </p>
-    ) : (
-      <p className="text-body-sm text-text-body tabular-nums">
-        실제 {formatQty(audit.result.counted_qty, audit.part.unit)} (차이 {diff > 0 ? '+' : ''}
-        {formatQty(diff, audit.part.unit)}) · 사유 {audit.result.adjust_reason ?? '—'} · 실사조정
-        기록됨
+  if (audit.status === 'resolved') {
+    return (
+      <p className="text-body-sm text-text-success tabular-nums">
+        처리를 마쳤어요 · {formatComputedAt(audit.updated_at)}
       </p>
     );
   }
-  if (audit.request) {
+  if (audit.status === 'requested') {
     return (
       <p className="text-body-sm text-text-body tabular-nums">
-        {audit.request.assignee.name}님께 실사 요청함 ·{' '}
-        {formatComputedAt(audit.request.requested_at)} · 응답을 기다리는 중
+        실사 요청함 · {formatComputedAt(audit.updated_at)} · 응답을 기다리는 중
       </p>
     );
   }
@@ -180,9 +173,6 @@ const AuditBoard = () => {
                 <span className="text-label-lg text-text-heading">{audit.part.name}</span>
                 <span className="text-body-sm text-text-secondary">
                   {AUDIT_RULES[audit.rule].name} ({audit.rule})
-                </span>
-                <span className="ml-auto text-body-sm text-text-body tabular-nums">
-                  기록상 {formatQty(audit.ledger_qty, audit.part.unit)}
                 </span>
               </div>
               <p className="text-body-md text-text-body">{audit.reason}</p>
