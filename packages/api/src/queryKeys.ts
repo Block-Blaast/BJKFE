@@ -12,6 +12,7 @@ const auditsAll = ['audits'] as const;
 const chatAll = ['chat'] as const;
 const partsAll = ['parts'] as const;
 const activityAll = ['activity'] as const;
+const dashboardAll = ['dashboard'] as const;
 const companyAll = ['company'] as const;
 const mergeAll = ['merge-candidates'] as const;
 const setupAll = ['setup'] as const;
@@ -48,6 +49,11 @@ export const queryKeys = {
   activity: {
     all: activityAll,
     today: () => [...activityAll, 'today'] as const,
+  },
+  // 결품 위험 순위·묶인 재고 — 새벽 계산 값이라 기록이 생겨도 바로 바뀌지 않는다
+  dashboard: {
+    all: dashboardAll,
+    summary: () => [...dashboardAll, 'summary'] as const,
   },
   chat: {
     all: chatAll,

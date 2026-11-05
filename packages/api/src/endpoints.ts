@@ -25,6 +25,7 @@ export const ENDPOINTS = {
   invites: '/v1/auth/invites',
   // 오늘 활동 (명세 밖 #275)
   activityToday: '/v1/activity/today',
+  dashboardSummary: '/v1/dashboard/summary',
   // 장부 검증·실사 — 백엔드 AUD-01~04
   audits: '/v1/audit-flags',
   auditRequest: (id: string) => `/v1/audit-flags/${id}/count-request`,
