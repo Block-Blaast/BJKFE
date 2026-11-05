@@ -1,5 +1,4 @@
-// 개발용 목업 — 기준 정보(W-08)와 리포트(W-09). 값은 명세서 예시만 쓰고, 없는 값은 null 로 비웠다.
-// 설비·정비 일정은 명세서에 예시가 없어 빈 목록으로 시작한다(화면에서 등록해 볼 수 있다).
+// 개발용 목업 — 기준 정보(W-08)와 리포트(W-09). 설비·정비·공급사는 가상 공장(fixtures/factory.ts) 값으로 시작한다.
 import { delay, http, HttpResponse } from 'msw';
 
 import type { ApprovalAction } from '../domain/review';
@@ -21,6 +20,7 @@ import type {
   SupplierPriceInput,
 } from '../types/setup';
 import { MOCK_OWNER } from './fixtures/auth';
+import { EQUIPMENT_FIXTURES, MAINTENANCE_FIXTURES, SUPPLIER_FIXTURES } from './fixtures/factory';
 import { PART_FIXTURES } from './fixtures/parts';
 
 const NETWORK_DELAY = 400;
@@ -85,55 +85,66 @@ const importRows = (): ImportRow[] => [
 const imports = new Map<string, ImportPreview>();
 
 // ---- 설비·정비·공급사 (F-SETUP-04) ----
-const equipment: Equipment[] = [];
-const maintenance: Maintenance[] = [];
+// 가상 공장(fixtures/factory.ts)의 설비·정비·공급사로 시작한다. 화면에서 더 등록할 수 있다.
+const equipment: Equipment[] = EQUIPMENT_FIXTURES.map((e) => ({
+  id: e.id,
+  name: e.name,
+  parts: toPartQty(e.parts) ?? [],
+  hourly_loss: e.hourly_loss,
+  daily_hours: e.daily_hours,
+}));
 
-// 공급사·단가: F-SETUP-01 엑셀 예시(○○베어링상사 18,000원), F-REVIEW-10 예시(6205ZZ MOQ 10, 6204 공급사 B 14,800원,
-// V벨트 공급사 A 18,000원). 연락처·기본 납기·휴무일은 예시가 없다.
-const suppliers: Supplier[] = [
-  {
-    id: 'sp-bearing-shop',
-    name: '○○베어링상사',
-    contact: null,
-    default_lead_days: null,
-    holidays: [],
-    prices: [
-      {
-        part_id: 'pt-bearing-6205zz',
-        part_name: '볼베어링 6205ZZ',
-        unit_price: 18000,
-        moq: 10,
-        tiers: [],
-      },
-    ],
-  },
-  {
-    id: 'sp-a',
-    name: 'A',
-    contact: null,
-    default_lead_days: null,
-    holidays: [],
-    prices: [
-      { part_id: 'pt-vbelt-a42', part_name: 'V벨트 A-42', unit_price: 18000, moq: null, tiers: [] },
-    ],
-  },
-  {
-    id: 'sp-b',
-    name: 'B',
-    contact: null,
-    default_lead_days: null,
-    holidays: [],
-    prices: [
-      {
-        part_id: 'pt-bearing-6204',
-        part_name: '볼베어링 6204',
-        unit_price: 14800,
-        moq: null,
-        tiers: [],
-      },
-    ],
-  },
+const maintenance: Maintenance[] = MAINTENANCE_FIXTURES.map((m) => {
+  const target = EQUIPMENT_FIXTURES.find((e) => e.id === m.equipment_id)!;
+  return {
+    id: m.id,
+    equipment: { id: target.id, name: target.name },
+    scheduled_on: m.scheduled_on,
+    parts: toPartQty(m.parts) ?? [],
+    completed_at: null,
+  };
+});
+
+// 3D 창고 예측(twin.ts)이 확정 필요량 F 로 쓴다
+export const currentMaintenance = () => maintenance;
+
+// 단가는 부품의 기본 공급사 단가에서 만든다. MOQ 는 6205ZZ 10개(F-REVIEW-10)만 명세서 값이고 나머지는 가상 값이다.
+// 6204 의 공급사 B(→ 신흥베어링) 14,800원은 F-REVIEW-10 예시.
+const MOQ: Record<string, number> = {
+  'pt-bearing-6205zz': 10,
+  'pt-bearing-6305zz': 4,
+  'pt-bolt-m10x30': 100,
+  'pt-capscrew-m6x15': 100,
+  'pt-nut-m8': 200,
+  'pt-washer-m8': 200,
+  'pt-nut-m10': 100,
+  'pt-insert-cnmg': 10,
+};
+// 재고 부족 초안(F-NOTI-01)이 권장 발주량을 최소 주문 수량에 맞출 때 쓴다
+export const moqOf = (partId: string) => MOQ[partId] ?? null;
+
+const EXTRA_PRICES: { supplier: string; part_id: string; unit_price: number }[] = [
+  { supplier: '신흥베어링', part_id: 'pt-bearing-6204', unit_price: 14800 },
+  // 6205ZZ 대체 공급처 — 더 싸지만 납기가 길다 (시연: C-06 더 싼 공급사)
+  { supplier: '신흥베어링', part_id: 'pt-bearing-6205zz', unit_price: 16200 },
 ];
+
+const suppliers: Supplier[] = SUPPLIER_FIXTURES.map((sp) => ({
+  ...sp,
+  prices: [
+    ...PART_FIXTURES.filter((p) => p.supplier?.name === sp.name && p.supplier.unit_price !== null),
+    ...EXTRA_PRICES.filter((x) => x.supplier === sp.name).map((x) => findPart(x.part_id)!),
+  ].map((p) => {
+    const extra = EXTRA_PRICES.find((x) => x.supplier === sp.name && x.part_id === p.part_id);
+    return {
+      part_id: p.part_id,
+      part_name: p.part_name,
+      unit_price: extra?.unit_price ?? p.supplier!.unit_price!,
+      moq: MOQ[p.part_id] ?? null,
+      tiers: [],
+    };
+  }),
+}));
 
 // ---- 리포트 (W-09) ----
 const purchaseOrders: PurchaseOrder[] = [];

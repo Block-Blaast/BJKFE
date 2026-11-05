@@ -20,7 +20,8 @@
     "./activity": "./src/activity.ts",
     "./company": "./src/company.ts",
     "./setup": "./src/setup.ts",
-    "./reports": "./src/reports.ts"
+    "./reports": "./src/reports.ts",
+    "./twin": "./src/twin.ts"
   },
   "scripts": {
     "lint": "eslint .",

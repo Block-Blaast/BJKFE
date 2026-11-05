@@ -2,6 +2,8 @@ import { Settings, Target } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
 
+import { DESK_SETTINGS } from '@/constants/routes';
+
 import DeskNav from './DeskNav';
 import DeskNavList from './DeskNavList';
 
@@ -26,8 +28,8 @@ const DeskTopBar = () => {
       </nav>
 
       <Link
-        href="/settings"
-        aria-label="직원·설정"
+        href={DESK_SETTINGS.href}
+        aria-label={DESK_SETTINGS.label}
         className="flex size-11 shrink-0 items-center justify-center rounded-full bg-bg-subtle text-text-body transition-colors hover:bg-bg-brand-subtle hover:text-text-brand"
       >
         <Settings size={20} aria-hidden />

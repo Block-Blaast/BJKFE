@@ -33,6 +33,7 @@ export const useConfirmPartImport = () => {
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.parts.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.twin.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.mergeCandidates.all }),
       ]),
   });

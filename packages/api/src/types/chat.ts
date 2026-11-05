@@ -27,7 +27,17 @@ export type ChatCard =
   | (PendingBase & { type: 'confirm'; part: ChatPartRef })
   | (PendingBase & { type: 'select'; part_text: string; candidates: ChatPartRef[] })
   | (PendingBase & { type: 'warning'; part: ChatPartRef; past_max: number })
-  | { type: 'unregistered'; intent: ChatIntent; part_text: string; qty: number; unit: string };
+  | { type: 'unregistered'; intent: ChatIntent; part_text: string; qty: number; unit: string }
+  // [추가] 기록 직후 재고가 재주문점 이하면 띄우는 제안 — F-NOTI-01 의 "기록 중 재고 부족 초안" 입구.
+  // 확인 카드(F-CHAT-02)와 달리 원장이 아니라 검토를 만들고, 만료가 없다. 발주 수량은 작업자가 아니라 검토가 정한다.
+  | {
+      type: 'reorder';
+      draft_id: string;
+      part: ChatPartRef;
+      stock: number;
+      reorder_point: number;
+      unit: string;
+    };
 
 export type ChatTurn = {
   reply: string;

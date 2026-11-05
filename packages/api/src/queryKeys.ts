@@ -15,6 +15,8 @@ const activityAll = ['activity'] as const;
 const companyAll = ['company'] as const;
 const mergeAll = ['merge-candidates'] as const;
 const setupAll = ['setup'] as const;
+// 재고·검토·의심 항목이 바뀌면 twin.all 도 무효화한다 (예측 경로가 바뀐다)
+const twinAll = ['twin'] as const;
 const reportsAll = ['reports'] as const;
 
 export const queryKeys = {
@@ -69,6 +71,11 @@ export const queryKeys = {
     all: reportsAll,
     purchaseOrders: () => [...reportsAll, 'purchase-orders'] as const,
     sim: () => [...reportsAll, 'sim'] as const,
+  },
+  twin: {
+    all: twinAll,
+    layout: () => [...twinAll, 'layout'] as const,
+    projection: (withOrders: boolean) => [...twinAll, 'projection', { withOrders }] as const,
   },
   auth: {
     all: authAll,
