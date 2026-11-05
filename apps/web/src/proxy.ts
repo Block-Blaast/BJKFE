@@ -6,6 +6,8 @@ import { NextResponse, userAgent, type NextRequest } from 'next/server';
 
 const isPhone = (request: NextRequest) => userAgent(request).device.type === 'mobile';
 
+const DESK_ONLY = /^\/warehouse(?:\/|$)/;
+
 const redirectTo = (request: NextRequest, pathname: string) => {
   const url = request.nextUrl.clone();
   url.pathname = pathname;
@@ -25,6 +27,11 @@ export const proxy = (request: NextRequest) => {
     return redirectTo(request, `/m/reviews/${deskReview[1]}`);
   }
 
+  // PC 전용 화면(최소 1280px)이라 폰에서는 잘린다. 대응하는 폰 화면이 없어 첫 화면으로 보낸다.
+  if (phone && DESK_ONLY.test(pathname)) {
+    return redirectTo(request, '/m/chat');
+  }
+
   const mobileReview = pathname.match(/^\/m\/reviews\/([^/]+)$/);
   if (mobileReview && !phone) {
     return redirectTo(request, `/reviews/${mobileReview[1]}`);
@@ -34,5 +41,5 @@ export const proxy = (request: NextRequest) => {
 };
 
 export const config = {
-  matcher: ['/', '/reviews/:id', '/m/reviews/:id'],
+  matcher: ['/', '/reviews/:id', '/m/reviews/:id', '/warehouse'],
 };
