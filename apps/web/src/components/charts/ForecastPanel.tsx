@@ -1,14 +1,12 @@
 'use client';
 
 import type { UseQueryResult } from '@tanstack/react-query';
-import { FlaskConical } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 import type { StockForecast } from '@bjk/api/types/forecast';
 
 import ErrorState from '@/components/ui/ErrorState';
 import ComputedAt from '@/components/ui/ComputedAt';
-import Tag from '@/components/ui/Tag';
 
 // 차트 라이브러리는 PC 화면(W-03, W-05)에서만 쓰므로 이 화면을 열 때 따로 불러온다.
 const StockForecastChart = dynamic(() => import('./StockForecastChart'), {
@@ -29,11 +27,6 @@ const ForecastPanel = ({ query }: ForecastPanelProps) => {
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-h3 text-text-heading">재고 추이와 예측</h2>
         <div className="flex items-center gap-2">
-          {forecast?.is_mock ? (
-            <Tag tone="neutral" icon={FlaskConical}>
-              목업 예측
-            </Tag>
-          ) : null}
           {forecast?.computed_at ? <ComputedAt at={forecast.computed_at} /> : null}
         </div>
       </div>
