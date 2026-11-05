@@ -10,7 +10,7 @@ import type {
   Verdict,
 } from './domain/review';
 import { ENDPOINTS } from './endpoints';
-import { type BackendForecast, fromBackendForecast } from './parts';
+import { type BackendForecast, type BackendLevel, fromBackendForecast, RISK_LABEL } from './parts';
 import { queryKeys } from './queryKeys';
 import type { StockForecast } from './types/forecast';
 import type {
@@ -54,6 +54,15 @@ type BackendDetail = Omit<BackendItem, 'original_total' | 'saving'> & {
   risk_if_not_ordered: { stockout_date: string | null; equipment: string[]; loss: number } | null;
   opinion: { text: string; source: 'llm' | 'template'; verified: boolean } | null;
   snapshot: { id: string; hash: string } | null;
+  external: {
+    import_dependent: boolean;
+    r_lead: number;
+    r_price: number;
+    lead_level: BackendLevel;
+    price_level: BackendLevel;
+    holidays_in_lead: string[];
+    applied: boolean;
+  } | null;
   computed_at: string | null;
   decision: { action: string; reason: string | null } | null;
   decided_at?: string | null;
@@ -181,6 +190,15 @@ const fromDetail = (r: BackendDetail): Review => {
     },
     opinion: r.opinion?.text ?? '검토가 끝나면 의견서가 나와요.',
     opinion_source: r.opinion?.source,
+    external: r.external
+      ? {
+          import_dependent: r.external.import_dependent,
+          lead: { level: RISK_LABEL[r.external.lead_level], r: r.external.r_lead },
+          price: { level: RISK_LABEL[r.external.price_level], r: r.external.r_price },
+          holidays: r.external.holidays_in_lead,
+          applied: r.external.applied,
+        }
+      : null,
     snapshot_id: r.snapshot?.hash ?? '',
     computed_at: r.computed_at ?? r.created_at,
   };

@@ -9,7 +9,7 @@ import type { Part, PartListFilters, StockMovement } from './types/part';
 
 // ---- 백엔드 부품 형식 (SET-03·04, LED-01, 예측선 #258) ----
 // 화면은 지금 Part 형식을 그대로 쓰고, 여기서 백엔드 응답을 그 형식으로 바꾼다. 목업은 Part 를 그대로 준다.
-type BackendLevel = 'normal' | 'caution' | 'high';
+export type BackendLevel = 'normal' | 'caution' | 'high';
 
 type BackendListItem = {
   id: string;
