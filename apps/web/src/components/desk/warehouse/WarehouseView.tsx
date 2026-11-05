@@ -52,7 +52,7 @@ const WarehouseView = () => {
   const ready = layout.data && projection.data && parts.data;
 
   return (
-    <div className="relative min-h-160 flex-1 overflow-hidden rounded-xl bg-bg-surface shadow-card">
+    <div className="relative flex-1 overflow-hidden bg-bg-surface">
       {/* 표 보기 중에도 언마운트하지 않는다 — 다시 로드하면 three.js 씬을 처음부터 만든다 */}
       <iframe
         ref={registerWarehouseFrame}
