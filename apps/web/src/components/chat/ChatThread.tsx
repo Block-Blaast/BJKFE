@@ -18,6 +18,7 @@ import type { AdjustReason } from '@bjk/api/domain/audit';
 import { queryKeys } from '@bjk/api/queryKeys';
 import type { ChatCard, ChatTurn } from '@bjk/api/types/chat';
 
+import ReviewSteps from '@/components/review/ReviewSteps';
 import { useStockChanged, type StockChangeNotice } from '@/hooks/part/useStockChanged';
 import { useEquipment } from '@/hooks/setup/useSetup';
 
@@ -326,12 +327,17 @@ const ChatThread = () => {
                 </div>
               ) : null}
               {message.reviewId ? (
-                <Link
-                  href={`/m/reviews/${message.reviewId}`}
-                  className="flex h-11 items-center text-label-md text-text-brand"
-                >
-                  검토 결과 보기
-                </Link>
+                <>
+                  <div className="w-full max-w-4/5">
+                    <ReviewSteps reviewId={message.reviewId} />
+                  </div>
+                  <Link
+                    href={`/m/reviews/${message.reviewId}`}
+                    className="flex h-11 items-center text-label-md text-text-brand"
+                  >
+                    검토 결과 보기
+                  </Link>
+                </>
               ) : null}
             </li>
           ),

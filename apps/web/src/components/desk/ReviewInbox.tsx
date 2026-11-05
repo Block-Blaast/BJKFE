@@ -7,6 +7,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { Verdict } from '@bjk/api/domain/review';
 import type { ReviewListFilters } from '@bjk/api/types/review';
 
+import { SkeletonTable } from '@/components/ui/feedback/Skeleton';
 import ErrorState from '@/components/ui/ErrorState';
 import Select from '@/components/ui/Select';
 import { entryLabelOf } from '@/components/review/labels';
@@ -19,6 +20,7 @@ import { useReviews } from '@/hooks/review/useReviews';
 import { formatComputedAt, formatWon } from '@/utils/format';
 import { MIN_TOTAL_OPTIONS, parseReviewFilters, toReviewSearch } from '@/utils/reviewFilters';
 import { TABLE, TABLE_CARD, TD, TH, TR } from '@/components/ui/table';
+import { NAV_FORWARD } from '@/constants/transitions';
 
 // 사장님이 먼저 볼 순서: 고칠 게 있는 것 → 막힌 것 → 그대로 괜찮은 것
 const VERDICT_FOLDERS: Verdict[] = ['수정 권고', '보류', '적정'];
@@ -115,7 +117,7 @@ const ReviewInbox = () => {
       </div>
 
       {isPending ? (
-        <p className="text-body-md text-text-secondary">검토 목록을 불러오는 중이에요…</p>
+        <SkeletonTable label="검토 목록을 불러오는 중" />
       ) : isError ? (
         <ErrorState title="검토 목록을 불러오지 못했어요" onRetry={() => refetch()} />
       ) : reviews.length === 0 ? (
@@ -156,6 +158,7 @@ const ReviewInbox = () => {
                   <td className={TD}>
                     <Link
                       href={`/reviews/${review.id}`}
+                      transitionTypes={NAV_FORWARD}
                       className="text-label-md text-text-heading hover:text-text-brand"
                     >
                       {review.part.name}

@@ -19,6 +19,7 @@ import { locsByPart } from '@/utils/twin';
 import { FLOATING_SLOTS } from './panel/slots';
 import WarehouseMenu from './WarehouseMenu';
 import WarehousePanel from './WarehousePanel';
+import WarehouseSkeleton from './WarehouseSkeleton';
 import WarehouseSummary from './WarehouseSummary';
 import WarehouseTable, { WarehouseViewToggle } from './WarehouseTable';
 
@@ -153,12 +154,7 @@ const WarehouseView = () => {
                 />
               </div>
             ) : !ready ? (
-              <p
-                role="status"
-                className="m-auto rounded-full bg-bg-surface px-5 py-3 text-body-md text-text-secondary shadow-card"
-              >
-                창고를 불러오는 중이에요…
-              </p>
+              <WarehouseSkeleton />
             ) : view === 'table' ? (
               <div className={`${FLOAT} min-h-0 flex-1 overflow-y-auto`}>
                 <WarehouseTable />

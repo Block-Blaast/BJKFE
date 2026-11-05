@@ -6,6 +6,277 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/*
+ * 화면 전환 (React <ViewTransition>, PC 화면)
+ * - 3D 창고 → 상세 페이지: 3D 가 카메라를 밀고 들어가듯 커지며 흐려지고, 패널이 아래에서 떠오른다
+ * - 상세 페이지 → 3D 창고: 패널이 가라앉고, 3D 가 살짝 큰 데서 제자리로 내려앉는다
+ * - 목록 ↔ 상세(같은 (pages) 레이아웃 안): Link transitionTypes(constants/transitions.ts)로 좌우 방향을 준다
+ * 나가는 쪽은 짧게, 들어오는 쪽은 나가는 쪽이 거의 사라진 뒤 천천히 — 둘이 겹쳐 보이는 시간을 줄인다.
+ */
+:root {
+  --vt-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --vt-ease-in: cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* 전환 중에도 클릭이 화면에 닿게 한다 (기본은 전환 오버레이가 포인터를 먹는다) */
+::view-transition {
+  pointer-events: none;
+}
+
+::view-transition-old(.desk-warehouse-out) {
+  animation: 320ms var(--vt-ease-in) both vt-dive-out;
+}
+::view-transition-new(.desk-panel-in) {
+  animation: 420ms var(--vt-ease-out) 120ms both vt-rise-in;
+}
+::view-transition-old(.desk-panel-out) {
+  animation: 200ms var(--vt-ease-in) both vt-sink-out;
+}
+::view-transition-new(.desk-warehouse-in) {
+  animation: 520ms var(--vt-ease-out) 80ms both vt-settle-in;
+}
+
+::view-transition-old(.nav-forward) {
+  --vt-slide: -48px;
+  animation: 180ms var(--vt-ease-in) both vt-slide-out;
+}
+::view-transition-new(.nav-forward) {
+  --vt-slide: 48px;
+  animation: 360ms var(--vt-ease-out) 100ms both vt-slide-in;
+}
+::view-transition-old(.nav-back) {
+  --vt-slide: 48px;
+  animation: 180ms var(--vt-ease-in) both vt-slide-out;
+}
+::view-transition-new(.nav-back) {
+  --vt-slide: -48px;
+  animation: 360ms var(--vt-ease-out) 100ms both vt-slide-in;
+}
+
+@keyframes vt-dive-out {
+  to {
+    opacity: 0;
+    scale: 1.08;
+    filter: blur(6px);
+  }
+}
+@keyframes vt-rise-in {
+  from {
+    opacity: 0;
+    scale: 0.96;
+    translate: 0 24px;
+  }
+}
+@keyframes vt-sink-out {
+  to {
+    opacity: 0;
+    scale: 0.97;
+    translate: 0 16px;
+  }
+}
+@keyframes vt-settle-in {
+  from {
+    opacity: 0;
+    scale: 1.06;
+    filter: blur(4px);
+  }
+}
+@keyframes vt-slide-out {
+  to {
+    opacity: 0;
+    translate: var(--vt-slide) 0;
+  }
+}
+@keyframes vt-slide-in {
+  from {
+    opacity: 0;
+    translate: var(--vt-slide) 0;
+  }
+}
+
+/* 움직임 줄이기: 위치·크기 변화 없이 바로 바뀐다 */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}
+
+/*
+ * 검토 연출 (ReviewSteps, ReviewDetail)
+ * - step-in: 줄·태그가 아래에서 살짝 올라오며 나타남
+ * - verdict-thud: 판정 칩이 크게 떨어져 "쿵" 하고 붙음 — 살짝 눌렸다 튀어 오르며 멈춘다
+ * - stagger: 자식이 차례로 step-in (최대 6개까지 시간차, 그 뒤는 같이)
+ */
+@utility animate-step-in {
+  animation: step-in 320ms var(--vt-ease-out) both;
+}
+@utility animate-verdict-thud {
+  animation: verdict-thud 520ms cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+@utility animate-stagger {
+  & > * {
+    animation: step-in 360ms var(--vt-ease-out) both;
+  }
+  & > :nth-child(2) {
+    animation-delay: 70ms;
+  }
+  & > :nth-child(3) {
+    animation-delay: 140ms;
+  }
+  & > :nth-child(4) {
+    animation-delay: 210ms;
+  }
+  & > :nth-child(5) {
+    animation-delay: 280ms;
+  }
+  & > :nth-child(n + 6) {
+    animation-delay: 350ms;
+  }
+}
+
+@keyframes step-in {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+@keyframes verdict-thud {
+  0% {
+    opacity: 0;
+    scale: 1.8;
+  }
+  55% {
+    opacity: 1;
+    scale: 0.94;
+  }
+  75% {
+    scale: 1.04;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-step-in,
+  .animate-verdict-thud,
+  .animate-stagger > * {
+    animation: none;
+  }
+}
+
+/* 스켈레톤 (components/ui/feedback/Skeleton) — 회색 막대 위로 옅은 빛이 왼쪽 → 오른쪽으로 지나간다.
+   움직임 줄이기면 빛 없이 회색만 둔다 */
+@utility skeleton {
+  background-color: var(--bg-subtle);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--bg-surface) 70%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background-image: none;
+  }
+}
+
+/* 지게차 스켈레톤 (components/desk/warehouse/WarehouseSkeleton) — 일러스트라 프리미티브 회색을 쓴다 */
+.forklift-shine {
+  stop-color: var(--color-gray-200);
+  animation: forklift-shine 1.6s ease-in-out infinite;
+}
+/* 그라데이션 칸마다 늦게 밝아져 밝은 띠가 왼쪽 → 오른쪽으로 지나간다 */
+.forklift-shine:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.forklift-shine:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.forklift-shine:nth-child(4) {
+  animation-delay: 0.45s;
+}
+.forklift-shine:nth-child(5) {
+  animation-delay: 0.6s;
+}
+.forklift-forks {
+  animation: forklift-lift 2.4s ease-in-out infinite;
+}
+.forklift-body {
+  animation: forklift-idle 0.5s ease-in-out infinite alternate;
+}
+.forklift-wheel {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: forklift-spin 0.9s linear infinite;
+}
+.forklift-floor {
+  stroke-dasharray: 8 7;
+  animation: forklift-floor 0.9s linear infinite;
+}
+@keyframes forklift-shine {
+  0%,
+  100% {
+    stop-color: var(--color-gray-200);
+  }
+  50% {
+    stop-color: var(--color-gray-100);
+  }
+}
+@keyframes forklift-lift {
+  0%,
+  20% {
+    translate: 0 0;
+  }
+  50%,
+  70% {
+    translate: 0 -16px;
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+@keyframes forklift-idle {
+  to {
+    translate: 0 -0.6px;
+  }
+}
+@keyframes forklift-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+@keyframes forklift-floor {
+  to {
+    stroke-dashoffset: 15;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .forklift-shine,
+  .forklift-forks,
+  .forklift-body,
+  .forklift-wheel,
+  .forklift-floor {
+    animation: none;
+  }
+}
+
 /* 3D 위에 뜬 패널처럼 좁은 스크롤 영역 — 굵은 기본 스크롤바가 카드를 가리지 않게 얇고 투명한 바탕으로 */
 @utility scrollbar-thin {
   scrollbar-width: thin;

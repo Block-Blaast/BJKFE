@@ -28,7 +28,7 @@ const CheckList = ({ checks, unit }: CheckListProps) => {
   );
 
   return (
-    <ul className="flex flex-col gap-3">
+    <ul className="flex animate-stagger flex-col gap-3">
       {sorted.map(({ code, level, facts }) => (
         <li key={code} className="flex flex-col gap-2 rounded-md border border-border-default p-4">
           <div className="flex items-center gap-2">

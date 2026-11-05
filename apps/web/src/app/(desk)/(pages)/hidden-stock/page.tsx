@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 
+import { SkeletonPage } from '@/components/ui/feedback/Skeleton';
 import HiddenStockList from '@/components/desk/HiddenStockList';
 
 export const metadata: Metadata = { title: '숨은 재고' };
@@ -16,7 +17,7 @@ const HiddenStockPage = () => {
         </p>
       </header>
       {/* useSearchParams 는 요청 시점 값이라 Suspense 안에서 읽는다 (cacheComponents) */}
-      <Suspense fallback={<p className="text-body-md text-text-secondary">불러오는 중이에요…</p>}>
+      <Suspense fallback={<SkeletonPage label="화면을 불러오는 중" />}>
         <HiddenStockList />
       </Suspense>
     </div>

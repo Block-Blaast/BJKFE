@@ -28,7 +28,9 @@ body { background: var(--sky); color: var(--ink); font-family: var(--font-body);
 button { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 #stage { position: fixed; inset: 0; }
-#stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+#stage canvas { display: block; width: 100%; height: 100%; touch-action: none; opacity: 0; transition: opacity 0.6s ease-out; }
+#stage.on canvas { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { #stage canvas { transition: none; } }
 #fail { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; padding: 16px; pointer-events: none; }
 #fail.show { display: flex; }
 #fail .card { pointer-events: auto; display: flex; align-items: center; gap: 10px; padding: 12px 10px 12px 16px; background: var(--card); backdrop-filter: blur(10px); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 6px 20px rgba(60, 110, 150, 0.12); color: var(--muted); font-size: 15px; font-weight: 500; }
@@ -130,7 +132,7 @@ function itemFor(partId) {
 const SCALE_X = 2.6, SCALE_Z = 1.75;
 
 const ui = { loc: null, selAt: 0, hover: null, highlight: new Set(), topView: false };
-const data = { layout: null, stock: new Map(), parts: new Map(), key: null };
+const data = { layout: null, stock: new Map(), alerts: new Set(), parts: new Map(), key: null };
 const itemsAt = (loc) => data.stock.get(loc) ?? [];
 
 /* 결정적인 난수 (새로고침해도 같은 배치) */
@@ -270,6 +272,40 @@ const SHARED_MAT = new Set(Object.values(M));
 /* ---------- 랙 ---------- */
 const SLOT_W = 1.8, LEVEL_H = 1.5, DEPTH = 1.25, BASE = 0.3;
 const GLOW = new THREE.Color(0x4a9fe0);
+
+/* 위험 칸 LED — 오늘 결품 위험·비어 있는 칸만 칸 앞에서 천천히 깜박인다.
+   작은 LED 만으로는 멀리서 안 보여 뒤에 번지는 빛(halo)을 함께 둔다. 재질은 공용 하나라 한 번에 깜박인다 */
+const LED_COLOR = 0xf0614e;
+const ledGeo = new THREE.BoxGeometry(0.3, 0.07, 0.03);
+const haloGeo = new THREE.PlaneGeometry(0.9, 0.45);
+const ledMat = new THREE.MeshBasicMaterial({ color: LED_COLOR, transparent: true, toneMapped: false });
+const haloMat = new THREE.MeshBasicMaterial({
+  color: LED_COLOR, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  map: canvasTex(128, 64, (g, w, h) => {
+    // w×w 원을 세로로 눌러 타원으로 그린다
+    const r = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2);
+    r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.35, 'rgba(255,255,255,0.45)'); r.addColorStop(1, 'rgba(255,255,255,0)');
+    g.scale(1, h / w); g.fillStyle = r; g.fillRect(0, 0, w, w);
+  }),
+});
+SHARED_GEO.add(ledGeo); SHARED_GEO.add(haloGeo);
+SHARED_MAT.add(ledMat); SHARED_MAT.add(haloMat);
+function addAlertLed(slot) {
+  const { group: g, local: p } = slot;
+  const x = p.x + 0.36; // 위치 라벨 오른쪽
+  const led = new THREE.Mesh(ledGeo, ledMat);
+  const halo = new THREE.Mesh(haloGeo, haloMat);
+  if (slot.floor) {
+    // 바닥 칸은 라벨처럼 바닥에 눕힌다
+    led.position.set(x, 0.035, DEPTH / 2 + 0.32);
+    halo.rotation.x = -Math.PI / 2; halo.position.set(x, 0.02, DEPTH / 2 + 0.32);
+  } else {
+    led.position.set(x, p.y - 0.085, DEPTH / 2 + 0.085);
+    halo.position.set(x, p.y - 0.085, DEPTH / 2 + 0.11);
+  }
+  g.add(led, halo);
+}
+
 const slotByLoc = new Map();
 const hitMeshes = [];
 const pickables = [];
@@ -555,6 +591,9 @@ function buildWorld(layout) {
     });
   }
 
+  /* 위험 칸 LED */
+  for (const loc of data.alerts) { const s = slotByLoc.get(loc); if (s) addAlertLed(s); }
+
   /* 작은 부품은 InstancedMesh 하나로 합쳐서 그리기 (성능) */
   world.updateMatrixWorld(true);
   const groups = {};
@@ -607,6 +646,12 @@ function indexStock(layout, projection) {
   return stock;
 }
 
+// 오늘 결품 위험(risk)·비어 있음(out)인 부품이 놓인 칸. 상태는 projection 이 정한 값을 그대로 읽는다
+function indexAlerts(layout, projection) {
+  const bad = new Set((projection?.bins ?? []).filter((b) => b.status?.[0] === 'risk' || b.status?.[0] === 'out').map((b) => b.part_id));
+  return new Set(layout.placements.filter((p) => bad.has(p.part_id)).map((p) => `${p.rack_id}-${p.level}-${p.slot}`));
+}
+
 /* ---------- 강조 빛기둥 ---------- */
 const beamGeo = new THREE.CylinderGeometry(0.55, 0.85, 1, 32, 1, true); beamGeo.translate(0, 0.5, 0);
 SHARED_GEO.add(beamGeo);
@@ -630,6 +675,29 @@ function flyTo(pos, target, dur = 950) {
   fly = { p0: camera.position.clone(), t0: controls.target.clone(), p1: pos.clone(), t1: target.clone(), start: performance.now(), dur };
 }
 function goHome(dur = 1100) { idleHome = true; ui.topView = false; flyTo(HOME.pos, HOME.target, dur); }
+
+/* 첫 진입 인트로 — 창고 바로 위 높은 곳(안개 속)에서 내려다보다가 90° 돌며 내려와 기본 시점에 앉는다.
+   카메라는 기본 시점의 중심(HOME.target)을 바라보는 구면 좌표로 움직여 내내 창고가 화면 가운데 있다.
+   시작 거리는 OrbitControls 의 maxDistance 를 넘지 않게 한다 (넘으면 controls.update 가 잘라 튄다) */
+// 상세 페이지에서 돌아오면 iframe 이 새로 떠서 인트로가 다시 돈다. 매번 1.7초를 기다리지 않게,
+// 이 탭에서 이미 봤으면 가까이에서 뒤로 물러나며 자리 잡는 짧은 동작(바깥 화면 전환 "3D 로 돌아옴"과 짝)만 한다
+const INTRO_MS = 1700, RETURN_MS = 900;
+const INTRO_KEY = 'warehouse-3d:intro-seen';
+const introSeen = () => { try { return sessionStorage.getItem(INTRO_KEY) === '1'; } catch { return false; } };
+function playIntro() {
+  idleHome = true; ui.topView = false;
+  const end = new THREE.Spherical().setFromVector3(HOME.pos.clone().sub(HOME.target));
+  if (reduced) { camera.position.copy(HOME.pos); controls.target.copy(HOME.target); return; }
+  const back = introSeen();
+  try { sessionStorage.setItem(INTRO_KEY, '1'); } catch {}
+  const start = back
+    ? new THREE.Spherical(Math.max(end.radius * 0.62, controls.minDistance + 1), end.phi * 0.92, end.theta + 0.25)
+    : new THREE.Spherical(Math.min(end.radius * 1.9, controls.maxDistance - 1), 0.02, end.theta + Math.PI / 2);
+  camera.position.copy(HOME.target).add(new THREE.Vector3().setFromSpherical(start));
+  controls.target.copy(HOME.target);
+  controls.autoRotate = false;
+  fly = { orbit: { start, end }, t1: HOME.target.clone(), start: performance.now(), dur: back ? RETURN_MS : INTRO_MS };
+}
 function goTop() { idleHome = false; ui.topView = true; flyTo(new THREE.Vector3(CENTER.x, topHeight, CENTER.z + 0.01), new THREE.Vector3(CENTER.x, 0, CENTER.z)); }
 const slotWorld = loc => { const s = slotByLoc.get(loc); if (!s) return null; const p = s.local.clone(); p.y += LEVEL_H * 0.35; return s.group.localToWorld(p); };
 function flyToSlot(loc) { const t = slotWorld(loc); if (!t) return; idleHome = false; ui.topView = false; flyTo(t.clone().add(new THREE.Vector3(0.7, 0.8, 3.6)), t); }
@@ -808,17 +876,18 @@ window.warehouse = {
   setData: guard('setData', ({ layout, projection, parts } = {}) => {
     if (!layout) return;
     const stock = indexStock(layout, projection);
+    const alerts = indexAlerts(layout, projection);
     const names = (Array.isArray(parts) ? parts : []).map((p) => [p.id, p.name]);
-    const k = JSON.stringify([layout.racks, layout.zones, [...stock], names]);
+    const k = JSON.stringify([layout.racks, layout.zones, [...stock], [...alerts], names]);
     if (k === data.key) return;
-    data.layout = layout; data.stock = stock; data.key = k;
+    data.layout = layout; data.stock = stock; data.alerts = alerts; data.key = k;
     // 이름이 바뀌면 모양·라벨도 다시 고른다
     data.parts = new Map((Array.isArray(parts) ? parts : []).map((p) => [p.id, p]));
     itemCache.clear();
     buildWorld(layout);
     ui.highlight = new Set([...ui.highlight].filter((l) => slotByLoc.has(l)));
     if (ui.loc && !slotByLoc.has(ui.loc)) ui.loc = null;
-    if (!introDone) { introDone = true; goHome(2600); }
+    if (!introDone) { introDone = true; playIntro(); stage.classList.add('on'); }
   }),
   select: guard('select', (loc) => {
     const next = loc && slotByLoc.has(loc) ? loc : null;
@@ -850,13 +919,29 @@ function animate(now) {
   if (fly) {
     const k = Math.min(1, (now - fly.start) / fly.dur);
     const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
-    camera.position.lerpVectors(fly.p0, fly.p1, e);
-    controls.target.lerpVectors(fly.t0, fly.t1, e);
+    if (fly.orbit) {
+      const { start: a, end: b } = fly.orbit;
+      // 내려오는 각도는 조금 일찍 자리 잡게(ease-out) 해서 마지막에 옆으로 미끄러지듯 앉는다
+      const eo = 1 - Math.pow(1 - k, 3);
+      const s = new THREE.Spherical(
+        THREE.MathUtils.lerp(a.radius, b.radius, e),
+        THREE.MathUtils.lerp(a.phi, b.phi, eo),
+        THREE.MathUtils.lerp(a.theta, b.theta, e),
+      );
+      camera.position.copy(fly.t1).add(new THREE.Vector3().setFromSpherical(s));
+    } else {
+      camera.position.lerpVectors(fly.p0, fly.p1, e);
+      controls.target.lerpVectors(fly.t0, fly.t1, e);
+    }
     if (k === 1) { fly = null; if (idleHome && !reduced && !ui.topView) controls.autoRotate = true; }
   }
   controls.update();
   if (lift && !reduced) updateLift(dt);
   const pulse = reduced ? 0.5 : 0.5 + 0.5 * Math.sin(now / 200);
+  // 위험 칸 LED: 2초 주기로 천천히 숨 쉬듯 깜박인다 (움직임 줄이기면 켜 둔 채로)
+  const blink = reduced ? 1 : Math.pow(0.5 + 0.5 * Math.sin((now / 2000) * Math.PI * 2), 2);
+  ledMat.opacity = 0.35 + 0.65 * blink;
+  haloMat.opacity = 0.75 * blink;
   for (const [loc, s] of slotByLoc) {
     /* 선택 표시는 클릭 직후 1.2초 동안만 보였다가 사라짐 */
     const selFade = loc === ui.loc ? Math.max(0, 1 - (now - ui.selAt) / 1200) : 0;

@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { ROLE_LABEL } from '@bjk/api/domain/auth';
 import type { CompanyMember } from '@bjk/api/types/auth';
 
+import { SkeletonLines } from '@/components/ui/feedback/Skeleton';
 import ErrorState from '@/components/ui/ErrorState';
 import { useCompanyMembers } from '@/hooks/auth/useAuthQueries';
 import { usePinLogin } from '@/hooks/auth/useAuthMutations';
@@ -25,7 +26,7 @@ const WorkerLogin = ({ companyCode }: WorkerLoginProps) => {
   const [pin, setPin] = useState('');
 
   if (membersQuery.isPending) {
-    return <p className="text-body-md text-text-secondary">직원 목록을 불러오는 중이에요…</p>;
+    return <SkeletonLines label="직원 목록을 불러오는 중" lines={4} />;
   }
   if (membersQuery.isError) {
     return (

@@ -9,6 +9,7 @@ import type { Review } from '@bjk/api/types/review';
 import type { TwinArrival } from '@bjk/api/types/twin';
 import Button from '@bjk/ui/components/Button';
 
+import { SkeletonLines } from '@/components/ui/feedback/Skeleton';
 import VerdictTags from '@/components/review/VerdictTags';
 import { DotTag, InfoSection } from '@/components/ui/InfoPanel';
 import { useDecideReview } from '@/hooks/review/useDecideReview';
@@ -77,7 +78,7 @@ const ProposalCard = ({ arrival, unit, onApproved }: ProposalCardProps) => {
       ) : isError ? (
         <p className="text-body-sm text-text-danger">검토 내용을 불러오지 못했어요.</p>
       ) : isPending ? (
-        <p className="text-body-sm text-text-secondary">검토 내용을 불러오는 중…</p>
+        <SkeletonLines label="검토 내용을 불러오는 중" lines={1} />
       ) : null}
       <p className="text-label-md text-text-heading tabular-nums">
         {review?.verdict === '적정' ? '요청 수량' : '수정안'} {formatQty(arrival.qty, unit)} · 도착

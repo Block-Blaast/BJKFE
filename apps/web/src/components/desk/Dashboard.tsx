@@ -20,6 +20,7 @@ import type { AuditGrade } from '@bjk/api/domain/audit';
 import type { ActivityKind } from '@bjk/api/types/activity';
 import type { Part } from '@bjk/api/types/part';
 
+import { SkeletonLines, SkeletonTable } from '@/components/ui/feedback/Skeleton';
 import { entryLabelOf } from '@/components/review/labels';
 import VerdictTags from '@/components/review/VerdictTags';
 import ComputedAt from '@/components/ui/ComputedAt';
@@ -32,6 +33,7 @@ import { useParts } from '@/hooks/part/useParts';
 import { useReviews } from '@/hooks/review/useReviews';
 import { formatDate, formatQty, formatWon } from '@/utils/format';
 import { TABLE, TD, TH, TR } from '@/components/ui/table';
+import { NAV_FORWARD } from '@/constants/transitions';
 
 const EMPTY = '—';
 const TOP = 5;
@@ -261,7 +263,7 @@ const Dashboard = () => {
         <div className="col-span-3 flex flex-col gap-5">
           <Card title="결품 위험 상위 5" href="/parts">
             {parts.isPending ? (
-              <Muted>불러오는 중이에요…</Muted>
+              <SkeletonTable label="결품 위험 부품을 불러오는 중" rows={5} cols={4} card={false} />
             ) : parts.isError ? (
               <Muted>부품을 불러오지 못했어요.</Muted>
             ) : risk!.items.length === 0 ? (
@@ -291,6 +293,7 @@ const Dashboard = () => {
                         <td className={TD}>
                           <Link
                             href={`/parts/${p.id}`}
+                            transitionTypes={NAV_FORWARD}
                             className="flex items-center gap-3 text-label-md text-text-heading hover:text-text-brand"
                           >
                             <span className="flex size-9 items-center justify-center rounded-full bg-bg-subtle text-text-secondary">
@@ -323,7 +326,7 @@ const Dashboard = () => {
 
           <Card title="오늘 활동">
             {activity.isPending ? (
-              <Muted>불러오는 중이에요…</Muted>
+              <SkeletonLines label="오늘 활동을 불러오는 중" lines={5} />
             ) : activity.isError ? (
               <Muted>활동을 불러오지 못했어요.</Muted>
             ) : activity.data.length === 0 ? (
@@ -365,7 +368,7 @@ const Dashboard = () => {
         <div className="col-span-2 flex flex-col gap-5">
           <Card title="결정 대기 검토" href="/reviews">
             {reviews.isPending ? (
-              <Muted>불러오는 중이에요…</Muted>
+              <SkeletonLines label="검토를 불러오는 중" lines={4} />
             ) : reviews.isError ? (
               <Muted>검토를 불러오지 못했어요.</Muted>
             ) : reviews.data.length === 0 ? (
@@ -376,6 +379,7 @@ const Dashboard = () => {
                   <li key={r.id} className={ROW}>
                     <Link
                       href={`/reviews/${r.id}`}
+                      transitionTypes={NAV_FORWARD}
                       className="flex items-center justify-between gap-3 py-3 hover:text-text-brand"
                     >
                       <span className="flex flex-col">
@@ -392,7 +396,7 @@ const Dashboard = () => {
 
           <Card title="확인할 재고" href="/audit">
             {audits.isPending ? (
-              <Muted>불러오는 중이에요…</Muted>
+              <SkeletonLines label="확인할 재고를 불러오는 중" />
             ) : audits.isError ? (
               <Muted>확인할 재고를 불러오지 못했어요.</Muted>
             ) : audits.data.length === 0 ? (

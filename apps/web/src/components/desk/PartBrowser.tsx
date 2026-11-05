@@ -18,6 +18,7 @@ import {
 } from '@bjk/api/domain/part';
 import type { PartListFilters } from '@bjk/api/types/part';
 
+import { SkeletonTable } from '@/components/ui/feedback/Skeleton';
 import ErrorState from '@/components/ui/ErrorState';
 import Select from '@/components/ui/Select';
 import { PILL_SEARCH } from '@/components/ui/controls';
@@ -26,6 +27,7 @@ import FolderCard from '@/components/ui/FolderCard';
 import { useParts } from '@/hooks/part/useParts';
 import { formatComputedAt, formatDate, formatQty } from '@/utils/format';
 import { TABLE, TABLE_CARD, TD, TH, TR } from '@/components/ui/table';
+import { NAV_FORWARD } from '@/constants/transitions';
 
 const pick = <T extends string>(value: string | null, allowed: readonly T[]) =>
   value !== null && (allowed as readonly string[]).includes(value) ? (value as T) : undefined;
@@ -182,7 +184,7 @@ const PartBrowser = () => {
       </div>
 
       {isPending ? (
-        <p className="text-body-md text-text-secondary">부품을 불러오는 중이에요…</p>
+        <SkeletonTable label="부품을 불러오는 중" rows={8} cols={7} />
       ) : isError ? (
         <ErrorState title="부품을 불러오지 못했어요" onRetry={() => refetch()} />
       ) : parts.length === 0 ? (
@@ -216,6 +218,7 @@ const PartBrowser = () => {
                     <th scope="row" className={`${TD} ${ALIGN.left} ${STICKY_TD} font-normal`}>
                       <Link
                         href={`/parts/${part.id}`}
+                        transitionTypes={NAV_FORWARD}
                         className="flex flex-col text-label-md text-text-heading hover:text-text-brand"
                       >
                         <span className="truncate">{part.name}</span>

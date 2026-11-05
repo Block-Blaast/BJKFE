@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import { MOVEMENT_TYPES } from '@bjk/api/domain/part';
 
+import { SkeletonDetail, SkeletonTable } from '@/components/ui/feedback/Skeleton';
 import ErrorState from '@/components/ui/ErrorState';
 import ForecastPanel from '@/components/charts/ForecastPanel';
 import Breadcrumb from '@/components/ui/Breadcrumb';
@@ -36,8 +37,7 @@ const Section = ({
 
 const Ledger = ({ id, unit }: { id: string; unit: string }) => {
   const { data: entries, isPending, isError, refetch } = usePartLedger(id);
-  if (isPending)
-    return <p className="text-body-sm text-text-secondary">원장을 불러오는 중이에요…</p>;
+  if (isPending) return <SkeletonTable label="입출고 원문을 불러오는 중" rows={5} card={false} />;
   if (isError) {
     return (
       <ErrorState title="입출고 원문을 불러오지 못했어요" onRetry={() => refetch()} size="inline" />
@@ -98,8 +98,7 @@ const PartDetail = ({ id }: PartDetailProps) => {
   const { data: part, isPending, isError, refetch } = usePart(id);
   const forecast = usePartForecast(id);
 
-  if (isPending)
-    return <p className="text-body-md text-text-secondary">부품을 불러오는 중이에요…</p>;
+  if (isPending) return <SkeletonDetail label="부품을 불러오는 중" layout="desk" />;
   if (isError) {
     return <ErrorState title="부품을 불러오지 못했어요" onRetry={() => refetch()} />;
   }

@@ -9,6 +9,7 @@ import type { AuditItem } from '@bjk/api/types/audit';
 import type { TwinBin } from '@bjk/api/types/twin';
 import Button from '@bjk/ui/components/Button';
 
+import { SkeletonLines } from '@/components/ui/feedback/Skeleton';
 import { InfoSection } from '@/components/ui/InfoPanel';
 import Select from '@/components/ui/Select';
 import Tag, { type TagTone } from '@/components/ui/Tag';
@@ -108,7 +109,7 @@ const AuditSection = ({ bin }: BinSectionProps) => {
       <div className="flex flex-col gap-3 rounded-md bg-bg-page p-3">
         <GradeTag grade={bin.audit.grade} />
         {audits.isPending ? (
-          <p className="text-body-sm text-text-secondary">요청 상태를 불러오는 중…</p>
+          <SkeletonLines label="요청 상태를 불러오는 중" lines={2} />
         ) : (
           <RequestState item={item} auditId={bin.audit.id} />
         )}

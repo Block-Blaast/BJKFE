@@ -7,7 +7,7 @@ import type {
   TwinProjection,
 } from '@bjk/api/types/twin';
 
-// 칸 상태 표시(패널·표의 태그). 3D 는 원본처럼 칸 앞 LED 로만 상태를 보여 준다
+// 칸 상태 표시(패널·표의 태그). 3D 는 결품 위험·비어 있는 칸만 칸 앞 LED 를 깜박여 보여 준다
 export type BinLook = TwinBinStatus | 'suspect';
 
 export const BIN_LOOK_LABEL: Record<BinLook, string> = {

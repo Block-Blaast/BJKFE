@@ -8,6 +8,7 @@ import { openReviewPdf } from '@bjk/api/reviews';
 import type { Review } from '@bjk/api/types/review';
 import Button from '@bjk/ui/components/Button';
 
+import { SkeletonDetail } from '@/components/ui/feedback/Skeleton';
 import ErrorState from '@/components/ui/ErrorState';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import ComputedAt from '@/components/ui/ComputedAt';
@@ -102,7 +103,7 @@ const ReviewDetail = ({ id, layout }: ReviewDetailProps) => {
   const { data: review, isPending, isError, refetch } = useReview(id);
 
   if (isPending) {
-    return <p className="text-body-md text-text-secondary">검토 결과를 불러오는 중이에요…</p>;
+    return <SkeletonDetail label="검토 결과를 불러오는 중" layout={layout} />;
   }
   if (isError) {
     return <ErrorState title="검토 결과를 불러오지 못했어요" onRetry={() => refetch()} />;
@@ -119,7 +120,10 @@ const ReviewDetail = ({ id, layout }: ReviewDetailProps) => {
       <h1 className={`${layout === 'desk' ? 'text-h1' : 'text-h2'} text-text-heading`}>
         {review.part.name}
       </h1>
-      <VerdictTags verdict={review.verdict} flags={review.flags} />
+      {/* 판정은 화면에 들어올 때 "쿵" 하고 붙는다 — 이 화면의 결론이라 가장 먼저 눈이 가게 */}
+      <div className="w-fit origin-left animate-verdict-thud">
+        <VerdictTags verdict={review.verdict} flags={review.flags} />
+      </div>
       <ComputedAt at={review.computed_at} />
     </header>
   );

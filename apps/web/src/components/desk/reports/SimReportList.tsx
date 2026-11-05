@@ -2,6 +2,7 @@
 
 import { FileText } from 'lucide-react';
 
+import { SkeletonTable } from '@/components/ui/feedback/Skeleton';
 import ErrorState from '@/components/ui/ErrorState';
 import EmptyState from '@/components/ui/EmptyState';
 import { useSimReports } from '@/hooks/report/useReports';
@@ -12,7 +13,7 @@ const SimReportList = () => {
   const { data: reports, isPending, isError, refetch } = useSimReports();
 
   if (isPending) {
-    return <p className="text-body-md text-text-secondary">검증 리포트를 불러오는 중이에요…</p>;
+    return <SkeletonTable label="검증 리포트를 불러오는 중" rows={4} />;
   }
   if (isError) {
     return <ErrorState title="검증 리포트를 불러오지 못했어요" onRetry={() => refetch()} />;

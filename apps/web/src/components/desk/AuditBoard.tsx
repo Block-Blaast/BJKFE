@@ -8,6 +8,7 @@ import { AUDIT_GRADES, AUDIT_RULES, type AuditGrade } from '@bjk/api/domain/audi
 import type { AuditItem } from '@bjk/api/types/audit';
 import Button from '@bjk/ui/components/Button';
 
+import { SkeletonList } from '@/components/ui/feedback/Skeleton';
 import ErrorState from '@/components/ui/ErrorState';
 import Select from '@/components/ui/Select';
 import Tag, { type TagTone } from '@/components/ui/Tag';
@@ -165,7 +166,7 @@ const AuditBoard = () => {
       />
 
       {isPending ? (
-        <p className="text-body-md text-text-secondary">확인할 재고를 불러오는 중이에요…</p>
+        <SkeletonList label="확인할 재고를 불러오는 중" rows={3} />
       ) : isError ? (
         <ErrorState title="확인할 재고를 불러오지 못했어요" onRetry={() => refetch()} />
       ) : !audits || audits.length === 0 ? (

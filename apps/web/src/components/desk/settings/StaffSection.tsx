@@ -3,6 +3,7 @@
 import { ROLE_LABEL } from '@bjk/api/domain/auth';
 import type { StaffRole } from '@bjk/api/types/company';
 
+import { SkeletonLines } from '@/components/ui/feedback/Skeleton';
 import ErrorState from '@/components/ui/ErrorState';
 import Select from '@/components/ui/Select';
 import { useCompanyStaff } from '@/hooks/audit/useAudits';
@@ -16,8 +17,7 @@ const StaffSection = () => {
   const staff = useCompanyStaff();
   const update = useUpdateMemberRole();
 
-  if (staff.isPending)
-    return <p className="text-body-sm text-text-secondary">불러오는 중이에요…</p>;
+  if (staff.isPending) return <SkeletonLines label="직원 목록을 불러오는 중" lines={4} />;
   if (staff.isError) {
     return (
       <ErrorState

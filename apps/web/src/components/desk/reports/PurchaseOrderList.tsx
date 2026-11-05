@@ -11,11 +11,13 @@ import { openReviewPdf } from '@bjk/api/reviews';
 import type { PurchaseOrder } from '@bjk/api/types/report';
 import Button from '@bjk/ui/components/Button';
 
+import { SkeletonTable } from '@/components/ui/feedback/Skeleton';
 import ErrorState from '@/components/ui/ErrorState';
 import EmptyState from '@/components/ui/EmptyState';
 import { usePurchaseOrders } from '@/hooks/report/useReports';
 import { formatComputedAt, formatDate, formatQty, formatWon } from '@/utils/format';
 import { TABLE, TABLE_CARD, TD, TH, TR } from '@/components/ui/table';
+import { NAV_FORWARD } from '@/constants/transitions';
 
 const EMPTY = '—';
 
@@ -74,7 +76,7 @@ const PurchaseOrderList = () => {
   const { data: orders, isPending, isError, refetch } = usePurchaseOrders();
 
   if (isPending) {
-    return <p className="text-body-md text-text-secondary">발주 기록을 불러오는 중이에요…</p>;
+    return <SkeletonTable label="발주 기록을 불러오는 중" rows={5} />;
   }
   if (isError) {
     return <ErrorState title="발주 기록을 불러오지 못했어요" onRetry={() => refetch()} />;
@@ -116,6 +118,7 @@ const PurchaseOrderList = () => {
                 {po.review_id ? (
                   <Link
                     href={`/reviews/${po.review_id}`}
+                    transitionTypes={NAV_FORWARD}
                     className="flex flex-col text-label-md text-text-heading hover:text-text-brand"
                   >
                     {po.part.name}
