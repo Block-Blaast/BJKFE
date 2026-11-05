@@ -2,10 +2,8 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import { CATEGORIES } from '@bjk/api/domain/part';
-
 import FolderCard from '@/components/ui/FolderCard';
-import { useEquipment, useMaintenance, useSuppliers } from '@/hooks/setup/useSetup';
+import { useCategories, useEquipment, useMaintenance, useSuppliers } from '@/hooks/setup/useSetup';
 
 import CategoryDefaults from './CategoryDefaults';
 import EquipmentSection from './EquipmentSection';
@@ -36,6 +34,7 @@ const SetupView = () => {
   const equipment = useEquipment();
   const maintenance = useMaintenance();
   const suppliers = useSuppliers();
+  const categories = useCategories();
   const count = (n: number | undefined, unit: string) => (n === undefined ? '…' : `${n}${unit}`);
   const upcoming = maintenance.data?.filter((m) => !m.completed_at).length;
 
@@ -44,7 +43,7 @@ const SetupView = () => {
     equipment: { count: count(equipment.data?.length, '대'), foot: '멈추면 손실이 나는 설비' },
     maintenance: { count: `예정 ${count(upcoming, '건')}`, foot: '정비 부품은 미리 필요량으로' },
     suppliers: { count: count(suppliers.data?.length, '곳'), foot: '납기·단가·MOQ' },
-    categories: { count: `${CATEGORIES.length}개`, foot: '수입 의존·외부 요인' },
+    categories: { count: count(categories.data?.length, '개'), foot: '수입 의존·외부 요인' },
   };
 
   return (
