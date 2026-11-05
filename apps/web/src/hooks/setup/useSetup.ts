@@ -16,6 +16,7 @@ import type { ConfirmImportInput, SupplierPriceInput } from '@bjk/api/types/setu
 export const useEquipment = () => useQuery(setupQueries.equipment());
 export const useMaintenance = () => useQuery(setupQueries.maintenance());
 export const useSuppliers = () => useQuery(setupQueries.suppliers());
+export const useCategories = () => useQuery(setupQueries.categories());
 
 const useInvalidateSetup = () => {
   const queryClient = useQueryClient();
@@ -29,7 +30,7 @@ export const useConfirmPartImport = () => {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: ConfirmImportInput }) =>
       confirmPartImport(id, input),
-    // 부품·재고(초기 재고는 실사조정 기록)와 중복 의심 쌍이 함께 바뀐다
+    // 부품·재고(초기 재고·재이관 차이는 조정 기록)와 중복 의심 쌍이 함께 바뀐다. preview 는 저장하지 않지만 구분하지 않는다
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.parts.all }),

@@ -4,6 +4,7 @@ import { itemsOf, request, USES_BACKEND } from './client';
 import { ENDPOINTS } from './endpoints';
 import { queryKeys } from './queryKeys';
 import type {
+  CategoryOption,
   ConfirmImportInput,
   Equipment,
   EquipmentInput,
@@ -22,8 +23,24 @@ const post = <T>(path: string, body: unknown, method = 'POST') =>
 // 백엔드 기준 정보 응답은 부품 단위를 주지 않는다
 const DEFAULT_UNIT = '개';
 
+// ---- 카테고리 (SET-06) ----
+// 커서 목록이다. 한 번에 최대 100개라 next_cursor 가 없을 때까지 이어 받는다
+type CategoryPage = { items: CategoryOption[]; next_cursor: string | null };
+
+export const getCategories = async () => {
+  const items: CategoryOption[] = [];
+  let cursor: string | null = null;
+  do {
+    const query = new URLSearchParams({ limit: '100', ...(cursor ? { cursor } : {}) });
+    const page: CategoryPage = await request<CategoryPage>(`${ENDPOINTS.categories}?${query}`);
+    items.push(...page.items.map(({ id, name }) => ({ id, name })));
+    cursor = page.next_cursor;
+  } while (cursor);
+  return items;
+};
+
 // ---- 부품 엑셀 이관 (SET-01·02) ----
-// TODO(F-SETUP-01): 백엔드 미리보기 줄(rows[]) 형식이 api-spec 에 다 적혀 있지 않아 아직 목업으로 둔다
+// 목업도 백엔드와 같은 형식으로 응답해 변환하지 않는다
 export const uploadPartImport = (file: File) => {
   const form = new FormData();
   form.append('file', file);
@@ -216,4 +233,6 @@ export const setupQueries = {
   maintenance: () =>
     queryOptions({ queryKey: queryKeys.setup.maintenance(), queryFn: getMaintenance }),
   suppliers: () => queryOptions({ queryKey: queryKeys.setup.suppliers(), queryFn: getSuppliers }),
+  categories: () =>
+    queryOptions({ queryKey: queryKeys.setup.categories(), queryFn: getCategories }),
 };

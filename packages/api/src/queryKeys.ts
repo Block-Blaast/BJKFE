@@ -66,6 +66,7 @@ export const queryKeys = {
     equipment: () => [...setupAll, 'equipment'] as const,
     maintenance: () => [...setupAll, 'maintenance'] as const,
     suppliers: () => [...setupAll, 'suppliers'] as const,
+    categories: () => [...setupAll, 'categories'] as const,
   },
   // 승인이 생기면 reports.all 도 무효화한다 (발주 기록·PDF는 승인 직후 만들어진다)
   reports: {
