@@ -23,6 +23,7 @@ import WarehouseSummary from './WarehouseSummary';
 import WarehouseTable, { WarehouseViewToggle } from './WarehouseTable';
 
 const FLOAT = 'pointer-events-auto';
+const PANEL_ID = 'warehouse-panel';
 
 // 디지털 트윈 — 3D 창고 (W-11). 3D 는 public/warehouse-3d.html(iframe)이 그리고,
 // 이 컴포넌트는 그 위에 겹치는 React 레이어다. 씬은 useWarehouseBridge 로만 조작한다.
@@ -112,6 +113,22 @@ const WarehouseView = () => {
                 </Button>
               </>
             ) : null}
+            {ready ? (
+              // 패널 여닫기는 다른 버튼과 같은 줄·같은 모양으로 둔다 — 열림·닫힘 어느 쪽이든 같은 자리에 있다
+              <Button
+                variant="secondary"
+                aria-expanded={panelOpen}
+                aria-controls={PANEL_ID}
+                onClick={() => setPanelOpen(!panelOpen)}
+              >
+                {panelOpen ? (
+                  <PanelRightClose size={16} aria-hidden />
+                ) : (
+                  <PanelRightOpen size={16} aria-hidden />
+                )}
+                {panelOpen ? '패널 닫기' : '패널 열기'}
+              </Button>
+            ) : null}
             <WarehouseViewToggle />
           </div>
         </div>
@@ -145,35 +162,18 @@ const WarehouseView = () => {
             ) : null}
           </div>
 
-          {ready ? (
-            panelOpen ? (
-              <div className={`${FLOAT} flex w-96 shrink-0 flex-col gap-3 overflow-y-auto`}>
-                <button
-                  type="button"
-                  onClick={() => setPanelOpen(false)}
-                  className="flex h-9 w-fit items-center gap-2 self-end rounded-full bg-bg-surface px-3 text-label-sm text-text-body shadow-card transition-colors hover:bg-bg-subtle"
-                >
-                  <PanelRightClose size={16} aria-hidden />
-                  패널 접기
-                </button>
-                <div aria-live="polite" className="flex flex-col gap-4">
-                  <WarehousePanel
-                    layout={layout.data}
-                    projection={projection.data}
-                    parts={parts.data}
-                  />
-                </div>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setPanelOpen(true)}
-                className={`${FLOAT} flex h-9 items-center gap-2 self-start rounded-full bg-bg-surface px-3 text-label-sm text-text-body shadow-card transition-colors hover:bg-bg-subtle`}
-              >
-                <PanelRightOpen size={16} aria-hidden />
-                패널 열기
-              </button>
-            )
+          {ready && panelOpen ? (
+            <div
+              id={PANEL_ID}
+              aria-live="polite"
+              className={`${FLOAT} flex w-96 shrink-0 scrollbar-thin flex-col gap-4 overflow-y-auto`}
+            >
+              <WarehousePanel
+                layout={layout.data}
+                projection={projection.data}
+                parts={parts.data}
+              />
+            </div>
           ) : null}
         </div>
 
