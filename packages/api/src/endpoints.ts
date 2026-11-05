@@ -1,13 +1,17 @@
-// 엔드포인트 경로 — 임시. 명세서에 HTTP 경로가 없어서 화면 개발용으로 정했다.
-// 백엔드 OpenAPI 가 나오면 여기만 고친다(목업 핸들러도 이 상수를 쓴다).
+// 엔드포인트 경로.
+// 호출은 client.ts 에서 `${NEXT_PUBLIC_API_URL}${path}` 로 조립한다. 운영에서는
+// NEXT_PUBLIC_API_URL=/api 이고 Caddy 가 /api/* 를 server 로 넘긴다. server 의 실제
+// 경로가 /api/v1/... 이라, 백엔드에 있는 경로는 /v1/... 로 두어 /api + /v1/... 로 맞춘다.
+// 백엔드 OpenAPI 로 확인된 경로만 /v1/... 로 바꿨고, 아직 server 에 없는 경로는
+// 화면 개발용으로 기존 /api/... 를 유지한다(백엔드가 생기면 /v1/... 로 옮긴다).
 export const ENDPOINTS = {
   signup: '/api/auth/signup',
-  emailLogin: '/api/auth/login',
-  pinLogin: '/api/auth/pin-login',
-  companyMembers: (companyCode: string) => `/api/companies/${companyCode}/members`,
+  emailLogin: '/v1/auth/login',
+  pinLogin: '/v1/auth/pin-login',
+  companyMembers: (companyCode: string) => `/v1/auth/companies/${companyCode}/members`,
   invite: (token: string) => `/api/invites/${token}`,
   acceptInvite: (token: string) => `/api/invites/${token}/accept`,
-  parts: '/api/parts',
+  parts: '/v1/parts',
   part: (id: string) => `/api/parts/${id}`,
   partLedger: (id: string) => `/api/parts/${id}/ledger`,
   partForecast: (id: string) => `/api/parts/${id}/forecast`,
@@ -27,7 +31,7 @@ export const ENDPOINTS = {
   review: (id: string) => `/api/reviews/${id}`,
   reviewDecision: (id: string) => `/api/reviews/${id}/decision`,
   reviewForecast: (id: string) => `/api/reviews/${id}/forecast`,
-  chatMessages: '/api/chat/messages',
+  chatMessages: '/v1/chat/messages',
   chatInbox: '/api/chat/inbox',
   chatPendingConfirm: (pendingId: string) => `/api/chat/pending/${pendingId}/confirm`,
   chatPendingCancel: (pendingId: string) => `/api/chat/pending/${pendingId}/cancel`,
