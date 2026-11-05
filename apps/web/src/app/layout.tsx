@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 
 import { pretendard } from '@bjk/ui/fonts';
 
+import StockChangeSync from '@/components/part/StockChangeSync';
 import Toaster from '@/components/ui/feedback/Toaster';
 import DemoAuthProvider from '@/providers/demo-auth-provider';
 import MockProvider from '@/providers/mock-provider';
@@ -28,6 +29,7 @@ const RootLayout = ({ children }: LayoutProps<'/'>) => {
             <QueryProvider>{children}</QueryProvider>
           </DemoAuthProvider>
           <Toaster />
+          <StockChangeSync />
         </MockProvider>
       </body>
     </html>
