@@ -394,6 +394,35 @@ function clearWorld() {
   lift = null;
 }
 
+// 단이 하나뿐인 곳(바닥 보관, 예: E구역 유류)은 선반 없이 바닥에 칠한 칸 + 팔레트로 그린다
+function buildFloorBay(s, g, add) {
+  const W = s.slots * SLOT_W, PH = 0.14;
+  const bay = (w, d, x, z) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), M.line); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.014, z); g.add(m); };
+  bay(W + 0.1, 0.1, 0, -DEPTH / 2 - 0.15); bay(W + 0.1, 0.1, 0, DEPTH / 2 + 0.15);
+  for (let i = 0; i <= s.slots; i++) bay(0.1, DEPTH + 0.4, -W / 2 + i * SLOT_W, 0);
+  /* 간판: 뒤쪽 기둥 두 개에 건다 */
+  const { tex, aspect } = textTexture(s.label, { fg: '#3a86c4', size: 96, pad: 30, radius: 18 });
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(0.9 * aspect, 0.9), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+  sign.position.set(0, 2.4, -DEPTH / 2 - 0.35); g.add(sign);
+  const back = sign.clone(); back.rotation.y = Math.PI; back.position.z -= 0.01; g.add(back);
+  for (const sx of [-0.42 * aspect, 0.42 * aspect]) add(new THREE.BoxGeometry(0.06, 2.9, 0.06), M.upright, sx, 1.45, -DEPTH / 2 - 0.36);
+  for (let i = 1; i <= s.slots; i++) {
+    const loc = `${s.id}-1-${i}`;
+    const lx = -W / 2 + SLOT_W * (i - 0.5);
+    /* 팔레트 */
+    const pw = SLOT_W * 0.86, pd = DEPTH * 0.9;
+    for (let k = 0; k < 5; k++) add(new THREE.BoxGeometry(pw, 0.025, pd / 5 - 0.03), M.wood, lx, PH - 0.0125, (k - 2) * (pd / 5));
+    for (const x of [-pw / 2 + 0.06, 0, pw / 2 - 0.06]) add(new THREE.BoxGeometry(0.1, PH - 0.025, pd), M.wood, lx + x, (PH - 0.025) / 2, 0);
+    const mat = new THREE.MeshBasicMaterial({ color: GLOW, transparent: true, opacity: 0, depthWrite: false });
+    const hit = new THREE.Mesh(new THREE.BoxGeometry(SLOT_W * 0.96, LEVEL_H * 0.86, DEPTH * 1.02), mat);
+    hit.position.set(lx, PH + LEVEL_H * 0.43, 0); hit.userData.loc = loc; g.add(hit); hitMeshes.push(hit);
+    /* 바닥 위치 라벨 */
+    const lbl = new THREE.Mesh(new THREE.PlaneGeometry(0.46, 0.115), labelMat(loc, '', { w: 256, h: 64 }));
+    lbl.rotation.x = -Math.PI / 2; lbl.position.set(lx, 0.016, DEPTH / 2 + 0.32); g.add(lbl);
+    slotByLoc.set(loc, { group: g, hit, mat, local: new THREE.Vector3(lx, PH, 0), beam: null, floor: true });
+  }
+}
+
 function buildWorld(layout) {
   clearWorld();
   seed = 7;
@@ -424,8 +453,9 @@ function buildWorld(layout) {
     stripZ(Math.max(x0, FLOOR.x0 + 1), FLOOR.z0 + 2, FLOOR.z1 - 2);
     stripZ(Math.min(x1, FLOOR.x1 - 1), FLOOR.z0 + 2, FLOOR.z1 - 2);
     const { tex, aspect } = textTexture(z.label, { bg: null, fg: 'rgba(120,175,220,0.7)', size: 120 });
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(2.0 * aspect, 2.0), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
-    m.rotation.x = -Math.PI / 2; m.position.set((rx0 + rx1) / 2, 0.02, rz1 + 5.6); world.add(m);
+    const th = Math.min(2.0, ((x1 - x0) * 0.9) / aspect); // 구역 폭을 넘지 않게
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(th * aspect, th), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
+    m.rotation.x = -Math.PI / 2; m.position.set(z.x * SCALE_X, 0.02, rz1 + 5.6); world.add(m);
   }
   for (const [x, z] of [[FLOOR.x0 + 2, FLOOR.z0 + 2], [(FLOOR.x0 + FLOOR.x1) / 2, FLOOR.z0 + 2], [FLOOR.x1 - 2, FLOOR.z0 + 2]]) {
     const p = new THREE.Mesh(new THREE.BoxGeometry(0.8, 11, 0.8), M.pillar);
@@ -435,8 +465,9 @@ function buildWorld(layout) {
   /* 랙 */
   for (const s of racks) {
     const g = new THREE.Group(); g.position.set(s.x, 0, s.z); g.rotation.y = s.rotation || 0; world.add(g);
-    const W = s.slots * SLOT_W, H = BASE + s.levels * LEVEL_H;
     const add = (geo, mat, x, y, z, shadow = true) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); if (shadow) { m.castShadow = true; m.receiveShadow = true; } g.add(m); return m; };
+    if (s.levels === 1) { buildFloorBay(s, g, add); continue; }
+    const W = s.slots * SLOT_W, H = BASE + s.levels * LEVEL_H;
     const upGeo = new THREE.BoxGeometry(0.1, H + 0.25, 0.08);
     for (const x of [-W / 2, 0, W / 2]) {
       for (const z of [-DEPTH / 2, DEPTH / 2]) {
@@ -481,7 +512,10 @@ function buildWorld(layout) {
     if (!its.length) continue;
     const inner = SLOT_W * 0.9, colW = inner / its.length;
     its.forEach((s, k) => {
-      const obj = buildItem(itemFor(s.partId), loc, colW, DEPTH * 0.85, s.qty);
+      // 바닥 보관 칸은 통·상자가 커 보이게 1.5배로 키운다 (칸 폭 안에 들어가게 줄여서 만든 뒤 키운다)
+      const k2 = slot.floor ? 1.5 : 1;
+      const obj = buildItem(itemFor(s.partId), loc, colW / k2, (DEPTH * 0.85) / k2, s.qty);
+      obj.scale.setScalar(k2);
       const p = slot.local.clone();
       p.x += -inner / 2 + colW * (k + 0.5);
       obj.position.copy(p);
