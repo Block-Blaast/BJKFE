@@ -29,7 +29,7 @@ const CountCard = ({ card, disabled, onConfirm, onCancel }: CountCardProps) => {
         실사 · {card.part.part_name}
       </span>
       <dl className="grid grid-cols-3 gap-y-1 text-body-md tabular-nums">
-        <dt className="text-text-secondary">장부</dt>
+        <dt className="text-text-secondary">기록</dt>
         <dd className="col-span-2 text-text-heading">{formatQty(card.ledger_qty, card.unit)}</dd>
         <dt className="text-text-secondary">실제</dt>
         <dd className="col-span-2 text-text-heading">{formatQty(card.qty, card.unit)}</dd>
