@@ -157,7 +157,7 @@ const PartImport = () => {
               <p className="text-body-md text-text-body">
                 올리면 AI가 이름에서 규격을 뽑고 카테고리를 제안해요.
                 <br />
-                초기 재고는 실사조정 기록으로 장부에 들어가요.
+                초기 재고는 실사조정 기록으로 재고 기록에 들어가요.
               </p>
               <input
                 ref={fileRef}
@@ -312,7 +312,7 @@ const PartImport = () => {
             <div className="flex items-center justify-between gap-4 rounded-md bg-bg-brand-subtle p-4">
               <p className="text-body-md text-text-body">
                 {rows.length}줄을 등록할까요? 새로 {created}개, 갱신 {rows.length - created}개예요.
-                재고는 실사조정 기록으로 장부에 남아요.
+                재고는 실사조정 기록으로 재고 기록에 남아요.
               </p>
               <div className="flex shrink-0 gap-2">
                 <Button

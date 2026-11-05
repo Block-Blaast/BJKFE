@@ -10,17 +10,18 @@
 
 ## 화면 경로 (`apps/web/src/app/`)
 
-| 그룹        | 경로                                                                                                                             | 화면               | 레이아웃                    |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------ | --------------------------- |
-| `(auth)/`   | `/login`, `/signup`, `/invite/[token]`                                                                                           | M-01, F-AUTH-01·02 | 폰·PC 공통, 가운데 정렬     |
-| `m/(tabs)/` | `/m/chat`, `/m/requests`, `/m/briefing`                                                                                          | M-02~04            | 폰 폭 + 하단 탭             |
-| `m/`        | `/m/reviews/[id]`                                                                                                                | M-05               | 폰 폭, 탭 없음              |
-| `(desk)/`   | `/dashboard`, `/reviews`, `/reviews/[id]`, `/parts`, `/parts/[id]`, `/audit`, `/hidden-stock`, `/setup`, `/reports`, `/settings` | W-01~10            | 상단 알약 내비, 최소 1280px |
+| 그룹              | 경로                                                                                                                             | 화면               | 레이아웃                                               |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------ |
+| `(auth)/`         | `/login`, `/signup`, `/invite/[token]`                                                                                           | M-01, F-AUTH-01·02 | 폰·PC 공통, 가운데 정렬                                |
+| `m/(tabs)/`       | `/m/chat`, `/m/requests`, `/m/briefing`                                                                                          | M-02~04            | 폰 폭 + 하단 탭                                        |
+| `m/`              | `/m/reviews/[id]`                                                                                                                | M-05               | 폰 폭, 탭 없음                                         |
+| `(desk)/`         | `/warehouse`                                                                                                                     | W-11 (PC 입구)     | 상단 메뉴 없음, 3D 전체 화면, 최소 1280px              |
+| `(desk)/(pages)/` | `/dashboard`, `/reviews`, `/reviews/[id]`, `/parts`, `/parts/[id]`, `/audit`, `/hidden-stock`, `/setup`, `/reports`, `/settings` | W-01~10            | 3D 창고 메뉴에서 여는 상세 화면, "3D 창고로" 뒤로 가기 |
 
 - **기기 라우팅은 `src/proxy.ts` 한 곳에서** 합니다. `/`는 폰이면 `/m/chat`, PC·태블릿이면 `/dashboard`로 보냅니다.
 - 같은 대상을 가리키는 폰·PC 화면 쌍(`/reviews/[id]` ↔ `/m/reviews/[id]`)은 proxy가 기기에 맞는 쪽으로 옮깁니다. 새 쌍을 만들면 proxy의 `matcher`와 분기를 함께 추가합니다. 푸시·공유 링크는 어느 쪽 경로로 만들어도 됩니다.
 - 메뉴·탭·링크 경로는 `src/constants/routes.ts`만 씁니다.
-- 레이아웃에서 `usePathname()` 같은 요청 시점 값을 읽는 클라이언트 컴포넌트는 `<Suspense>`로 감쌉니다. Cache Components가 켜져 있어 감싸지 않으면 동적 경로(`/parts/[id]`) 빌드가 실패합니다(`DeskTopBar` 참고). `params`를 읽는 부분도 같습니다.
+- 레이아웃에서 `usePathname()` 같은 요청 시점 값을 읽는 클라이언트 컴포넌트는 `<Suspense>`로 감쌉니다. Cache Components가 켜져 있어 감싸지 않으면 동적 경로(`/parts/[id]`) 빌드가 실패합니다(이전 `DeskTopBar`가 그랬다). `params`를 읽는 부분도 같습니다.
 
 ## 앱 내부 (타입 중심, `apps/web/src/`)
 

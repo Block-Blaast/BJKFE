@@ -191,7 +191,7 @@ const Dashboard = () => {
         <div className="flex flex-col gap-1">
           <h1 className="text-h1 text-text-heading">오늘의 발주 현황</h1>
           <p className="text-body-md text-text-secondary">
-            결품 위험, 결정할 검토, 장부 의심 항목을 한눈에 봐요.
+            결품 위험, 결정할 검토, 확인할 재고를 한눈에 봐요.
           </p>
         </div>
         {computedAt ? (
@@ -212,7 +212,7 @@ const Dashboard = () => {
         <Stat
           icon={ClipboardCheck}
           tone="inverse"
-          label="의심 항목"
+          label="확인할 재고"
           value={audits.data ? `${audits.data.length}건` : EMPTY}
           note={highAudits ? `높음 ${highAudits}건` : undefined}
         />
@@ -364,13 +364,13 @@ const Dashboard = () => {
             )}
           </Card>
 
-          <Card title="의심 항목" href="/audit">
+          <Card title="확인할 재고" href="/audit">
             {audits.isPending ? (
               <Muted>불러오는 중이에요…</Muted>
             ) : audits.isError ? (
-              <Muted>의심 항목을 불러오지 못했어요.</Muted>
+              <Muted>확인할 재고를 불러오지 못했어요.</Muted>
             ) : audits.data.length === 0 ? (
-              <Muted>지금은 의심 항목이 없어요.</Muted>
+              <Muted>지금은 확인할 재고가 없어요.</Muted>
             ) : (
               <ul className="flex flex-col">
                 {audits.data.slice(0, TOP).map((a) => (

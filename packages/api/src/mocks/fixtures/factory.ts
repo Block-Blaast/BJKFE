@@ -7,11 +7,12 @@ export const BASE_DATE = '2026-11-05';
 export const COMPUTED_AT = `${BASE_DATE}T03:00:00+09:00`;
 export const HISTORY_DAYS = 90;
 
-// ---- 창고 선반 (보관 위치 "B선반 2단 3칸") ----
+// ---- 창고 선반 (보관 위치 "B-01 2단 3칸") ----
 // 3D 창고(디지털 트윈)가 이 좌표로 선반을 세운다. 단위 m, 바닥 기준. rotation 은 라디안(y축).
+// 구역 A·B·C 에 선반 8개 — 3D 예시 창고와 같은 배치다.
 export type Rack = {
-  id: string; // 'A'
-  label: string; // 'A선반'
+  id: string; // 'A-01'
+  label: string; // 'A-01'
   levels: number;
   slots: number;
   x: number;
@@ -20,43 +21,39 @@ export type Rack = {
   purpose: string;
 };
 
+const rack = (id: string, levels: number, x: number, z: number, purpose: string): Rack => ({
+  id,
+  label: id,
+  levels,
+  slots: 4,
+  x,
+  z,
+  rotation: 0,
+  purpose,
+});
+
 export const RACKS: Rack[] = [
-  { id: 'A', label: 'A선반', levels: 4, slots: 5, x: -7, z: -4, rotation: 0, purpose: '벨트·공압' },
-  { id: 'B', label: 'B선반', levels: 4, slots: 5, x: -7, z: 0, rotation: 0, purpose: '베어링' },
-  { id: 'C', label: 'C선반', levels: 4, slots: 5, x: -7, z: 4, rotation: 0, purpose: '볼트·씰' },
-  {
-    id: 'D',
-    label: 'D선반',
-    levels: 4,
-    slots: 5,
-    x: -2.5,
-    z: 4,
-    rotation: 0,
-    purpose: '공구·필터',
-  },
-  {
-    id: 'E',
-    label: 'E구역',
-    levels: 1,
-    slots: 5,
-    x: -2.5,
-    z: -4,
-    rotation: 0,
-    purpose: '유류(바닥)',
-  },
+  rack('A-01', 4, -7, -2, '벨트·공압'),
+  rack('A-02', 4, -7, 2, '유류·윤활'),
+  rack('B-01', 4, -1.6, -2, '베어링'),
+  rack('B-02', 4, -1.6, 2, '볼트·너트'),
+  rack('B-03', 4, 2.2, -2, '씰·오링'),
+  rack('B-04', 4, 2.2, 2, '절삭공구'),
+  rack('C-01', 3, 7, -2, '필터'),
+  rack('C-02', 3, 7, 2, '예비'),
 ];
 
-// 바닥 구역 — 3D 바닥의 안전선(노란 테이프)과 입고 도크. 단위 m, 중심 좌표 + 크기.
+// 바닥 구역 — 3D 바닥의 구역선과 구역 이름. 단위 m, 중심 좌표 + 크기.
 export const FLOOR = { width: 22, depth: 18 } as const;
 export const ZONES = [
-  { id: 'storage', kind: 'storage', label: '자재 보관', x: -4.8, z: 0, width: 10, depth: 10.4 },
-  { id: 'machines', kind: 'machines', label: '가공 라인', x: 4.7, z: -0.5, width: 7.6, depth: 14 },
-  { id: 'dock', kind: 'dock', label: '입고 도크', x: -6, z: 7.5, width: 6, depth: 2.4 },
+  { id: 'zone-a', kind: 'storage', label: 'A  소모품', x: -7, z: 0, width: 4.4, depth: 8 },
+  { id: 'zone-b', kind: 'storage', label: 'B  부품', x: 0.3, z: 0, width: 7.6, depth: 8 },
+  { id: 'zone-c', kind: 'storage', label: 'C  필터·예비', x: 7, z: 0, width: 4.4, depth: 8 },
 ] as const;
 
-export const formatLocation = (rack: string, level: number, slot: number) => {
-  const r = RACKS.find((x) => x.id === rack);
-  return r && r.levels === 1 ? `${r.label} ${slot}칸` : `${rack}선반 ${level}단 ${slot}칸`;
+export const formatLocation = (rackId: string, level: number, slot: number) => {
+  const r = RACKS.find((x) => x.id === rackId);
+  return r && r.levels === 1 ? `${r.label} ${slot}칸` : `${rackId} ${level}단 ${slot}칸`;
 };
 
 // ---- 설비 (F-SETUP-04) ----

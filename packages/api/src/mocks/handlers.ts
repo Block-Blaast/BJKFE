@@ -345,8 +345,8 @@ const replyToChat = ({ text }: SendChatInput): ChatTurn => {
     return {
       reply:
         diff === 0
-          ? `장부와 같아요(${ledger}${part.unit}). 이상 없음으로 기록할까요?`
-          : `장부(${ledger}${part.unit})보다 ${Math.abs(diff)}${part.unit} ${diff < 0 ? '적어요' : '많아요'}. 사유를 골라 주세요.`,
+          ? `기록과 같아요(${ledger}${part.unit}). 맞다고 기록할까요?`
+          : `기록(${ledger}${part.unit})보다 ${Math.abs(diff)}${part.unit} ${diff < 0 ? '적어요' : '많아요'}. 사유를 골라 주세요.`,
       card,
     };
   }
@@ -677,7 +677,7 @@ export const handlers = [
     await delay(NETWORK_DELAY);
     const audit = audits.get(String(params.id));
     if (!audit)
-      return HttpResponse.json({ message: '의심 항목을 찾을 수 없어요.' }, { status: 404 });
+      return HttpResponse.json({ message: '확인할 재고를 찾을 수 없어요.' }, { status: 404 });
     if (audit.status === 'resolved') {
       return HttpResponse.json({ message: '이미 처리된 항목이에요.' }, { status: 409 });
     }
@@ -935,7 +935,7 @@ export const handlers = [
       .filter((a) => a.status === 'requested' && a.request)
       .map((a) => ({
         id: `inbox-${a.id}`,
-        text: `${a.part.name} 지금 몇 개 있나요? 장부상 ${a.ledger_qty}${a.part.unit}예요.\n예: "${a.part.name} 세어보니 ${a.ledger_qty}${a.part.unit}"`,
+        text: `${a.part.name} 지금 몇 개 있나요? 기록상 ${a.ledger_qty}${a.part.unit}예요.\n예: "${a.part.name} 세어보니 ${a.ledger_qty}${a.part.unit}"`,
         created_at: a.request!.requested_at,
       }));
     // 입고 검수 안내 ([추가]) — 승인된 발주는 도착할 때 작업자가 수량을 확인한다 (F-APPROVAL-02)
@@ -1007,7 +1007,7 @@ export const handlers = [
         reply:
           diff === 0
             ? '이상 없음으로 기록했어요.'
-            : `실사조정을 기록했어요. 장부 ${card.ledger_qty}${part.unit} → ${card.qty}${part.unit} (${adjustReason})`,
+            : `실제 수량으로 맞췄어요. 기록 ${card.ledger_qty}${part.unit} → ${card.qty}${part.unit} (${adjustReason})`,
       } satisfies ChatTurn);
     }
 

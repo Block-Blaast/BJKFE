@@ -83,7 +83,7 @@ export const MERGE_FIXTURES: MergeCandidate[] = [
     status: 'open',
     primary_part_id: null,
   },
-  // 맨 위 칸(A선반 4단 5칸)에 잊힌 옛 이름의 벨트
+  // 맨 위 칸(A-01 4단 4칸)에 잊힌 옛 이름의 벨트
   {
     id: 'mg-belt-b50',
     spec: 'B-50',

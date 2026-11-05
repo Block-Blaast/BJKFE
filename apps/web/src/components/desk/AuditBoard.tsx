@@ -122,18 +122,18 @@ const AuditBoard = () => {
 
   return (
     <div className="flex flex-col gap-6">
-      <nav aria-label="의심 등급" className="grid grid-cols-5 gap-5">
+      <nav aria-label="확인 우선순위" className="grid grid-cols-5 gap-5">
         <FolderCard
           title="전체"
           count={countOf()}
-          foot={status === 'active' ? '실사로 장부를 바로잡아요' : '처리를 마친 항목'}
+          foot={status === 'active' ? '직접 세어 기록을 맞춰요' : '처리를 마친 항목'}
           selected={!grade}
           onClick={() => go({ grade: undefined })}
         />
         {AUDIT_GRADES.map((g) => (
           <FolderCard
             key={g}
-            title={`의심 ${g}`}
+            title={`우선순위 ${g}`}
             count={countOf(g)}
             foot={Object.values(AUDIT_RULES)
               .filter((r) => r.grade === g)
@@ -157,15 +157,15 @@ const AuditBoard = () => {
       />
 
       {isPending ? (
-        <p className="text-body-md text-text-secondary">의심 항목을 불러오는 중이에요…</p>
+        <p className="text-body-md text-text-secondary">확인할 재고를 불러오는 중이에요…</p>
       ) : isError ? (
-        <ErrorState title="의심 항목을 불러오지 못했어요" onRetry={() => refetch()} />
+        <ErrorState title="확인할 재고를 불러오지 못했어요" onRetry={() => refetch()} />
       ) : !audits || audits.length === 0 ? (
         <EmptyState
-          title={status === 'active' ? '지금은 의심 항목이 없어요' : '처리한 항목이 아직 없어요'}
+          title={status === 'active' ? '지금은 확인할 재고가 없어요' : '처리한 항목이 아직 없어요'}
         >
           {status === 'active'
-            ? '새벽 배치가 장부와 실물이 다를 만한 부품을 찾으면 여기에 떠요.'
+            ? '기록과 실제 수량이 다를 수 있는 부품이 생기면 여기에 보여요.'
             : null}
         </EmptyState>
       ) : (
@@ -176,13 +176,13 @@ const AuditBoard = () => {
               className="flex flex-col gap-4 rounded-xl bg-bg-surface p-6 shadow-card"
             >
               <div className="flex flex-wrap items-center gap-3">
-                <Tag {...GRADE_TAG[audit.grade]}>의심 {audit.grade}</Tag>
+                <Tag {...GRADE_TAG[audit.grade]}>우선순위 {audit.grade}</Tag>
                 <span className="text-label-lg text-text-heading">{audit.part.name}</span>
                 <span className="text-body-sm text-text-secondary">
                   {AUDIT_RULES[audit.rule].name} ({audit.rule})
                 </span>
                 <span className="ml-auto text-body-sm text-text-body tabular-nums">
-                  장부상 {formatQty(audit.ledger_qty, audit.part.unit)}
+                  기록상 {formatQty(audit.ledger_qty, audit.part.unit)}
                 </span>
               </div>
               <p className="text-body-md text-text-body">{audit.reason}</p>

@@ -7,11 +7,11 @@ export type AuditGrade = (typeof AUDIT_GRADES)[number];
 export const AUDIT_GRADE_ORDER: Record<AuditGrade, number> = { 높음: 0, 중간: 1, 낮음: 2 };
 
 export const AUDIT_RULES = {
-  'F-AUDIT-01': { name: '음수 재고', grade: '높음' },
-  'F-AUDIT-02': { name: '정비-출고 불일치', grade: '높음' },
-  'F-AUDIT-03': { name: '소모 패턴 이탈', grade: '중간' },
-  'F-AUDIT-04': { name: '급변', grade: '중간' },
-  'F-AUDIT-05': { name: '실사 경과', grade: '낮음' },
+  'F-AUDIT-01': { name: '재고가 0보다 적음', grade: '높음' },
+  'F-AUDIT-02': { name: '정비·출고 기록 차이', grade: '높음' },
+  'F-AUDIT-03': { name: '평소와 다른 사용량', grade: '중간' },
+  'F-AUDIT-04': { name: '갑자기 늘어난 사용량', grade: '중간' },
+  'F-AUDIT-05': { name: '오래 세지 않음', grade: '낮음' },
 } as const satisfies Record<string, { name: string; grade: AuditGrade }>;
 export type AuditRule = keyof typeof AUDIT_RULES;
 

@@ -1,19 +1,18 @@
 import type { Metadata } from 'next';
 
+import WarehouseView from '@/components/desk/warehouse/WarehouseView';
+
 export const metadata: Metadata = { title: '3D 창고' };
 
-// 3D 창고 시뮬레이션 (v2) — public/warehouse-3d.html 을 그대로 띄운다
+// 3D 창고 디지털 트윈 (W-11) — public/warehouse-3d.html(iframe) 위에 React 오버레이를 겹친다.
 // 제목이 iframe 안에만 있으면 바깥 문서의 제목 구조에 잡히지 않아 화면에는 숨긴 h1 을 둔다.
+// 화면 상태는 store 에 있고 요청 시점 값(searchParams 등)을 읽지 않아 Suspense 가 필요 없다.
 const WarehousePage = () => {
   return (
-    <>
+    <main className="flex flex-1 flex-col">
       <h1 className="sr-only">3D 창고</h1>
-      <iframe
-        src="/warehouse-3d.html"
-        title="3D 창고 시뮬레이션"
-        className="w-full flex-1 rounded-xl border-0"
-      />
-    </>
+      <WarehouseView />
+    </main>
   );
 };
 
