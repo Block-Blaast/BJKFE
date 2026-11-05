@@ -1,24 +1,17 @@
-// 장부 검증·숨은 재고 — 임시 계약. 명세서 F-AUDIT-01~06, F-MATCH-03 을 화면 단위로 옮겼고 HTTP 형식은 명세서에 없다.
-// 백엔드 OpenAPI 가 나오면 생성된 타입으로 교체하고, 이 파일을 지운다.
-import type { AdjustReason, AuditGrade, AuditRule, AuditStatus } from '../domain/audit';
-
-type PartRef = { id: string; name: string; unit: string };
+// 장부 검증·숨은 재고 (BJK-AI-BE docs/api-spec/audit.md AUD-01·02, merge.md MAT-01·02).
+// 화면이 쓰는 형식이다. 백엔드 응답(영문 규칙·등급·상태)은 audits.ts 가 이 형식으로 바꾼다.
+import type { AuditGrade, AuditRule, AuditStatus } from '../domain/audit';
 
 export type AuditItem = {
   id: string;
-  part: PartRef;
+  part: { id: string; name: string };
   rule: AuditRule;
   grade: AuditGrade;
-  reason: string; // 걸린 이유를 사람이 읽는 문장으로
-  ledger_qty: number; // 장부상 재고
+  reason: string; // 근거(evidence)를 사람이 읽는 문장으로
   status: AuditStatus;
-  request: { assignee: { id: string; name: string }; requested_at: string } | null;
-  // 종료 결과. 차이가 없으면 counted_qty === ledger_qty, adjust_reason null ("이상 없음")
-  result: {
-    counted_qty: number;
-    adjust_reason: AdjustReason | null;
-    resolved_at: string;
-  } | null;
+  created_at: string;
+  // 서버가 상태를 바꿀 때(실사 요청·종료) 함께 갱신하는 시각
+  updated_at: string;
 };
 
 export type AuditListFilters = {
@@ -29,17 +22,36 @@ export type RequestAuditInput = {
   assignee_id: string;
 };
 
-// 숨은 재고·중복 병합 후보 (F-MATCH-03). 같은 카테고리에서 규격 일치 + 이름 유사.
-export type MergeCandidate = {
-  id: string;
-  spec: string;
-  category: string;
-  parts: [PartRef & { stock: number }, PartRef & { stock: number }];
-  status: 'open' | 'merged' | 'dismissed';
-  // 병합됐다면 대표 부품
-  primary_part_id: string | null;
+// 담당자 하루 한도(기본 2건)를 넘으면 예약(scheduled)되고 scheduled_for 에 보낼 시각이 온다
+export type CountRequestResult = {
+  count_request_id: string;
+  status: 'sent' | 'scheduled';
+  scheduled_for: string | null;
+  message_preview: string;
 };
 
-export type MergeInput = {
-  primary_part_id: string;
+// 숨은 재고·중복 병합 후보 (F-MATCH-03). 같은 카테고리에서 규격 일치 + 이름 유사.
+// open·count_requested 는 결정 대기, merged·different·closed 는 끝난 후보
+export type MergeStatus = 'open' | 'count_requested' | 'merged' | 'different' | 'closed';
+
+export type MergeCandidatePart = {
+  id: string;
+  name: string;
+  stock: number;
+  last_counted_at: string | null; // 가장 최근 실사 응답 날짜
 };
+
+export type MergeCandidate = {
+  id: string;
+  score: number; // 0~1, 높을수록 같은 부품일 가능성이 크다
+  status: MergeStatus;
+  parts: [MergeCandidatePart, MergeCandidatePart];
+  // 병합됐다면 대표 부품
+  representative_part_id: string | null;
+  created_at: string;
+};
+
+export type MergeDecisionInput =
+  | { action: 'merge'; representative_part_id: string }
+  | { action: 'different' }
+  | { action: 'request_count' };
