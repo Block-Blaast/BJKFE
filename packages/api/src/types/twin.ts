@@ -4,8 +4,8 @@
 // - GET /twin/projection?with_orders=: 서버 경로 시뮬레이션(F-ANAL-07) 중앙값의 날짜별 재고·상태 + 겹쳐 그릴 정보
 
 export type TwinRack = {
-  id: string; // 'A'
-  label: string; // 'A선반'
+  id: string; // 'A-01'
+  label: string; // 'A-01'
   levels: number;
   slots: number;
   x: number;
