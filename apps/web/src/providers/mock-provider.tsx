@@ -8,6 +8,9 @@ import { setRequestGate } from '@bjk/api/client';
 // - 개발 모드에서 백엔드 주소(NEXT_PUBLIC_API_URL)가 없을 때
 // - NEXT_PUBLIC_USE_MOCKS=1 로 빌드했을 때 — 백엔드가 아직 없는 시연 서버(W-11 3D 창고 등)용. production 빌드에서도 켜진다.
 // process.env 를 식 안에 그대로 써야 빌드 때 상수로 접혀, 꺼진 빌드에서 msw 청크가 빠진다.
+// 목업을 켠 배포 빌드에서도 실제 백엔드로 보내는 경로 — 로그인(토큰 발급·갱신·직원 목록·내 정보)과 채팅 해석·확정
+const REAL_BACKEND = /^\/v1\/(auth\/|me$|chat\/messages$|chat\/entries\/)/;
+
 const SHOULD_MOCK =
   (process.env.NODE_ENV === 'development' && !process.env.NEXT_PUBLIC_API_URL) ||
   process.env.NEXT_PUBLIC_USE_MOCKS === '1';
@@ -29,12 +32,16 @@ if (SHOULD_MOCK && typeof window !== 'undefined') {
     // `${NEXT_PUBLIC_API_URL}${path}` 로 부르므로, 주소가 있는 빌드(배포: /api)에서는 요청이
     // /api/v1/parts · /api/api/twin/layout 처럼 앞에 주소가 붙어 나가 핸들러에 안 걸린다.
     // 그 앞부분을 떼고 같은 출처 경로로 바꿔 핸들러 목록에 다시 물어본다. 못 잡으면 실제 서버로 흘려보낸다.
+    // 백엔드가 있는 빌드에서도 로그인과 채팅 AI 해석만은 실제 백엔드(BJK-AI-BE)로 보낸다.
+    // 3D 창고·검토·리포트 등 나머지 화면은 프론트 목업 데이터로 그린다.
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     if (apiUrl) {
       const prefix = new URL(apiUrl, window.location.origin).href.replace(/\/$/, '');
       worker.use(
         http.all(`${prefix}/*`, async ({ request }) => {
           const target = new URL(request.url.slice(prefix.length), window.location.origin);
+          // undefined 를 돌려주면 목업이 손대지 않고 실제 서버로 그대로 보낸다
+          if (REAL_BACKEND.test(target.pathname)) return undefined;
           const hasBody = request.method !== 'GET' && request.method !== 'HEAD';
           return getResponse(
             handlers,
