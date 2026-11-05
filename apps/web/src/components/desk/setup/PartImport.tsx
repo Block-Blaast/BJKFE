@@ -1,10 +1,9 @@
 'use client';
 
-import { CircleCheck, FileSpreadsheet, TriangleAlert, Upload } from 'lucide-react';
+import { CircleAlert, CircleCheck, FileSpreadsheet, TriangleAlert, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 
-import { CATEGORIES, type Category } from '@bjk/api/domain/part';
 import type { ImportPreview, ImportResult, ImportRow } from '@bjk/api/types/setup';
 import Button from '@bjk/ui/components/Button';
 
@@ -12,9 +11,9 @@ import Select from '@/components/ui/Select';
 import { FIELD } from '@/components/ui/controls';
 import IconCircle from '@/components/ui/IconCircle';
 import Tag from '@/components/ui/Tag';
-import { useConfirmPartImport, useUploadPartImport } from '@/hooks/setup/useSetup';
+import { useCategories, useConfirmPartImport, useUploadPartImport } from '@/hooks/setup/useSetup';
 import { apiErrorMessage } from '@/utils/apiError';
-import { formatQty, formatWon } from '@/utils/format';
+import { formatQty } from '@/utils/format';
 import { TABLE, TD, TH, TR } from '@/components/ui/table';
 
 import SetupCard from './SetupCard';
@@ -33,11 +32,29 @@ const COLUMNS: [string, '필수' | '권장' | '선택', string][] = [
   ['보관 위치', '선택', 'B선반 2칸'],
 ];
 
-type Edit = { spec: string; category: Category | '' };
+type Edit = { spec: string; categoryId: string };
+
+// 규격은 서버에서 { 키: 값 } 으로 온다. 화면에서는 '키: 값, 키: 값' 한 줄로 고친다
+const specText = (spec: Record<string, string>) =>
+  Object.entries(spec)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join(', ');
+
+// 콜론이 없는 조각은 키 없이 적은 규격으로 보고 '규격' 키에 담는다
+const parseSpec = (text: string) => {
+  const spec: Record<string, string> = {};
+  for (const part of text.split(',')) {
+    const [key, ...rest] = part.split(':');
+    const value = rest.join(':').trim();
+    if (value && key.trim()) spec[key.trim()] = value;
+    else if (part.trim()) spec['규격'] = part.trim();
+  }
+  return spec;
+};
 
 const toEdit = (row: ImportRow): Edit => ({
-  spec: row.suggestion.spec ?? row.spec ?? '',
-  category: row.suggestion.category ?? '',
+  spec: specText(row.spec),
+  categoryId: row.category?.id ?? '',
 });
 
 // 부품 엑셀 이관 + AI 규격·카테고리 제안 검토 (F-SETUP-01·02).
@@ -49,7 +66,8 @@ const PartImport = () => {
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [edits, setEdits] = useState<Record<number, Edit>>({});
   const [asking, setAsking] = useState(false);
-  const [result, setResult] = useState<ImportResult | null>(null);
+  const [result, setResult] = useState<(ImportResult & { suspects: number }) | null>(null);
+  const { data: categories } = useCategories();
 
   const reset = () => {
     setPreview(null);
@@ -71,10 +89,10 @@ const PartImport = () => {
     });
   };
 
-  const rows = preview
-    ? [...preview.rows].sort((a, b) => a.suggestion.confidence - b.suggestion.confidence)
-    : [];
-  const created = rows.filter((r) => r.action === 'create').length;
+  // 서버가 오류 줄 → 확신도 낮은 줄 → 파일 순서로 정렬해 준다. 오류 줄은 확정 요청에 넣으면 400 이라 뺀다
+  const rows = preview?.rows ?? [];
+  const ready = rows.filter((r) => r.errors.length === 0);
+  const created = ready.filter((r) => r.action === 'create').length;
 
   const submit = () => {
     if (!preview) return;
@@ -82,16 +100,21 @@ const PartImport = () => {
       {
         id: preview.id,
         input: {
-          rows: preview.rows.map((r) => ({
-            row: r.row,
-            spec: edits[r.row]?.spec.trim() || null,
-            category: edits[r.row]?.category || null,
-          })),
+          rows: ready.map((r) => {
+            const edit = edits[r.row];
+            // 고치지 않은 값은 비워 보내 서버 제안 값을 그대로 쓰게 한다
+            const specChanged = edit && edit.spec.trim() !== specText(r.spec);
+            return {
+              row: r.row,
+              spec: specChanged ? parseSpec(edit.spec) : null,
+              category_id: edit?.categoryId || null,
+            };
+          }),
         },
       },
       {
         onSuccess: (data) => {
-          setResult(data);
+          setResult({ ...data, suspects: ready.filter((r) => r.duplicate_of).length });
           reset();
         },
       },
@@ -110,9 +133,9 @@ const PartImport = () => {
             <p className="text-label-lg">
               등록을 마쳤어요. 새로 {result.created}개, 갱신 {result.updated}개.
             </p>
-            {result.merge_candidates > 0 ? (
+            {result.suspects > 0 ? (
               <p className="text-body-sm text-text-body">
-                같은 부품일 수 있는 쌍이 {result.merge_candidates}개 있어요.{' '}
+                같은 부품일 수 있는 줄이 {result.suspects}개 있었어요.{' '}
                 <Link href="/hidden-stock" className="text-label-md text-text-brand underline">
                   숨은 재고에서 합칠지 골라 주세요
                 </Link>
@@ -163,7 +186,7 @@ const PartImport = () => {
                 ref={fileRef}
                 id="part-import-file"
                 type="file"
-                accept=".xlsx,.xls,.csv"
+                accept=".xlsx,.csv"
                 className="sr-only"
                 onChange={(e) => onFile(e.target.files?.[0])}
               />
@@ -188,7 +211,11 @@ const PartImport = () => {
       {preview ? (
         <SetupCard
           title={`제안 검토 — ${preview.file_name}`}
-          description="틀린 규격·카테고리만 고쳐 주세요. 확신이 낮은 줄이 위에 있어요."
+          description={
+            preview.ai_fallback
+              ? 'AI 제안을 받지 못해 규격만 뽑았어요. 카테고리를 직접 골라 주세요.'
+              : '틀린 규격·카테고리만 고쳐 주세요. 오류와 확신이 낮은 줄이 위에 있어요.'
+          }
           action={
             <Button variant="ghost" onClick={reset} disabled={confirm.isPending}>
               다른 파일 올리기
@@ -221,7 +248,7 @@ const PartImport = () => {
               <tbody>
                 {rows.map((row) => {
                   const edit = edits[row.row] ?? toEdit(row);
-                  const low = row.suggestion.confidence < LOW_CONFIDENCE;
+                  const low = row.confidence < LOW_CONFIDENCE;
                   const setEdit = (patch: Partial<Edit>) =>
                     setEdits((prev) => ({ ...prev, [row.row]: { ...edit, ...patch } }));
                   return (
@@ -230,19 +257,11 @@ const PartImport = () => {
                       <td className={TD}>
                         <div className="flex flex-col gap-1">
                           <span className="text-label-md text-text-heading">{row.name}</span>
-                          <span className="text-label-sm text-text-secondary">
-                            {[
-                              row.supplier
-                                ? `${row.supplier.name}${row.supplier.unit_price === null ? '' : ` ${formatWon(row.supplier.unit_price)}`}`
-                                : null,
-                              row.location,
-                              row.monthly_estimate === null
-                                ? null
-                                : `월 약 ${formatQty(row.monthly_estimate, row.unit)}`,
-                            ]
-                              .filter(Boolean)
-                              .join(' · ')}
-                          </span>
+                          {[...row.errors, ...row.warnings].map((message) => (
+                            <span key={message} className="text-label-sm text-text-secondary">
+                              {message}
+                            </span>
+                          ))}
                           {row.duplicate_of ? (
                             <span className="text-label-sm text-text-warning">
                               ‘{row.duplicate_of.name}’과 같은 부품일 수 있어요
@@ -251,7 +270,7 @@ const PartImport = () => {
                         </div>
                       </td>
                       <td className={`${TD} text-right text-text-heading tabular-nums`}>
-                        {formatQty(row.stock, row.unit)}
+                        {row.stock === null ? '—' : formatQty(row.stock, row.unit)}
                       </td>
                       <td className={TD}>
                         <div className="flex flex-col gap-1">
@@ -260,15 +279,12 @@ const PartImport = () => {
                             className={`${FIELD} w-full`}
                             value={edit.spec}
                             placeholder="규격 없음"
+                            disabled={row.errors.length > 0}
                             onChange={(e) => setEdit({ spec: e.target.value })}
                           />
-                          {Object.keys(row.suggestion.spec_fields).length > 0 ? (
-                            <span className="text-label-sm text-text-secondary">
-                              {Object.entries(row.suggestion.spec_fields)
-                                .map(([k, v]) => `${k} ${v}`)
-                                .join(' · ')}
-                            </span>
-                          ) : null}
+                          <span className="text-label-sm text-text-secondary">
+                            ‘지름: M8, 길이: 20’처럼 적어요
+                          </span>
                         </div>
                       </td>
                       <td className={TD}>
@@ -276,19 +292,24 @@ const PartImport = () => {
                           aria-label={`${row.name} 카테고리`}
                           variant="field"
                           className="w-full"
-                          value={edit.category}
-                          onChange={(e) => setEdit({ category: e.target.value as Category | '' })}
+                          value={edit.categoryId}
+                          disabled={row.errors.length > 0}
+                          onChange={(e) => setEdit({ categoryId: e.target.value })}
                         >
                           <option value="">정하지 않음</option>
-                          {CATEGORIES.map((c) => (
-                            <option key={c} value={c}>
-                              {c}
+                          {categories?.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
                             </option>
                           ))}
                         </Select>
                       </td>
                       <td className={TD}>
-                        {low ? (
+                        {row.errors.length > 0 ? (
+                          <Tag tone="danger" icon={CircleAlert}>
+                            오류 — 빠져요
+                          </Tag>
+                        ) : low ? (
                           <Tag tone="warning" icon={TriangleAlert}>
                             확인 필요
                           </Tag>
@@ -299,7 +320,11 @@ const PartImport = () => {
                         )}
                       </td>
                       <td className={`${TD} text-text-body`}>
-                        {row.action === 'create' ? '새로 등록' : '갱신'}
+                        {row.errors.length > 0
+                          ? '—'
+                          : row.action === 'create'
+                            ? '새로 등록'
+                            : '갱신'}
                       </td>
                     </tr>
                   );
@@ -311,8 +336,14 @@ const PartImport = () => {
           {asking ? (
             <div className="flex items-center justify-between gap-4 rounded-md bg-bg-brand-subtle p-4">
               <p className="text-body-md text-text-body">
-                {rows.length}줄을 등록할까요? 새로 {created}개, 갱신 {rows.length - created}개예요.
-                재고는 실사조정 기록으로 재고 기록에 남아요.
+                {ready.length}줄을 등록할까요? 새로 {created}개, 갱신 {ready.length - created}
+                개예요.
+                {rows.length > ready.length
+                  ? ` 오류 ${rows.length - ready.length}줄은 빠져요.`
+                  : ''}{' '}
+                {preview.is_reimport
+                  ? '다시 올린 파일이라 기존 부품의 재고는 바꾸지 않아요.'
+                  : '재고는 실사조정 기록으로 재고 기록에 남아요.'}
               </p>
               <div className="flex shrink-0 gap-2">
                 <Button
@@ -328,8 +359,12 @@ const PartImport = () => {
               </div>
             </div>
           ) : (
-            <Button className="self-end" onClick={() => setAsking(true)}>
-              {rows.length}줄 등록하기
+            <Button
+              className="self-end"
+              disabled={ready.length === 0}
+              onClick={() => setAsking(true)}
+            >
+              {ready.length}줄 등록하기
             </Button>
           )}
           {confirm.isError ? (
