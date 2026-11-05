@@ -73,4 +73,7 @@ export const ENDPOINTS = {
   twinProjection: '/v1/twin/projection',
   // 외부 요인 현황 (DSH-03) — 환율·해상운임 위험도
   externalStatus: '/v1/external/status',
+  // 운영 시연 시나리오 — 외부 충격 스위치 (BJK-AI-BE #303, 명세 밖)
+  scenarios: '/v1/scenarios',
+  externalShock: '/v1/scenarios/external-shock',
 } as const;

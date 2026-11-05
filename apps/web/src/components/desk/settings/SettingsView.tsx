@@ -9,6 +9,7 @@ import { useCompanySettings } from '@/hooks/company/useCompany';
 import { formatComputedAt } from '@/utils/format';
 
 import InviteSection from './InviteSection';
+import ScenarioSection from './ScenarioSection';
 import SettingsPanel from './SettingsPanel';
 import StaffSection from './StaffSection';
 
@@ -16,6 +17,7 @@ const TABS = [
   ['staff', '직원'],
   ['invite', '직원 초대'],
   ['review', '검토 기준값'],
+  ['demo', '시연'],
 ] as const;
 
 type Tab = (typeof TABS)[number][0];
@@ -48,6 +50,7 @@ const SettingsView = () => {
         ? `${formatComputedAt(settings.data.updated_at)} 수정`
         : '명세서 기본값',
     },
+    demo: { count: '외부 충격', foot: '환율·해상운임 위험 보여 주기' },
   };
 
   return (
@@ -81,6 +84,11 @@ const SettingsView = () => {
       {tab === 'review' ? (
         <Section title="검토 기준값과 알림">
           <SettingsPanel />
+        </Section>
+      ) : null}
+      {tab === 'demo' ? (
+        <Section title="시연 시나리오">
+          <ScenarioSection />
         </Section>
       ) : null}
     </div>
