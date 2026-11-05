@@ -3,7 +3,7 @@
 import { Search } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   ABC_CLASSES,
@@ -69,6 +69,15 @@ const PartBrowser = () => {
   const update = (patch: Partial<PartListFilters>) =>
     router.replace(`${pathname}${toSearch({ ...filters, ...patch })}`, { scroll: false });
 
+  // 입력할 때마다 바로 거르되, 글자마다 주소·요청이 바뀌지 않게 잠깐 멈췄을 때 반영한다
+  const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(searchTimer.current), []);
+  const onSearch = (value: string) => {
+    setQuery(value);
+    clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => update({ q: value.trim() || undefined }), 250);
+  };
+
   const select = <T extends string>(
     label: string,
     key: keyof PartListFilters,
@@ -113,29 +122,24 @@ const PartBrowser = () => {
         ))}
       </nav>
       <div className="flex flex-wrap items-center gap-3">
-        <form
-          className="flex items-center gap-2"
-          role="search"
-          onSubmit={(e) => {
-            e.preventDefault();
-            update({ q: query.trim() || undefined });
-          }}
-        >
+        <div role="search" className="relative">
           <label htmlFor="part-search" className="sr-only">
             부품 검색
           </label>
+          <Search
+            size={16}
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 left-5 -translate-y-1/2 text-text-secondary"
+          />
           <input
             id="part-search"
             type="search"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => onSearch(e.target.value)}
             placeholder="이름·규격·별칭"
-            className={`${PILL_SEARCH} w-64`}
+            className={`${PILL_SEARCH} w-72 pl-12`}
           />
-          <Button type="submit" variant="secondary" aria-label="검색">
-            <Search size={16} aria-hidden />
-          </Button>
-        </form>
+        </div>
         {select(
           'ABC',
           'abc',
