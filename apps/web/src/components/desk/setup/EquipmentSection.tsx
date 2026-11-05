@@ -69,15 +69,16 @@ const EquipmentForm = () => {
         <Input
           label="하루 가동 시간"
           type="number"
-          min={0}
+          min={1}
           max={24}
-          step={0.5}
-          inputMode="decimal"
+          step={1}
+          inputMode="numeric"
+          helperText="비워 두면 8시간으로 계산해요."
           value={dailyHours}
           onChange={(e) => setDailyHours(e.target.value)}
         />
       </div>
-      <PartQtyFields legend="쓰는 부품 (설비당 수량)" rows={parts} onChange={setParts} />
+      <PartQtyFields legend="정비 1회당 부품·수량" rows={parts} onChange={setParts} />
       {invalid ? (
         <p role="alert" className="text-body-sm text-text-danger">
           부품과 수량(1 이상)을 함께 골라 주세요.
@@ -138,7 +139,7 @@ const EquipmentSection = () => {
                     {item.parts
                       .map((p) => `${p.part_name} ${formatQty(p.qty, p.unit)}`)
                       .join(' · ')}
-                    {item.daily_hours === null ? '' : ` · 하루 ${item.daily_hours}시간 가동`}
+                    {item.parts.length > 0 ? ' · ' : ''}하루 {item.daily_hours}시간 가동
                   </span>
                 </li>
               ))}
