@@ -127,7 +127,10 @@ const ChatCardView = ({ card, resolved, busy, onConfirm, onCancel }: ChatCardVie
       {isWarning ? (
         <span className="flex items-center gap-1 text-label-md text-text-danger">
           <TriangleAlert size={16} aria-hidden className="text-icon-danger" />
-          평소보다 많아요 (지난 1회 최대 {formatQty(card.past_max, card.unit)})
+          평소보다 많아요
+          {card.past_max !== undefined
+            ? ` (지난 1회 최대 ${formatQty(card.past_max, card.unit)})`
+            : null}
         </span>
       ) : null}
       <dl className="grid grid-cols-3 gap-y-1 text-body-md tabular-nums">
