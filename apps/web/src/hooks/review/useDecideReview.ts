@@ -23,7 +23,7 @@ export const useDecideReview = () => {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.reviews.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.briefing.all }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.activity.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.reports.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.parts.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.twin.all }),
