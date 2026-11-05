@@ -3,7 +3,6 @@
 import { FileText, Sparkles } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 
-import { USES_BACKEND } from '@bjk/api/client';
 import { openReviewPdf } from '@bjk/api/reviews';
 import type { Review } from '@bjk/api/types/review';
 import Button from '@bjk/ui/components/Button';
@@ -44,7 +43,7 @@ const Opinion = ({ text }: { text: string }) => {
   );
 };
 
-// 결재용 PDF (F-APPROVAL-04) — 백엔드가 승인 뒤 만든다. 목업에는 PDF 생성기가 없어 백엔드 빌드에서만 보인다
+// 결재용 PDF (F-APPROVAL-04) — 백엔드가 승인 뒤 만든다
 const PdfButton = ({ id }: { id: string }) => {
   const [state, setState] = useState<'idle' | 'loading' | 'failed'>('idle');
   return (
@@ -187,7 +186,7 @@ const ReviewDetail = ({ id, layout }: ReviewDetailProps) => {
         <div className="flex flex-col gap-6">
           <Section title="결정">
             <ApprovalActions review={review} />
-            {USES_BACKEND && review.status === '발주됨' ? <PdfButton id={review.id} /> : null}
+            {review.status === '발주됨' ? <PdfButton id={review.id} /> : null}
           </Section>
           <ReviewInfoPanel review={review} />
         </div>
