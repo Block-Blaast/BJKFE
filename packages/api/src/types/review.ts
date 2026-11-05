@@ -1,6 +1,7 @@
 // 발주 검토 응답 — 임시 계약.
 // 기준은 명세서 F-REVIEW-07 출력 구조다. `// [추가]` 표시 필드는 화면에 필요해서 붙였고 명세서에 없다.
 // 백엔드 OpenAPI 가 나오면 생성된 타입으로 교체하고, 이 파일을 지운다.
+import type { RiskLevel } from '../domain/part';
 import type {
   ApprovalAction,
   CheckCode,
@@ -9,6 +10,15 @@ import type {
   ReviewStatus,
   Verdict,
 } from '../domain/review';
+
+// 외부 요인 (F-EXT-02) — 납기 쪽은 해상운임·연휴, 단가 쪽은 환율. 수입 의존 부품에만 반영된다
+export type ReviewExternal = {
+  import_dependent: boolean;
+  lead: { level: RiskLevel; r: number };
+  price: { level: RiskLevel; r: number };
+  holidays: string[];
+  applied: boolean; // C-09 외부 리스크에 걸렸는지
+};
 
 export type ReviewCheck = {
   code: CheckCode;
@@ -52,6 +62,8 @@ export type Review = {
   opinion: string; // [추가] 의견서 본문 (F-REVIEW-08)
   // 의견서를 누가 썼는지 — llm: AI(LLM) 작성, template: 양식 문장. 목업은 비운다
   opinion_source?: 'llm' | 'template';
+  // [추가] 검토 때 쓴 외부 요인 (BJK-AI-BE #291). 위험이 없어도 값이 온다. 목업은 비운다
+  external?: ReviewExternal | null;
   snapshot_id: string;
   computed_at: string;
 };

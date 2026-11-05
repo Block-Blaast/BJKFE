@@ -10,6 +10,7 @@ import type {
   Verdict,
 } from './domain/review';
 import { ENDPOINTS } from './endpoints';
+import { type BackendForecast, type BackendLevel, fromBackendForecast, RISK_LABEL } from './parts';
 import { queryKeys } from './queryKeys';
 import type { StockForecast } from './types/forecast';
 import type {
@@ -53,18 +54,18 @@ type BackendDetail = Omit<BackendItem, 'original_total' | 'saving'> & {
   risk_if_not_ordered: { stockout_date: string | null; equipment: string[]; loss: number } | null;
   opinion: { text: string; source: 'llm' | 'template'; verified: boolean } | null;
   snapshot: { id: string; hash: string } | null;
+  external: {
+    import_dependent: boolean;
+    r_lead: number;
+    r_price: number;
+    lead_level: BackendLevel;
+    price_level: BackendLevel;
+    holidays_in_lead: string[];
+    applied: boolean;
+  } | null;
   computed_at: string | null;
   decision: { action: string; reason: string | null } | null;
   decided_at?: string | null;
-};
-
-type BackendForecast = {
-  as_of: string;
-  computed_at: string | null;
-  order_qty: number | null;
-  reorder_point: number | null;
-  t_out: string | null;
-  days: { date: string; with_order: number; without_order: number }[];
 };
 
 const STATUS: Record<BackendStatus, ReviewStatus> = {
@@ -130,6 +131,33 @@ const fromItem = (r: BackendItem): Review => ({
   computed_at: r.created_at,
 });
 
+// 아침 브리핑(DSH-01)의 놓친 발주 항목 — 검토 목록 항목과 같은 칸만 채운다
+export type BriefingMissedItem = {
+  review_id: string;
+  part: string | null;
+  verdict: BackendVerdict | null;
+  flags: string[];
+  expected_loss: number | null;
+};
+
+export const reviewFromBriefing = (m: BriefingMissedItem, at: string): Review => {
+  const review = fromItem({
+    id: m.review_id,
+    entry: 'missed_draft',
+    part: m.part,
+    status: 'reviewed',
+    verdict: m.verdict,
+    flags: m.flags,
+    original_total: null,
+    saving: 0,
+    created_at: at,
+  });
+  return {
+    ...review,
+    risk_if_not_ordered: { ...review.risk_if_not_ordered, loss: m.expected_loss },
+  };
+};
+
 const fromDetail = (r: BackendDetail): Review => {
   const proposal: Proposal = r.proposal
     ? {
@@ -162,6 +190,15 @@ const fromDetail = (r: BackendDetail): Review => {
     },
     opinion: r.opinion?.text ?? '검토가 끝나면 의견서가 나와요.',
     opinion_source: r.opinion?.source,
+    external: r.external
+      ? {
+          import_dependent: r.external.import_dependent,
+          lead: { level: RISK_LABEL[r.external.lead_level], r: r.external.r_lead },
+          price: { level: RISK_LABEL[r.external.price_level], r: r.external.r_price },
+          holidays: r.external.holidays_in_lead,
+          applied: r.external.applied,
+        }
+      : null,
     snapshot_id: r.snapshot?.hash ?? '',
     computed_at: r.computed_at ?? r.created_at,
   };
@@ -239,19 +276,7 @@ export const decideReview = async (
 // 백엔드 예측선(#258)은 오늘부터 8주 일별 값만 준다 — 실적선은 없다
 export const getReviewForecast = async (id: string): Promise<StockForecast> => {
   const raw = await request<StockForecast | BackendForecast>(ENDPOINTS.reviewForecast(id));
-  if (!('days' in raw)) return raw;
-  return {
-    unit: DEFAULT_UNIT,
-    today: raw.as_of,
-    computed_at: raw.computed_at,
-    reorder_point: raw.reorder_point,
-    deadline: null,
-    order_qty: raw.order_qty,
-    actual: [],
-    without_order: raw.days.map((d) => ({ date: d.date, qty: d.without_order })),
-    with_order: raw.order_qty ? raw.days.map((d) => ({ date: d.date, qty: d.with_order })) : null,
-    is_mock: false,
-  };
+  return 'days' in raw ? fromBackendForecast(raw, DEFAULT_UNIT) : raw;
 };
 
 // 결재용 PDF (REV-07) — 승인(발주됨) 뒤에만 있다. 로그인 토큰이 필요해 파일로 받아 새 탭에 연다

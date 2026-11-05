@@ -4,17 +4,19 @@ import type { ApprovalAction } from '../domain/review';
 
 export type PurchaseOrder = {
   id: string;
-  review_id: string;
+  review_id: string | null; // 검토 없이 들어온 발주(백엔드)는 null
   part: { id: string; name: string; spec: string | null; unit: string };
   qty: number;
   supplier: string | null;
   unit_price: number | null;
   total: number | null;
   desired_date: string | null; // 납기 희망일 YYYY-MM-DD — 발주 문구에 들어간다
-  action: ApprovalAction;
+  // 백엔드 발주 목록(PO-01)은 승인 행동을 주지 않는다 — null
+  action: ApprovalAction | null;
   approved_by: string;
   approved_at: string;
-  // 승인 직후 서버가 만든다(WeasyPrint). 만드는 중이면 null
+  // 승인 직후 서버가 만든다(WeasyPrint). 만드는 중이면 null.
+  // 백엔드 PDF 는 로그인 토큰이 필요해 링크로 열 수 없다 — null 로 두고 화면이 검토 id 로 받아 연다(REV-07)
   pdf_url: string | null;
 };
 

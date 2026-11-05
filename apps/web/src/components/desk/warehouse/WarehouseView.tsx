@@ -44,9 +44,14 @@ const WarehouseView = () => {
 
   useEffect(() => {
     if (layout.data && projection.data) {
-      pushWarehouseData({ layout: layout.data, projection: projection.data });
+      pushWarehouseData({
+        layout: layout.data,
+        projection: projection.data,
+        // 백엔드 part_id 는 UUID 라 이름·카테고리로 물품 모양과 라벨을 정한다
+        parts: parts.data?.map((p) => ({ id: p.id, name: p.name, category: p.category })),
+      });
     }
-  }, [layout.data, projection.data]);
+  }, [layout.data, projection.data, parts.data]);
 
   const failed = layout.isError || projection.isError || parts.isError;
   const [errorClosed, setErrorClosed] = useState(false);

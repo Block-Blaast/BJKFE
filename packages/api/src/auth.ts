@@ -26,6 +26,8 @@ type RawAuthResult = {
   refresh_token: string;
   user: Omit<AuthUser, 'company'> & { company?: AuthUser['company'] };
   company?: AuthUser['company'];
+  // 초대 수락 응답에만 있다 (AUTH-07) — 기기에 저장할 회사 코드
+  company_code?: string;
 };
 
 const finishAuth = async (raw: RawAuthResult, companyCode?: string): Promise<AuthResult> => {
@@ -60,10 +62,20 @@ export const getCompanyMembers = async (companyCode: string): Promise<CompanyMem
   return list.map((m) => ({ id: m.id ?? m.user_id ?? '', name: m.name, role: m.role ?? 'worker' }));
 };
 
-export const getInvite = (token: string) => request<Invite>(ENDPOINTS.invite(token));
+// 백엔드는 { company_name, role, expires_at }, 목업은 Invite 를 준다
+type BackendInvite = { company_name: string; role: Role; expires_at: string };
 
-export const acceptInvite = async (token: string, input: AcceptInviteInput) =>
-  finishAuth(await post<RawAuthResult>(ENDPOINTS.acceptInvite(token), input));
+export const getInvite = async (token: string): Promise<Invite> => {
+  const raw = await request<Invite | BackendInvite>(ENDPOINTS.invite(token));
+  return 'company_name' in raw
+    ? { role: raw.role, company: { name: raw.company_name }, expires_at: raw.expires_at }
+    : raw;
+};
+
+export const acceptInvite = async (token: string, input: AcceptInviteInput) => {
+  const raw = await post<RawAuthResult>(ENDPOINTS.acceptInvite(token), input);
+  return finishAuth(raw, raw.company_code);
+};
 
 export const authQueries = {
   members: (companyCode: string) =>

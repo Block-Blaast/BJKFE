@@ -89,7 +89,7 @@ export type TwinProjection = {
   base_date: string;
   horizon_days: number;
   with_orders: boolean;
-  computed_at: string;
+  computed_at: string | null; // 최신 근거 지표 계산 시각. 새벽 계산 전이면 null (백엔드 #281)
   is_mock: boolean;
   bins: TwinBin[];
   equipment: TwinEquipmentProjection[];

@@ -42,9 +42,10 @@ export type PinLoginInput = {
   pin: string;
 };
 
+// 백엔드 초대 조회(#261)는 회사 코드를 주지 않는다 — 코드는 수락 응답(company_code)에서 받는다
 export type Invite = {
   role: Role;
-  company: { name: string; code: string };
+  company: { name: string };
   expires_at: string;
 };
 

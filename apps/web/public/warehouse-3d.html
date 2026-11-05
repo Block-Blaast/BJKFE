@@ -77,7 +77,8 @@ try {
 
 /* ---------- 데이터 → 물품 모양 ---------- */
 // 칸 id 는 `${rack_id}-${level}-${slot}` (바깥 브릿지와 같은 이름).
-// 부품을 3D 로 어떻게 보여줄지는 part_id 로 정한다 (부품함·상자·코일·캔·카트리지).
+// 부품을 3D 로 어떻게 보여줄지(부품함·상자·코일·캔·카트리지)는 setData 로 받은 부품 이름으로 정한다.
+// 이름이 없으면 part_id 로 정한다 — 목업 id(pt-bearing-…)용이다.
 const KIND_RULES = [
   [/bearing|pillow/, 'bin', 'ring', '베어링'],
   [/bolt|capscrew/, 'bin', 'bolt', '볼트'],
@@ -91,9 +92,31 @@ const KIND_RULES = [
   [/filter/, 'carton', null, '필터'],
   [/endmill|drill|insert|tap/, 'carton', null, '공구'],
 ];
+// 백엔드 part_id 는 UUID 라 바깥에서 받은 부품 이름으로 정한다. 순서가 중요하다:
+// "컴프레서 오일필터"는 오일보다 필터, "오일씰"은 오일보다 씰이 먼저 걸려야 한다.
+const NAME_RULES = [
+  [/베어링|필로우|플랜지 유닛/, 'bin', 'ring'],
+  [/볼트|캡스크류/, 'bin', 'bolt'],
+  [/너트/, 'bin', 'nut'],
+  [/와셔/, 'bin', 'washer'],
+  [/오링|오일씰|씰|패킹|가스켓/, 'bin', 'oring'],
+  [/벨트/, 'coil', 'belt'],
+  [/호스/, 'coil', 'hose'],
+  [/그리스/, 'tubes', null],
+  [/필터|엘리먼트|스트레이너/, 'carton', null],
+  [/절삭유|유압유|작동유|윤활유|습동면유|기어오일|스핀들유|오일/, 'cans', null],
+];
 const itemCache = new Map();
 function itemFor(partId) {
   if (itemCache.has(partId)) return itemCache.get(partId);
+  const info = data.parts.get(partId);
+  if (info) {
+    const rule = NAME_RULES.find(([re]) => re.test(info.name));
+    const [, kind, part] = rule ?? [null, 'carton', null];
+    const it = { id: partId, name: info.name, kind, part };
+    itemCache.set(partId, it);
+    return it;
+  }
   const key = String(partId).replace(/^pt-/, '');
   const rule = KIND_RULES.find(([re]) => re.test(key));
   const [, kind, part, label] = rule ?? [null, 'carton', null, '부품'];
@@ -107,7 +130,7 @@ function itemFor(partId) {
 const SCALE_X = 2.6, SCALE_Z = 1.75;
 
 const ui = { loc: null, selAt: 0, hover: null, highlight: new Set(), topView: false };
-const data = { layout: null, stock: new Map(), key: null };
+const data = { layout: null, stock: new Map(), parts: new Map(), key: null };
 const itemsAt = (loc) => data.stock.get(loc) ?? [];
 
 /* 결정적인 난수 (새로고침해도 같은 배치) */
@@ -782,12 +805,16 @@ const guard = (name, fn) => (...args) => { try { return fn(...args); } catch (er
 
 window.warehouse = {
   // day 는 받아도 쓰지 않는다 (화면은 오늘 값만 그린다)
-  setData: guard('setData', ({ layout, projection } = {}) => {
+  setData: guard('setData', ({ layout, projection, parts } = {}) => {
     if (!layout) return;
     const stock = indexStock(layout, projection);
-    const k = JSON.stringify([layout.racks, layout.zones, [...stock]]);
+    const names = (Array.isArray(parts) ? parts : []).map((p) => [p.id, p.name]);
+    const k = JSON.stringify([layout.racks, layout.zones, [...stock], names]);
     if (k === data.key) return;
     data.layout = layout; data.stock = stock; data.key = k;
+    // 이름이 바뀌면 모양·라벨도 다시 고른다
+    data.parts = new Map((Array.isArray(parts) ? parts : []).map((p) => [p.id, p]));
+    itemCache.clear();
     buildWorld(layout);
     ui.highlight = new Set([...ui.highlight].filter((l) => slotByLoc.has(l)));
     if (ui.loc && !slotByLoc.has(ui.loc)) ui.loc = null;

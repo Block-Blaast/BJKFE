@@ -12,6 +12,7 @@ import {
   confirmPending,
   createStockDraft,
   sendChatMessage,
+  sendCountReason,
 } from '@bjk/api/chat';
 import type { AdjustReason } from '@bjk/api/domain/audit';
 import { queryKeys } from '@bjk/api/queryKeys';
@@ -29,7 +30,10 @@ const stockNoticeOf = (
   partId: string | undefined,
   before: (partId: string) => number | null,
 ): StockChangeNotice | null => {
-  if (card.type === 'unregistered' || card.type === 'reorder') return null;
+  // count_reason: 블라인드 실사 사유라 카드에 부품·수량이 없다 — 알릴 수 있는 게 없다
+  if (card.type === 'unregistered' || card.type === 'reorder' || card.type === 'count_reason') {
+    return null;
+  }
   const part =
     card.type === 'select' ? card.candidates.find((c) => c.part_id === partId) : card.part;
   if (!part) return null;
@@ -75,7 +79,7 @@ const errorText = (error: unknown) => {
 };
 
 // 채팅 기록 (M-02, F-CHAT-01~05)
-// TODO: LLM 오류가 반복되면 폼 입력으로 전환 (F-CHAT-01), 실사 요청 메시지 (F-CHAT-05)
+// TODO: LLM 오류가 반복되면 폼 입력으로 전환 (F-CHAT-01)
 const ChatThread = () => {
   const [messages, setMessages] = useState<Message[]>([GREETING]);
   const queryClient = useQueryClient();
@@ -160,6 +164,17 @@ const ChatThread = () => {
       ]),
   });
   const cancel = useMutation({ mutationFn: cancelPending });
+  // 사유를 받으면 의심 항목이 닫혀 장부 검증·브리핑 숫자가 바뀐다 (AUD-04)
+  const countReason = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: AdjustReason }) =>
+      sendCountReason(id, { reason }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.audits.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.briefing.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.activity.all }),
+      ]),
+  });
 
   const deliver = (id: string, text: string) => {
     setUserStatus(id, 'sending');
@@ -196,6 +211,20 @@ const ChatThread = () => {
     input: { partId?: string; adjustReason?: AdjustReason },
   ) => {
     if (card.type === 'unregistered') return;
+    if (card.type === 'count_reason') {
+      if (!input.adjustReason) return;
+      countReason.mutate(
+        { id: card.count_request_id, reason: input.adjustReason },
+        {
+          onSuccess: (turn) => {
+            resolveCard(messageId);
+            appendBotTurn(turn);
+          },
+          onError: (error) => appendBotTurn({ reply: errorText(error) }),
+        },
+      );
+      return;
+    }
     // 재고 부족 제안은 원장이 아니라 검토를 만든다 (F-NOTI-01). 수량은 서버가 정한다.
     if (card.type === 'reorder') {
       raise.mutate(card.draft_id, {
@@ -233,6 +262,11 @@ const ChatThread = () => {
       appendBotTurn({ reply: '알겠어요. 다음에 기록할 때 다시 알려드릴게요.' });
       return;
     }
+    if (card.type === 'count_reason') {
+      resolveCard(messageId);
+      appendBotTurn({ reply: '알겠어요. 사유는 관리자에게 직접 알려 주세요.' });
+      return;
+    }
     cancel.mutate(card.pending_id, {
       onSuccess: (turn) => {
         resolveCard(messageId);
@@ -249,7 +283,7 @@ const ChatThread = () => {
     inputRef.current?.focus();
   };
 
-  const busy = confirm.isPending || cancel.isPending || raise.isPending;
+  const busy = confirm.isPending || cancel.isPending || raise.isPending || countReason.isPending;
 
   return (
     <div className="-mx-4 -my-6 flex min-h-0 flex-1 flex-col">

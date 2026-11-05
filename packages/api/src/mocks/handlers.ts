@@ -536,13 +536,13 @@ const todayActivity = (): Activity[] => {
       events.push({
         id: `aq-${a.id}`,
         kind: 'audit_requested',
-        text: `${a.part.name} 실사 요청 → ${a.request.assignee.name}`,
+        text: `${a.part.name} 실사 요청 → ${a.request.assignee?.name}`,
         at: a.request.requested_at,
         href: '/audit',
       });
     }
     if (a.result && isToday(a.result.resolved_at)) {
-      const diff = a.result.counted_qty - a.ledger_qty;
+      const diff = a.result.counted_qty - (a.ledger_qty ?? 0);
       events.push({
         id: `ar-${a.id}`,
         kind: 'audit_resolved',

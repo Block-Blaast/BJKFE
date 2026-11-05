@@ -1,65 +1,66 @@
-// 기준 정보 (W-08, F-SETUP) — 임시 계약(부품 엑셀 이관은 백엔드 형식). 항목은 명세서 F-SETUP-01·02·04 표를 따랐고 HTTP 형식은 명세서에 없다.
+// 기준 정보 (W-08, F-SETUP) — 임시 계약. 항목은 명세서 F-SETUP-01·02·04 표를 따랐고 HTTP 형식은 명세서에 없다.
+// 엑셀 이관은 백엔드 스키마(imports/service.py ImportOut·ConfirmRequest·ConfirmOut)를 그대로 옮겼다.
 // 백엔드 OpenAPI 가 나오면 생성된 타입으로 교체하고, 이 파일을 지운다.
-import type { ImportRowError, ImportRowWarning } from '../domain/partImport';
+import type { StockMode } from '../domain/setup';
 
-// ---- 부품 엑셀 이관 (F-SETUP-01·02, 백엔드 SET-01·02) ----
-// 형식은 BJK-AI-BE docs/api-spec/imports.md 그대로다. 목업도 같은 형식을 준다.
-// 서버가 파일(xlsx·csv)을 읽고 규격·카테고리 제안까지 붙여 돌려준다. 관리자는 틀린 것만 고친 뒤 확정한다.
-
-// 회사별 카테고리 (SET-06 목록). 이관 확정은 이름이 아니라 id 로 보낸다.
+// ---- 카테고리 (SET-06) ----
+// 회사가 정한 카테고리. 엑셀 이관의 category_id 는 이 id(uuid)를 쓴다 — 화면 상수 CATEGORIES 가 아니다.
 export type CategoryOption = { id: string; name: string };
 
+// ---- 부품 엑셀 이관 (SET-01·02, F-SETUP-01·02) ----
+// 엑셀은 서버가 읽고 AI 제안까지 붙여 미리보기로 돌려준다. 관리자는 틀린 것만 고친 뒤 확정한다.
+// 줄은 서버가 오류 있는 줄 → 확신도 낮은 줄 → 파일 순서로 정렬해 준다.
+
 export type ImportRow = {
-  row: number; // 엑셀 줄 번호
+  row: number; // 엑셀 화면의 줄 번호
   name: string;
-  stock: number | null; // 비었거나 숫자가 아니면 null (errors 에 사유)
+  stock: number | null; // 숫자가 아니면 null (errors 에 사유)
   unit: string;
-  // 정규식 + AI 로 뽑은 규격. 키는 parts.spec 과 같다(예: { thread: 'M8', length_mm: '20' })
-  spec: Record<string, string>;
-  // AI 제안. AI 가 실패하거나 확신이 없으면 null — 관리자가 직접 고른다
-  suggested_category: (CategoryOption & { confidence: number }) | null;
-  // 부품명+규격이 같은 기존 부품. 있으면 새로 만들지 않고 갱신한다 (같은 파일을 다시 올려도 중복 없음)
+  spec: Record<string, string>; // 규칙(정규식)과 AI 가 뽑은 규격. 키는 SPEC_KEY_LABEL
+  suggested_category: { id: string; name: string; confidence: number } | null;
+  // 부품명+규격이 이미 있으면 새로 만들지 않고 갱신한다 (같은 파일을 다시 올려도 중복 없음)
   existing_part_id: string | null;
-  // 같은 부품일 수 있는 기존 부품 (F-MATCH-03, 최대 3개)
+  // 규격이 같거나 이름이 비슷한 기존 부품 (최대 3개). 고르면 그 부품에 합친다 (F-MATCH-03)
   duplicate_suspects: { part_id: string; name: string; reason: 'spec_exact' | 'name_similar' }[];
-  errors: ImportRowError[]; // 있으면 이 줄은 등록할 수 없다
-  warnings: ImportRowWarning[]; // 등록은 되지만 그 값은 반영되지 않는다
+  errors: string[]; // 있으면 이 줄은 확정할 수 없다. 코드는 IMPORT_ROW_ERROR_LABEL
+  warnings: string[]; // 반영은 되지만 일부 값은 무시된다. 코드는 IMPORT_ROW_WARNING_LABEL
 };
 
 export type ImportPreview = {
   import_id: string;
-  is_reimport: boolean; // 이 회사에 확정한 이관이 이미 있음
-  rows: ImportRow[]; // 정렬: 오류 줄 → 확신도 낮은 줄 → 파일 순서 (서버가 정렬해서 준다)
-  ai: { used: boolean; fallback: boolean; reason?: string | null };
+  is_reimport: boolean;
+  rows: ImportRow[];
+  // AI 가 실패해도 200 — fallback 이면 규격은 규칙 결과뿐이고 카테고리 제안이 없다
+  ai: { used: boolean; fallback: boolean; reason: string | null };
 };
 
-// 재이관 기본값은 ignore(기존 부품 재고는 건드리지 않음), 첫 이관 기본값은 initial
-export type ImportStockMode = 'initial' | 'ignore' | 'preview' | 'apply';
+export type ConfirmImportRow = {
+  row: number;
+  category_id?: string | null; // 비우면 서버가 AI 제안 카테고리를 쓴다
+  spec?: Record<string, string> | null; // 비우면 미리보기 규격을 그대로 쓴다
+  merge_with_part_id?: string | null;
+};
 
 export type ConfirmImportInput = {
-  // 보낸 줄만 반영한다. category_id·spec 을 비우면 서버가 SET-01 제안 값을 쓴다.
-  // merge_with_part_id 를 주면 새로 만들지 않고 그 부품을 갱신한다(이름이 다르면 별칭으로 남김)
-  rows: {
-    row: number;
-    category_id?: string;
-    spec?: Record<string, string>;
-    merge_with_part_id?: string;
-  }[];
-  stock_mode?: ImportStockMode;
+  rows: ConfirmImportRow[]; // 1개 이상. errors 있는 줄은 보내지 않는다
+  stock_mode?: StockMode | null; // 생략하면 처음 이관은 initial, 재이관은 ignore
+};
+
+export type StockDiff = {
+  row: number;
+  part_id: string | null;
+  name: string;
+  ledger_stock: number;
+  file_stock: number;
+  diff: number;
 };
 
 export type ImportResult = {
   created: number;
   updated: number;
-  adjust_movements: number; // 초기 재고·재이관 차이로 남긴 실사조정 기록 수
-  stock_diffs: {
-    row: number;
-    part_id: string | null;
-    name: string;
-    ledger_stock: number;
-    file_stock: number;
-    diff: number;
-  }[];
+  adjust_movements: number;
+  // preview 는 차이 있는 줄만, apply 는 실제로 조정한 줄
+  stock_diffs: StockDiff[];
 };
 
 // ---- 설비·정비·공급사 (F-SETUP-04) ----

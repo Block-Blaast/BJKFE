@@ -15,11 +15,12 @@ export class ApiError extends Error {
   }
 }
 
-// 모든 요청이 보내기 전에 기다릴 준비 작업. 개발용 목업 워커가 뜨기 전에 나간 요청이 목업을 건너뛰지 않게 한다.
+// 모든 요청이 보내기 전에 기다릴 준비 작업. 목업 워커 기동·시연 자동 로그인 등
+// 여러 준비 작업을 걸 수 있어, 덮어쓰지 않고 모두 기다린다(둘 중 하나만 끝나고 요청이 나가면 안 된다).
 let requestGate: Promise<unknown> | null = null;
 
 export const setRequestGate = (gate: Promise<unknown>) => {
-  requestGate = gate;
+  requestGate = requestGate ? Promise.all([requestGate, gate]) : gate;
 };
 
 // ---- 로그인 토큰 (백엔드 docs/api-spec/common.md: Bearer, 액세스 15분·리프레시 14일) ----
@@ -116,6 +117,11 @@ export const requestBlob = async (path: string): Promise<Blob> => {
   }
   return res.blob();
 };
+
+// 백엔드 목록은 { items, next_cursor }, 목업 목록은 배열이다. 둘 다 받아 배열로 돌려준다.
+// 화면에 "더 보기"가 없어 첫 페이지(limit=100)만 쓴다.
+export const itemsOf = <T>(raw: T[] | { items: T[] }): T[] =>
+  Array.isArray(raw) ? raw : raw.items;
 
 // 응답 래퍼 형식은 백엔드가 정해지면 여기서 벗긴다. 지금은 JSON 바디를 그대로 돌려준다.
 export const request = async <T>(path: string, init?: RequestInit): Promise<T> => {

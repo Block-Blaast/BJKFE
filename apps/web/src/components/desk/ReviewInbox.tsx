@@ -84,20 +84,19 @@ const ReviewInbox = () => {
           onChange={(status) => update({ status })}
         />
 
-        <label className="flex items-center gap-2 text-label-md text-text-body">
-          금액
-          <Select
-            variant="pill"
-            value={filters.minTotal}
-            onChange={(e) => update({ minTotal: Number(e.target.value) })}
-          >
-            {MIN_TOTAL_OPTIONS.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
-        </label>
+        {/* 선택지("전체 금액", "10만 원 이상")가 이미 금액이라고 말해서 보이는 라벨은 두지 않는다 */}
+        <Select
+          variant="pill"
+          aria-label="금액"
+          value={filters.minTotal}
+          onChange={(e) => update({ minTotal: Number(e.target.value) })}
+        >
+          {MIN_TOTAL_OPTIONS.map(({ value, label }) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </Select>
 
         {/* 켜고 끄는 필터 — 켜지면 선택된 탭처럼 검정 알약 (design-system.md "알약 컨트롤") */}
         <button

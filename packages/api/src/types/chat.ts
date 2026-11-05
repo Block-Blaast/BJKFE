@@ -24,6 +24,8 @@ type PendingBase = {
 export type ChatCard =
   // 실사 응답 (F-CHAT-05): 장부와 차이를 보여주고, 차이가 있으면 사유를 고르게 한다
   | (PendingBase & { type: 'count'; part: ChatPartRef; ledger_qty: number })
+  // 백엔드 실사 응답(COUNT) 뒤 차이 사유 고르기 (AUD-04). 블라인드 실사라 차이는 답변 문장으로만 온다
+  | { type: 'count_reason'; count_request_id: string }
   | (PendingBase & { type: 'confirm'; part: ChatPartRef })
   | (PendingBase & { type: 'select'; part_text: string; candidates: ChatPartRef[] })
   // past_max: 지난 1회 최대 수량. 백엔드는 주지 않아 없을 수 있다
@@ -65,4 +67,9 @@ export type ChatInboxItem = {
   id: string;
   text: string;
   created_at: string;
+};
+
+export type CountReasonInput = {
+  reason: AdjustReason;
+  note?: string;
 };
