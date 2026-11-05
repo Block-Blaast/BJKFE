@@ -10,10 +10,13 @@ export type AuditItem = {
   rule: AuditRule;
   grade: AuditGrade;
   reason: string; // 걸린 이유를 사람이 읽는 문장으로
-  ledger_qty: number; // 장부상 재고
+  // 장부상 재고. 백엔드는 블라인드 실사(F-AUDIT-06)라 주지 않는다 — null
+  ledger_qty: number | null;
   status: AuditStatus;
-  request: { assignee: { id: string; name: string }; requested_at: string } | null;
+  // 백엔드 목록은 담당자를 주지 않는다 — assignee null
+  request: { assignee: { id: string; name: string } | null; requested_at: string } | null;
   // 종료 결과. 차이가 없으면 counted_qty === ledger_qty, adjust_reason null ("이상 없음")
+  // 백엔드 목록은 실사 결과를 주지 않아 닫힌 항목도 null 이다
   result: {
     counted_qty: number;
     adjust_reason: AdjustReason | null;
@@ -32,8 +35,9 @@ export type RequestAuditInput = {
 // 숨은 재고·중복 병합 후보 (F-MATCH-03). 같은 카테고리에서 규격 일치 + 이름 유사.
 export type MergeCandidate = {
   id: string;
-  spec: string;
-  category: string;
+  // 백엔드 후보(MAT-01)는 규격·카테고리를 주지 않는다 — null
+  spec: string | null;
+  category: string | null;
   parts: [PartRef & { stock: number }, PartRef & { stock: number }];
   status: 'open' | 'merged' | 'dismissed';
   // 병합됐다면 대표 부품

@@ -89,8 +89,9 @@ const RequestForm = ({ auditId }: { auditId: string }) => {
 const RequestState = ({ item, auditId }: { item: AuditItem | undefined; auditId: string }) =>
   item?.request ? (
     <p className="text-body-sm text-text-body tabular-nums">
-      {item.request.assignee.name}님께 실사 요청함 · {formatComputedAt(item.request.requested_at)} ·
-      작업자 채팅으로 실제 수량이 들어오면 기록이 맞춰져요
+      {item.request.assignee ? `${item.request.assignee.name}님께 ` : ''}실사 요청함 ·{' '}
+      {formatComputedAt(item.request.requested_at)} · 작업자 채팅으로 실제 수량이 들어오면 기록이
+      맞춰져요
     </p>
   ) : (
     <RequestForm auditId={auditId} />
