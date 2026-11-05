@@ -10,10 +10,6 @@ RUN pnpm install --frozen-lockfile
 # 브라우저 번들에 들어가는 값이라 빌드 시점에 고정. 같은 도메인의 /api로 Caddy가 서버에 연결
 ARG NEXT_PUBLIC_API_URL=/api
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-# 1 이면 production 빌드에도 MSW 목업을 켠다(백엔드가 아직 없는 시연용). 기본은 꺼짐.
-# 켜기: docker build --build-arg NEXT_PUBLIC_USE_MOCKS=1 .
-ARG NEXT_PUBLIC_USE_MOCKS=
-ENV NEXT_PUBLIC_USE_MOCKS=$NEXT_PUBLIC_USE_MOCKS
 RUN pnpm exec turbo run build --filter=@bjk/web
 
 FROM node:24-slim AS runner
