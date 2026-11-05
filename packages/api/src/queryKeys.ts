@@ -13,6 +13,7 @@ const chatAll = ['chat'] as const;
 const partsAll = ['parts'] as const;
 const activityAll = ['activity'] as const;
 const dashboardAll = ['dashboard'] as const;
+const scenariosAll = ['scenarios'] as const;
 const companyAll = ['company'] as const;
 const mergeAll = ['merge-candidates'] as const;
 const setupAll = ['setup'] as const;
@@ -54,6 +55,10 @@ export const queryKeys = {
   dashboard: {
     all: dashboardAll,
     summary: () => [...dashboardAll, 'summary'] as const,
+  },
+  scenarios: {
+    all: scenariosAll,
+    state: () => [...scenariosAll, 'state'] as const,
   },
   chat: {
     all: chatAll,

@@ -37,6 +37,8 @@ type BackendLine = {
 type BackendItem = {
   id: string;
   entry: BackendEntry;
+  // 부품 id (BJK-AI-BE #303) — 3D 외부 요인 알림이 영향 부품의 결정 대기 검토를 찾는다. 상세는 주지 않는다
+  part_id?: string | null;
   part: string | null;
   status: BackendStatus;
   verdict: BackendVerdict | null;
@@ -112,7 +114,11 @@ const line = (l: BackendLine | null): OrderLine => ({
 const base = (r: BackendItem | BackendDetail) => ({
   id: r.id,
   status: STATUS[r.status],
-  part: { id: '', name: r.part ?? '부품 확인 중', unit: DEFAULT_UNIT },
+  part: {
+    id: ('part_id' in r && r.part_id) || '',
+    name: r.part ?? '부품 확인 중',
+    unit: DEFAULT_UNIT,
+  },
   origin: ORIGIN[r.entry],
   requested_at: r.created_at,
   // 검토 중이면 판정이 없다 — 화면은 판정 칸을 비우지 않으므로 보류로 보인다

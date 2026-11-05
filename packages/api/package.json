@@ -19,6 +19,7 @@
     "./parts": "./src/parts.ts",
     "./activity": "./src/activity.ts",
     "./dashboard": "./src/dashboard.ts",
+    "./scenarios": "./src/scenarios.ts",
     "./company": "./src/company.ts",
     "./setup": "./src/setup.ts",
     "./reports": "./src/reports.ts",
