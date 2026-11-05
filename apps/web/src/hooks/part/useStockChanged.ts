@@ -13,12 +13,14 @@ import { formatQty } from '@/utils/format';
 // 재고가 바뀐 순간의 알림 — 토스트 + 3D 창고 지게차 입출고 동작.
 // 두 입구가 있다.
 // - begin → notify: 이 브라우저에서 채팅 확인 카드를 확정할 때. 카드에 부품·수량·종류가 있어 그대로 쓴다.
-// - onEvent: SSE stock.changed (NOT-03, 아직 연결 전). 이벤트에는 바뀐 뒤 재고만 있어 캐시의 이전 재고와 비교한다.
-//   SSE 처리기는 parts·twin 쿼리를 무효화하기 **전에** 불러야 한다(무효화 뒤엔 이전 값이 없다).
+// - onEvents: SSE stock.changed (NOT-03, providers/realtime-sync). 이벤트에는 바뀐 뒤 재고만 있어 캐시의 이전 재고와 비교한다.
+//   다른 기기·다른 사람의 기록은 이 길로 온다.
 
 // 내가 기록한 것도 SSE 로 다시 온다. 응답보다 SSE 가 먼저 올 수도 있어, 요청을 보내기 **전에**(begin)
 // "이 부품이 이 재고가 될 것"을 적어 두고, 맞는 이벤트 하나만 지운다. 값이 다르면 남이 바꾼 것이라 알린다.
 const ECHO_MS = 15_000;
+// 이보다 많은 부품이 한 번에 바뀌면 한 장으로 줄인다 (토스트는 최대 3장까지 쌓인다)
+const BURST = 3;
 type Expected = { stock: number | null; at: number }; // stock 을 모르면(캐시에 없음) 그 부품의 첫 이벤트를 내 것으로 본다
 const expected = new Map<string, Expected[]>();
 
@@ -120,6 +122,39 @@ export const useStockChangeSync = () => {
   }, []);
 };
 
+// SSE stock.changed 묶음. 부르는 쪽(RealtimeSync)은 parts·twin 쿼리를 무효화하기 **전에** 불러야 한다
+// (이전 재고를 캐시에서 읽는다). 엑셀 이관·병합처럼 한꺼번에 여러 부품이 바뀌면 토스트를 한 장으로 줄이고
+// 지게차도 보내지 않는다 — 화면을 덮고 지게차가 줄줄이 밀리기 때문이다.
+export const handleStockEvents = (queryClient: QueryClient, events: StockChangedEvent[]) => {
+  // 같은 부품이 여러 번 오면 마지막 재고만 본다 (캐시의 이전 값과 한 번에 비교)
+  const latest = new Map<string, StockChangedEvent>();
+  for (const event of events) {
+    if (!consumeEcho(event)) latest.set(event.part_id, event);
+  }
+  const notices: StockChangeNotice[] = [];
+  for (const event of latest.values()) {
+    // 이 부품을 캐시에 받아 둔 적이 없으면(폰 채팅 화면 등) 이름을 몰라 알리지 않는다
+    const part = findCachedPart(queryClient, event.part_id);
+    if (!part || part.stock === event.stock) continue;
+    notices.push({
+      partId: event.part_id,
+      name: part.name,
+      unit: part.unit,
+      delta: event.stock - part.stock,
+      stock: event.stock,
+    });
+  }
+  if (notices.length <= BURST) {
+    notices.forEach(showStockChange);
+    return;
+  }
+  useToastStore.getState().push({
+    tone: 'info',
+    title: `부품 ${notices.length}개의 재고가 바뀌었어요`,
+    detail: '엑셀 이관·병합처럼 한꺼번에 바뀐 기록이에요',
+  });
+};
+
 export const useStockChanged = () => {
   const queryClient = useQueryClient();
 
@@ -143,20 +178,6 @@ export const useStockChanged = () => {
     notify: (notice: StockChangeNotice) => {
       showStockChange(notice);
       outbox?.postMessage(notice);
-    },
-
-    onEvent: (event: StockChangedEvent) => {
-      if (consumeEcho(event)) return;
-      // 이 부품을 캐시에 받아 둔 적이 없으면(폰 채팅 화면 등) 이름을 몰라 알리지 않는다
-      const part = findCachedPart(queryClient, event.part_id);
-      if (!part) return;
-      showStockChange({
-        partId: event.part_id,
-        name: part.name,
-        unit: part.unit,
-        delta: event.stock - part.stock,
-        stock: event.stock,
-      });
     },
   };
 };

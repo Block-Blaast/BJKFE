@@ -5,7 +5,7 @@ import AuditBoard from '@/components/desk/AuditBoard';
 
 export const metadata: Metadata = { title: '재고 맞춰보기' };
 
-// TODO(W-06): SSE(audit.flagged)로 실시간 갱신. 실사 응답(F-CHAT-05)이 들어오면 항목이 닫힌다.
+// 실시간 갱신은 providers/realtime-sync 가 한다. TODO(W-06): 백엔드가 audit.flagged 를 아직 발행하지 않는다.
 const AuditPage = () => {
   return (
     <div className="flex flex-col gap-6">

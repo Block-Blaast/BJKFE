@@ -118,6 +118,10 @@ export const requestBlob = async (path: string): Promise<Blob> => {
   return res.blob();
 };
 
+// 응답을 끝까지 읽지 않고 그대로 돌려준다 — 실시간 이벤트(SSE)처럼 본문이 계속 흘러오는 요청용.
+// 로그인 대기·토큰 갱신은 request 와 같다. 상태 코드 확인은 부르는 쪽이 한다.
+export const requestStream = (path: string, init?: RequestInit) => sendWithRefresh(path, init);
+
 // 백엔드 목록은 { items, next_cursor }, 목업 목록은 배열이다. 둘 다 받아 배열로 돌려준다.
 // 화면에 "더 보기"가 없어 첫 페이지(limit=100)만 쓴다.
 export const itemsOf = <T>(raw: T[] | { items: T[] }): T[] =>

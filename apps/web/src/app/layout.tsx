@@ -7,6 +7,7 @@ import Toaster from '@/components/ui/feedback/Toaster';
 import DemoAuthProvider from '@/providers/demo-auth-provider';
 import MockProvider from '@/providers/mock-provider';
 import QueryProvider from '@/providers/query-provider';
+import RealtimeSync from '@/providers/realtime-sync';
 
 import './globals.css';
 
@@ -26,7 +27,10 @@ const RootLayout = ({ children }: LayoutProps<'/'>) => {
       <body className="flex min-h-full flex-col">
         <MockProvider>
           <DemoAuthProvider>
-            <QueryProvider>{children}</QueryProvider>
+            <QueryProvider>
+              {children}
+              <RealtimeSync />
+            </QueryProvider>
           </DemoAuthProvider>
           <Toaster />
           <StockChangeSync />
