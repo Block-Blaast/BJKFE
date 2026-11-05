@@ -156,10 +156,16 @@ const HiddenStockList = () => {
   );
 
   if (isPending) {
-    return <p className="text-body-md text-text-secondary">중복 의심 부품을 불러오는 중이에요…</p>;
+    return (
+      <p className="text-body-md text-text-secondary">
+        같은 부품일 수 있는 항목을 불러오는 중이에요…
+      </p>
+    );
   }
   if (isError || !candidates) {
-    return <ErrorState title="중복 의심 부품을 불러오지 못했어요" onRetry={() => refetch()} />;
+    return (
+      <ErrorState title="같은 부품일 수 있는 항목을 불러오지 못했어요" onRetry={() => refetch()} />
+    );
   }
 
   return (
@@ -167,7 +173,9 @@ const HiddenStockList = () => {
       {folders}
       {candidates.length === 0 ? (
         <EmptyState
-          title={status === 'open' ? '중복 의심 부품이 없어요' : '아직 처리한 쌍이 없어요'}
+          title={
+            status === 'open' ? '같은 부품일 수 있는 항목이 없어요' : '아직 처리한 쌍이 없어요'
+          }
         >
           {status === 'open' ? '규격이 같은데 이름이 다른 부품을 매주 월요일에 찾아요.' : null}
         </EmptyState>
