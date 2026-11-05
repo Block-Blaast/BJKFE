@@ -52,7 +52,8 @@ const WarehouseScene = dynamic(() => import('./WarehouseScene'), {
   ),
 });
 
-const OVERVIEW: CameraFocus = { x: -1, z: 1.5, distance: 23 };
+const OVERVIEW: CameraFocus = { x: -1, z: 1.5, distance: 23, spin: true };
+const TOP_VIEW: CameraFocus = { x: -0.5, z: 0.5, distance: 22, top: true };
 
 // 시연 장면 — 발표 순서대로 누르면 이야기가 이어진다. 문장 속 숫자는 목업 데이터(가상 공장) 기준이다.
 const STEPS = [
@@ -202,6 +203,7 @@ const WarehouseView = () => {
         look: lookOf(b),
         hidden: layers.hidden && b.same_spec_group !== null && (!q || highlighted.has(b.part_id)),
         dimmed: !!q && !highlighted.has(b.part_id),
+        beam: !!q && highlighted.has(b.part_id),
         selected: selected?.type === 'bin' && selected.id === b.part_id,
       },
     ];
@@ -341,15 +343,6 @@ const WarehouseView = () => {
         </div>
       );
     }),
-    ...layout.data.racks.map((r) => (
-      <div
-        key={`rack-${r.id}`}
-        ref={anchor(`rack-${r.id}`, [r.x - (r.slots * 0.9) / 2, r.levels * 0.5 + 0.35, r.z])}
-        className="absolute top-0 left-0 rounded-full bg-bg-inverse px-2 py-1 text-label-sm whitespace-nowrap text-text-on-inverse"
-      >
-        {r.label} · {r.purpose}
-      </div>
-    )),
     ...sceneBins
       .filter(
         (b) =>
@@ -461,6 +454,27 @@ const WarehouseView = () => {
               />
               <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
                 {labels}
+              </div>
+              <div role="group" aria-label="카메라" className="absolute top-4 right-4 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFocus({ ...OVERVIEW })}
+                  className="h-9 rounded-full bg-bg-surface px-4 text-label-sm text-text-body shadow-card transition-colors hover:bg-bg-subtle"
+                >
+                  전체 보기
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={!!focus.top}
+                  onClick={() => setFocus(focus.top ? { ...OVERVIEW } : { ...TOP_VIEW })}
+                  className={`h-9 rounded-full px-4 text-label-sm shadow-card transition-colors ${
+                    focus.top
+                      ? 'bg-bg-inverse text-text-on-inverse'
+                      : 'bg-bg-surface text-text-body hover:bg-bg-subtle'
+                  }`}
+                >
+                  위에서 보기
+                </button>
               </div>
             </div>
           ) : (
