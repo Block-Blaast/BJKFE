@@ -113,7 +113,7 @@ const WarehouseTable = () => {
               숨은 재고
             </th>
             <th scope="col" className={`${TH} text-left`}>
-              장부 의심
+              확인 필요
             </th>
           </tr>
         </thead>
