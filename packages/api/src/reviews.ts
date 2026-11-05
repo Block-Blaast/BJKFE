@@ -1,6 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 
-import { request, requestBlob, USES_BACKEND } from './client';
+import { request, requestBlob } from './client';
 import type {
   ApprovalAction,
   CheckCode,
@@ -22,7 +22,7 @@ import type {
 
 // ---- 백엔드 검토 형식 (BJK-AI-BE docs/api-spec/review-queries.md·reviews.md) ----
 // 판정·체크·수정안은 검토 엔진이, 의견서 문장은 AI(LLM)가 쓴다(실패하면 양식 문장).
-// 화면은 지금 Review 형식을 그대로 쓰고, 여기서 백엔드 응답을 그 형식으로 바꾼다. 목업은 Review 를 그대로 준다.
+// 화면은 지금 Review 형식을 그대로 쓰고, 여기서 백엔드 응답을 그 형식으로 바꾼다.
 type BackendStatus = 'reviewing' | 'reviewed' | 'held' | 'approved' | 'closed' | 'expired';
 type BackendVerdict = 'ok' | 'revise' | 'hold';
 type BackendEntry = 'staff_request' | 'stock_draft' | 'missed_draft';
@@ -167,53 +167,36 @@ const fromDetail = (r: BackendDetail): Review => {
   };
 };
 
-const isBackendItem = (r: unknown): r is BackendItem | BackendDetail =>
-  typeof r === 'object' && r !== null && 'entry' in r;
-
 // 화면 필터 → 백엔드 쿼리. 결정 대기는 reviewed, 판정은 영문 값. 최소 총액은 백엔드에 없어 받은 뒤 거른다
 const BACK_VERDICT = Object.fromEntries(Object.entries(VERDICT).map(([k, v]) => [v, k]));
 
-const toSearch = ({ status, verdict, urgent, minTotal }: ReviewListFilters) => {
+const toSearch = ({ status, verdict, urgent }: ReviewListFilters) => {
   const params = new URLSearchParams();
-  if (USES_BACKEND) {
-    if (status === 'pending') params.set('status', 'reviewed');
-    if (verdict) params.set('verdict', BACK_VERDICT[verdict]);
-    if (urgent) params.set('urgent', 'true');
-    params.set('limit', '100');
-  } else {
-    if (status) params.set('status', status);
-    if (verdict) params.set('verdict', verdict);
-    if (urgent) params.set('urgent', '1');
-    if (minTotal) params.set('min_total', String(minTotal));
-  }
+  if (status === 'pending') params.set('status', 'reviewed');
+  if (verdict) params.set('verdict', BACK_VERDICT[verdict]);
+  if (urgent) params.set('urgent', 'true');
+  params.set('limit', '100');
   const query = params.toString();
   return query ? `?${query}` : '';
 };
 
-const listOf = (raw: Review[] | { items: BackendItem[] }, minTotal?: number): Review[] => {
-  if (Array.isArray(raw)) return raw;
+const listOf = (raw: { items: BackendItem[] }, minTotal?: number): Review[] => {
   const list = raw.items.map(fromItem);
   return minTotal ? list.filter((r) => (r.original.total ?? 0) >= minTotal) : list;
 };
 
 export const getReviews = async (filters: ReviewListFilters) =>
   listOf(
-    await request<Review[] | { items: BackendItem[] }>(`${ENDPOINTS.reviews}${toSearch(filters)}`),
+    await request<{ items: BackendItem[] }>(`${ENDPOINTS.reviews}${toSearch(filters)}`),
     filters.minTotal,
   );
 
 // 백엔드는 "내 요청"을 목록의 mine=true 로 준다
 export const getMyRequests = async () =>
-  listOf(
-    await request<Review[] | { items: BackendItem[] }>(
-      USES_BACKEND ? `${ENDPOINTS.reviews}?mine=true&limit=100` : ENDPOINTS.myRequests,
-    ),
-  );
+  listOf(await request<{ items: BackendItem[] }>(`${ENDPOINTS.reviews}?mine=true&limit=100`));
 
-export const getReview = async (id: string) => {
-  const raw = await request<Review | BackendDetail>(ENDPOINTS.review(id));
-  return isBackendItem(raw) ? fromDetail(raw as BackendDetail) : raw;
-};
+export const getReview = async (id: string) =>
+  fromDetail(await request<BackendDetail>(ENDPOINTS.review(id)));
 
 // 같은 스냅샷에 같은 행동이면 같은 키 — 두 번 눌러도, 재시도해도 서버가 한 번만 처리한다 (F-APPROVAL-02).
 export const reviewDecisionKey = (
@@ -226,20 +209,17 @@ export const decideReview = async (
   review: Pick<Review, 'id' | 'snapshot_id'>,
   input: ReviewDecisionInput,
 ): Promise<Review> => {
-  const raw = await request<Review | object>(ENDPOINTS.reviewDecision(review.id), {
+  await request<unknown>(ENDPOINTS.reviewDecision(review.id), {
     method: 'POST',
     headers: { 'Idempotency-Key': reviewDecisionKey(review, input) },
-    body: JSON.stringify(
-      USES_BACKEND ? { action: ACTION[input.action], reason: input.reason } : input,
-    ),
+    body: JSON.stringify({ action: ACTION[input.action], reason: input.reason }),
   });
-  return USES_BACKEND ? getReview(review.id) : (raw as Review);
+  return getReview(review.id);
 };
 
 // 백엔드 예측선(#258)은 오늘부터 8주 일별 값만 준다 — 실적선은 없다
 export const getReviewForecast = async (id: string): Promise<StockForecast> => {
-  const raw = await request<StockForecast | BackendForecast>(ENDPOINTS.reviewForecast(id));
-  if (!('days' in raw)) return raw;
+  const raw = await request<BackendForecast>(ENDPOINTS.reviewForecast(id));
   return {
     unit: DEFAULT_UNIT,
     today: raw.as_of,
