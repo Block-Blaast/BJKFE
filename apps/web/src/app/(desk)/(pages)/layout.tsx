@@ -7,7 +7,7 @@ import { DESK_HOME } from '@/constants/routes';
 // 회색 바탕 → 옅은 패널 → 흰 카드 3겹으로 카드가 떠 보이게 한다 (design-system.md "화면 인상").
 const DeskPagesLayout = ({ children }: { children: ReactNode }) => {
   return (
-    <div className="flex flex-1 flex-col gap-6 rounded-xl bg-bg-page p-6">
+    <div className="m-5 flex flex-1 flex-col gap-6 rounded-xl bg-bg-page p-6">
       <BackLink href={DESK_HOME.href} label={`${DESK_HOME.label}로`} />
       <main className="flex flex-1 flex-col">{children}</main>
     </div>
