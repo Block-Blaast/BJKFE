@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 
 import { pretendard } from '@bjk/ui/fonts';
 
+import DemoAuthProvider from '@/providers/demo-auth-provider';
 import MockProvider from '@/providers/mock-provider';
 import QueryProvider from '@/providers/query-provider';
 
@@ -22,7 +23,9 @@ const RootLayout = ({ children }: LayoutProps<'/'>) => {
     <html lang="ko" className={`${pretendard.variable} h-full`} suppressHydrationWarning>
       <body className="flex min-h-full flex-col">
         <MockProvider>
-          <QueryProvider>{children}</QueryProvider>
+          <DemoAuthProvider>
+            <QueryProvider>{children}</QueryProvider>
+          </DemoAuthProvider>
         </MockProvider>
       </body>
     </html>
