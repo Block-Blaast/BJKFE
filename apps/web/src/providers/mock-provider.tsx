@@ -4,12 +4,6 @@ import type { ReactNode } from 'react';
 
 import { setRequestGate } from '@bjk/api/client';
 
-// 목업으로만 처리하는 경로 — 형식이 정해지지 않은 화면이다.
-// - 엑셀 이관(setup/part-imports): 백엔드 미리보기 줄 형식이 명세에 다 적혀 있지 않아 목업 형식으로 보낸다
-// 3D 창고(twin)는 백엔드 #281(/v1/twin/*)로 옮겨 목업에서 뺐다.
-// 그 외 경로는 모두 실제 백엔드(BJK-AI-BE)로 보낸다.
-const MOCK_ONLY = /^\/api\/setup\/part-imports(\/|$)/;
-
 // MSW 목업으로 API 를 대신하는 조건.
 // - 개발 모드에서 백엔드 주소(NEXT_PUBLIC_API_URL)가 없을 때
 // - NEXT_PUBLIC_USE_MOCKS=1 로 빌드했을 때 — 백엔드가 아직 없는 시연 서버(W-11 3D 창고 등)용. production 빌드에서도 켜진다.
@@ -26,38 +20,12 @@ if (SHOULD_MOCK && typeof window !== 'undefined') {
   // 핫 리로드로 이 모듈이 다시 실행돼도 워커는 탭당 한 번만 시작한다.
   // 두 번 시작하면 MSW 가 WebSocket 전역을 다시 바꾸려다 "already replaced" 에러를 낸다.
   const tab = window as Window & { __bjkMockReady?: Promise<unknown> };
-  tab.__bjkMockReady ??= Promise.all([
-    import('@/mocks/browser'),
-    import('msw'),
-    import('@bjk/api/mocks'),
-  ]).then(([{ worker }, { http, getResponse }, { handlers }]) => {
-    // 핸들러는 ENDPOINTS 경로(/v1/..., /api/...) 그대로 같은 출처에서 잡는다. 그런데 client.ts 는
-    // `${NEXT_PUBLIC_API_URL}${path}` 로 부르므로, 주소가 있는 빌드(배포: /api)에서는 요청이
-    // /api/v1/parts · /api/api/twin/layout 처럼 앞에 주소가 붙어 나가 핸들러에 안 걸린다.
-    // 그 앞부분을 떼고 같은 출처 경로로 바꿔 판단한다. 엑셀 이관(MOCK_ONLY)만 목업이 응답하고,
-    // 나머지는 모두 실제 백엔드(BJK-AI-BE)로 흘려보낸다.
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (apiUrl) {
-      const prefix = new URL(apiUrl, window.location.origin).href.replace(/\/$/, '');
-      worker.use(
-        http.all(`${prefix}/*`, async ({ request }) => {
-          const target = new URL(request.url.slice(prefix.length), window.location.origin);
-          // MOCK_ONLY 외의 경로는 undefined 를 돌려줘 목업이 손대지 않고 실제 서버로 그대로 보낸다
-          if (!MOCK_ONLY.test(target.pathname)) return undefined;
-          const hasBody = request.method !== 'GET' && request.method !== 'HEAD';
-          return getResponse(
-            handlers,
-            new Request(target, {
-              method: request.method,
-              headers: request.headers,
-              body: hasBody ? await request.arrayBuffer() : undefined,
-            }),
-          );
-        }),
-      );
-    }
-    return worker.start({ onUnhandledFrame: 'bypass', quiet: true });
-  });
+  // 핸들러는 ENDPOINTS 경로(/v1/..., /api/...) 그대로 같은 출처에서 잡는다. 주소가 있는 빌드(배포: /api)에서는
+  // 요청이 /api/v1/parts 처럼 앞에 주소가 붙어 나가 핸들러에 걸리지 않고, 모두 실제 백엔드(BJK-AI-BE)로 간다.
+  // (예전에는 형식이 정해지지 않은 3D 창고·엑셀 이관만 목업이 가로챘는데, 둘 다 백엔드로 옮겼다)
+  tab.__bjkMockReady ??= import('@/mocks/browser').then(({ worker }) =>
+    worker.start({ onUnhandledFrame: 'bypass', quiet: true }),
+  );
   setRequestGate(tab.__bjkMockReady);
 }
 

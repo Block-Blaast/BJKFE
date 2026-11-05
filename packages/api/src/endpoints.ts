@@ -2,9 +2,8 @@
 // 호출은 client.ts 에서 `${NEXT_PUBLIC_API_URL}${path}` 로 조립한다. 운영에서는
 // NEXT_PUBLIC_API_URL=/api 이고 Caddy 가 /api/* 를 server 로 넘긴다. server 의 실제
 // 경로가 /api/v1/... 이라, 백엔드에 있는 경로는 /v1/... 로 두어 /api + /v1/... 로 맞춘다.
-// /api/... 로 남은 경로는 형식이 정해지지 않은(엑셀 이관) 목업 전용이다.
-// 배포 빌드는 엑셀 이관만 목업으로, 나머지는 실제 백엔드로 보낸다(mock-provider.tsx MOCK_ONLY).
-// 그 밖의 /api/... 경로는 백엔드가 없는 로컬 개발(USES_BACKEND=false)에서만 부른다.
+// /api/... 로 남은 경로는 백엔드가 없는 로컬 개발(USES_BACKEND=false)에서만 부르는 목업 전용이다.
+// 배포 빌드는 모든 요청을 실제 백엔드로 보낸다.
 export const ENDPOINTS = {
   signup: '/v1/auth/owner/signup',
   emailLogin: '/v1/auth/login',
@@ -52,10 +51,10 @@ export const ENDPOINTS = {
   chatPendingCancel: (pendingId: string) => `/v1/chat/entries/${pendingId}/cancel`,
   // 목업 전용 — 기록 중 재고 부족 초안 (F-NOTI-01). 백엔드는 출고 확정 때 초안을 스스로 만든다(triggered)
   chatStockDraft: (draftId: string) => `/api/chat/drafts/${draftId}`,
-  // 기준 정보 (W-08, F-SETUP) — 백엔드 SET-07~10
-  // 엑셀 이관(SET-01·02)은 미리보기 줄 형식이 정해지지 않아 아직 목업 경로다
-  partImports: '/api/setup/part-imports',
-  partImportConfirm: (id: string) => `/api/setup/part-imports/${id}/confirm`,
+  // 기준 정보 (W-08, F-SETUP) — 백엔드 SET-01·02(엑셀 이관), SET-06(카테고리), SET-07~10
+  partImports: '/v1/imports/parts',
+  partImportConfirm: (id: string) => `/v1/imports/parts/${id}/confirm`,
+  categories: '/v1/categories',
   equipment: '/v1/equipment',
   maintenance: '/v1/maintenance',
   maintenanceComplete: (id: string) => `/v1/maintenance/${id}/complete`,
