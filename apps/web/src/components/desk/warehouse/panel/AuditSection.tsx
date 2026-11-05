@@ -36,7 +36,7 @@ const LINK =
 // twin 응답의 grade 는 string 이라 도메인 등급으로 좁혀서만 태그를 그린다
 const GradeTag = ({ grade }: { grade: string }) => {
   const g = AUDIT_GRADES.find((x) => x === grade);
-  return g ? <Tag {...GRADE_TAG[g]}>의심 {g}</Tag> : null;
+  return g ? <Tag {...GRADE_TAG[g]}>우선순위 {g}</Tag> : null;
 };
 
 // AuditBoard(W-06)의 실사 요청과 같은 흐름 — 현장 작업자에게만 요청한다
@@ -90,7 +90,7 @@ const RequestState = ({ item, auditId }: { item: AuditItem | undefined; auditId:
   item?.request ? (
     <p className="text-body-sm text-text-body tabular-nums">
       {item.request.assignee.name}님께 실사 요청함 · {formatComputedAt(item.request.requested_at)} ·
-      작업자 채팅으로 실제 수량이 들어오면 장부가 조정돼요
+      작업자 채팅으로 실제 수량이 들어오면 기록이 맞춰져요
     </p>
   ) : (
     <RequestForm auditId={auditId} />
@@ -113,7 +113,7 @@ const AuditSection = ({ bin }: BinSectionProps) => {
         )}
       </div>
       <Link href="/audit" className={LINK}>
-        장부 검증 열기
+        재고 맞춰보기 열기
         <ArrowRight size={14} aria-hidden />
       </Link>
     </InfoSection>
@@ -131,7 +131,7 @@ export const AuditOverviewSection = ({ projection, layout }: OverviewSectionProp
   );
   if (!suspects.length) return null;
   return (
-    <InfoSection title={`장부 의심 ${suspects.length}칸`}>
+    <InfoSection title={`재고 확인 필요 ${suspects.length}칸`}>
       <ul className="flex flex-col gap-1">
         {suspects.map((b) => {
           const loc = locsOf.get(b.part_id)?.[0];
@@ -157,7 +157,7 @@ export const AuditOverviewSection = ({ projection, layout }: OverviewSectionProp
         })}
       </ul>
       <Link href="/audit" className={LINK}>
-        장부 검증 열기
+        재고 맞춰보기 열기
         <ArrowRight size={14} aria-hidden />
       </Link>
     </InfoSection>
