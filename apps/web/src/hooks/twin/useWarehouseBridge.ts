@@ -1,7 +1,6 @@
 import type { TwinLayout, TwinProjection } from '@bjk/api/types/twin';
 
 import { useWarehouseStore } from '@/stores/warehouseStore';
-import { TODAY } from '@/utils/twin';
 
 // 3D 창고(W-11) 브릿지 — React 오버레이 ↔ public/warehouse-3d.html(iframe).
 // 계약(반대편 warehouse-3d.html 과 같이 정했다. 바꾸면 양쪽을 함께 바꾼다):
@@ -13,12 +12,12 @@ import { TODAY } from '@/utils/twin';
 // iframe 반영은 registerWarehouseFrame 이 store 를 구독해서 한 곳에서 한다.
 // 그래서 iframe 클릭도 store 를 거쳐 다시 select() 로 돌아간다 — 씬과 패널이 어긋나지 않는다.
 
-export type WarehouseFlyTarget = 'home' | 'top' | { locs: string[] } | { equipmentId: string };
+export type WarehouseFlyTarget = 'home' | 'top' | { locs: string[] };
 
+// 3D 는 projection 의 오늘 재고(qty[0])만 그린다
 export type WarehouseDataPayload = {
   layout: TwinLayout;
   projection: TwinProjection;
-  day: number;
 };
 
 type WarehouseApi = {
@@ -113,9 +112,8 @@ export const registerWarehouseFrame = (el: HTMLIFrameElement | null) => {
 };
 
 // layout·projection 이 바뀔 때 WarehouseView 가 부른다
-export const pushWarehouseData = (payload: Omit<WarehouseDataPayload, 'day'>) => {
-  // 화면은 오늘 상태만 보여 준다 (날짜 시뮬레이션 없음)
-  lastData = { ...payload, day: TODAY };
+export const pushWarehouseData = (payload: WarehouseDataPayload) => {
+  lastData = payload;
   api()?.setData(lastData);
 };
 
