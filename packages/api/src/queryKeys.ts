@@ -73,10 +73,10 @@ export const queryKeys = {
     purchaseOrders: () => [...reportsAll, 'purchase-orders'] as const,
     sim: () => [...reportsAll, 'sim'] as const,
   },
-  // 외부 요인 알림 — SSE(external.alert) 연동 전까지는 폴링으로 받는다
+  // 외부 요인 현황 — 새벽 배치 값이라 폴링으로 받는다
   external: {
     all: externalAll,
-    alerts: () => [...externalAll, 'alerts'] as const,
+    status: () => [...externalAll, 'status'] as const,
   },
   twin: {
     all: twinAll,

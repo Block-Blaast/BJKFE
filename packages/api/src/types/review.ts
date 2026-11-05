@@ -50,6 +50,8 @@ export type Review = {
     loss: number | null;
   };
   opinion: string; // [추가] 의견서 본문 (F-REVIEW-08)
+  // 의견서를 누가 썼는지 — llm: AI(LLM) 작성, template: 양식 문장. 목업은 비운다
+  opinion_source?: 'llm' | 'template';
   snapshot_id: string;
   computed_at: string;
 };

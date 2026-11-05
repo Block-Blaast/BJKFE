@@ -8,6 +8,8 @@ export const ENDPOINTS = {
   signup: '/api/auth/signup',
   emailLogin: '/v1/auth/login',
   pinLogin: '/v1/auth/pin-login',
+  authRefresh: '/v1/auth/refresh',
+  me: '/v1/me',
   companyMembers: (companyCode: string) => `/v1/auth/companies/${companyCode}/members`,
   invite: (token: string) => `/api/invites/${token}`,
   acceptInvite: (token: string) => `/api/invites/${token}/accept`,
@@ -25,16 +27,19 @@ export const ENDPOINTS = {
   mergeCandidates: '/api/merge-candidates',
   merge: (id: string) => `/api/merge-candidates/${id}/merge`,
   dismissMerge: (id: string) => `/api/merge-candidates/${id}/dismiss`,
-  reviews: '/api/reviews',
+  // 발주 검토 — 백엔드 REV-01·02·05·07, 예측선(명세 밖 #258)
+  reviews: '/v1/reviews',
   myRequests: '/api/me/requests',
   briefing: '/api/briefing',
-  review: (id: string) => `/api/reviews/${id}`,
-  reviewDecision: (id: string) => `/api/reviews/${id}/decision`,
-  reviewForecast: (id: string) => `/api/reviews/${id}/forecast`,
+  review: (id: string) => `/v1/reviews/${id}`,
+  reviewDecision: (id: string) => `/v1/reviews/${id}/decision`,
+  reviewForecast: (id: string) => `/v1/reviews/${id}/forecast`,
+  reviewPdf: (id: string) => `/v1/reviews/${id}/pdf`,
   chatMessages: '/v1/chat/messages',
   chatInbox: '/api/chat/inbox',
-  chatPendingConfirm: (pendingId: string) => `/api/chat/pending/${pendingId}/confirm`,
-  chatPendingCancel: (pendingId: string) => `/api/chat/pending/${pendingId}/cancel`,
+  // 확인 카드 확정·취소 — 백엔드 CHAT-03·04 (카드 id = entry_id)
+  chatPendingConfirm: (pendingId: string) => `/v1/chat/entries/${pendingId}/confirm`,
+  chatPendingCancel: (pendingId: string) => `/v1/chat/entries/${pendingId}/cancel`,
   // [추가] 기록 중 재고 부족 초안 (F-NOTI-01) — 작업자가 제안을 누르면 검토를 만든다
   chatStockDraft: (draftId: string) => `/api/chat/drafts/${draftId}`,
   // 기준 정보 (W-08, F-SETUP)
@@ -51,6 +56,6 @@ export const ENDPOINTS = {
   // [추가] 디지털 트윈 — 명세서에 없는 화면
   twinLayout: '/api/twin/layout',
   twinProjection: '/api/twin/projection',
-  // [추가] 외부 요인 알림 (F-EXT) — 환율·해상운임 급변
-  externalAlerts: '/api/external/alerts',
+  // 외부 요인 현황 (DSH-03) — 환율·해상운임 위험도
+  externalStatus: '/v1/external/status',
 } as const;

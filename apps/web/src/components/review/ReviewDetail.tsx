@@ -1,12 +1,17 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { FileText, Sparkles } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 
+import { USES_BACKEND } from '@bjk/api/client';
+import { openReviewPdf } from '@bjk/api/reviews';
 import type { Review } from '@bjk/api/types/review';
+import Button from '@bjk/ui/components/Button';
 
 import ErrorState from '@/components/ui/ErrorState';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import ComputedAt from '@/components/ui/ComputedAt';
+import Tag from '@/components/ui/Tag';
 import ForecastPanel from '@/components/charts/ForecastPanel';
 import { useReview, useReviewForecast } from '@/hooks/review/useReview';
 import { formatDate, formatWon } from '@/utils/format';
@@ -35,6 +40,34 @@ const Opinion = ({ text }: { text: string }) => {
           {line}
         </p>
       ))}
+    </div>
+  );
+};
+
+// 결재용 PDF (F-APPROVAL-04) — 백엔드가 승인 뒤 만든다. 목업에는 PDF 생성기가 없어 백엔드 빌드에서만 보인다
+const PdfButton = ({ id }: { id: string }) => {
+  const [state, setState] = useState<'idle' | 'loading' | 'failed'>('idle');
+  return (
+    <div className="flex flex-col gap-2">
+      <Button
+        variant="secondary"
+        disabled={state === 'loading'}
+        onClick={() => {
+          setState('loading');
+          openReviewPdf(id).then(
+            () => setState('idle'),
+            () => setState('failed'),
+          );
+        }}
+      >
+        <FileText size={16} aria-hidden />
+        {state === 'loading' ? 'PDF 여는 중…' : '결재용 PDF'}
+      </Button>
+      {state === 'failed' ? (
+        <p role="alert" className="text-body-sm text-text-danger">
+          PDF를 열지 못했어요. 잠시 후 다시 시도해 주세요.
+        </p>
+      ) : null}
     </div>
   );
 };
@@ -93,6 +126,13 @@ const ReviewDetail = ({ id, layout }: ReviewDetailProps) => {
 
   const opinion = (
     <Section title="검토 의견">
+      {review.opinion_source === 'llm' ? (
+        <span className="w-fit">
+          <Tag tone="brand" icon={Sparkles}>
+            AI 작성
+          </Tag>
+        </span>
+      ) : null}
       <Opinion text={review.opinion} />
     </Section>
   );
@@ -147,6 +187,7 @@ const ReviewDetail = ({ id, layout }: ReviewDetailProps) => {
         <div className="flex flex-col gap-6">
           <Section title="결정">
             <ApprovalActions review={review} />
+            {USES_BACKEND && review.status === '발주됨' ? <PdfButton id={review.id} /> : null}
           </Section>
           <ReviewInfoPanel review={review} />
         </div>

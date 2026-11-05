@@ -14,6 +14,7 @@ export const DESK_MENU = [
   {
     title: '현황',
     items: [
+      { href: '/chat', label: '채팅 기록', specId: 'M-02' },
       { href: '/reviews', label: '검토함', specId: 'W-02' },
       { href: '/reports', label: '발주·리포트', specId: 'W-09' },
     ],

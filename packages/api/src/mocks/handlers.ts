@@ -557,10 +557,7 @@ const todayActivity = (): Activity[] => {
 
 export const handlers = [
   ...setupHandlers,
-  ...createExternalHandlers({
-    parts: () => PART_FIXTURES.filter((p) => !mergedInto.has(p.part_id)).map(partView),
-    reviews: () => [...reviews.values()],
-  }),
+  ...createExternalHandlers(),
   ...createTwinHandlers({
     parts: () => PART_FIXTURES.filter((p) => !mergedInto.has(p.part_id)).map(partView),
     reviews: () => [...reviews.values()],

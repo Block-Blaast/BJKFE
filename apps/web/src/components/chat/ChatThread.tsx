@@ -147,7 +147,13 @@ const ChatThread = () => {
           setUserStatus(id, 'sent');
           appendBotTurn(turn);
         },
-        onError: () => setUserStatus(id, 'failed'),
+        onError: (error) => {
+          setUserStatus(id, 'failed');
+          // 채팅 해석은 실제 백엔드가 맡아 로그인 토큰이 필요하다
+          if (error instanceof ApiError && error.status === 401) {
+            appendBotTurn({ reply: '채팅으로 기록하려면 먼저 로그인해 주세요.' });
+          }
+        },
       },
     );
   };

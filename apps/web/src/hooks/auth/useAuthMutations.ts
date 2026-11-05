@@ -11,7 +11,8 @@ const useCompleteAuth = () => {
   const router = useRouter();
   return (result: AuthResult) => {
     saveDeviceCompanyCode(result.user.company.code);
-    // TODO(auth): 토큰 보관(httpOnly 쿠키 vs 기기 저장)을 백엔드와 정한 뒤 여기서 저장한다.
+    // 토큰은 @bjk/api/auth 가 로그인 응답을 받을 때 기기에 저장한다(client.ts setAuthTokens).
+    // TODO(auth): httpOnly 쿠키로 옮길지는 백엔드와 정한다.
     // 첫 화면은 proxy.ts 가 기기별로 정한다. 역할별 첫 화면도 proxy 에 함께 넣는다.
     router.replace('/');
   };
