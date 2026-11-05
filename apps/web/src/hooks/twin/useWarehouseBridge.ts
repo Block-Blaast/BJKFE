@@ -4,7 +4,7 @@ import { useWarehouseStore } from '@/stores/warehouseStore';
 
 // 3D 창고(W-11) 브릿지 — React 오버레이 ↔ public/warehouse-3d.html(iframe).
 // 계약(반대편 warehouse-3d.html 과 같이 정했다. 바꾸면 양쪽을 함께 바꾼다):
-//   iframe.contentWindow.warehouse = { setData, select, highlight, flyTo }
+//   iframe.contentWindow.warehouse = { setData, select, highlight, flyTo, moveStock }
 //   iframe → 부모 postMessage: { source: 'warehouse-3d', type: 'ready' | 'select' | 'hover', ...payload }
 // 칸 id(loc)는 `${rack_id}-${level}-${slot}` (TwinPlacement 와 1:1).
 //
@@ -15,6 +15,9 @@ import { useWarehouseStore } from '@/stores/warehouseStore';
 export type WarehouseFlyTarget = 'home' | 'top' | { locs: string[] };
 
 // 3D 는 projection 의 오늘 재고(qty[0])만 그린다
+// 지게차 입출고 동작 — 재고가 늘면 in, 줄면 out
+export type WarehouseStockMove = { partId: string; kind: 'in' | 'out' };
+
 export type WarehouseDataPayload = {
   layout: TwinLayout;
   projection: TwinProjection;
@@ -25,6 +28,7 @@ type WarehouseApi = {
   select: (loc: string | null) => void;
   highlight: (locs: string[]) => void;
   flyTo: (target: WarehouseFlyTarget) => void;
+  moveStock: (move: WarehouseStockMove) => void;
 };
 
 type WarehouseMessage =
@@ -54,6 +58,7 @@ const replay = (w: WarehouseApi) => {
     w.flyTo(pendingFly);
     pendingFly = null;
   }
+  flushMoves(w);
 };
 
 const isWarehouseMessage = (data: unknown): data is WarehouseMessage =>
@@ -114,7 +119,30 @@ export const registerWarehouseFrame = (el: HTMLIFrameElement | null) => {
 // layout·projection 이 바뀔 때 WarehouseView 가 부른다
 export const pushWarehouseData = (payload: WarehouseDataPayload) => {
   lastData = payload;
-  api()?.setData(lastData);
+  const w = api();
+  if (!w) return;
+  w.setData(lastData);
+  flushMoves(w);
+};
+
+// 3D 창고가 안 떠 있을 때(채팅 화면에서 기록) 온 동작은 잠깐 들고 있다가, 창고를 열면 그때 보여준다.
+// 너무 오래된 것은 "방금 일"이 아니라 버린다. 표 보기 중에도 iframe 은 살아 있어 바로 보낸다(보이지 않을 뿐).
+const PENDING_MOVE_MS = 2 * 60_000;
+const MAX_PENDING_MOVES = 5;
+let pendingMoves: { move: WarehouseStockMove; at: number }[] = [];
+
+// 씬이 칸 위치를 알아야(setData 뒤) 지게차를 보낼 수 있다. ready 가 데이터보다 먼저 오기도 해 두 곳에서 부른다
+const flushMoves = (w: WarehouseApi) => {
+  if (!lastData || !pendingMoves.length) return;
+  const fresh = pendingMoves.filter((p) => Date.now() - p.at < PENDING_MOVE_MS);
+  pendingMoves = [];
+  for (const { move } of fresh) w.moveStock(move);
+};
+
+export const moveWarehouseStock = (move: WarehouseStockMove) => {
+  const w = api();
+  if (w && lastData) w.moveStock(move);
+  else pendingMoves = [...pendingMoves, { move, at: Date.now() }].slice(-MAX_PENDING_MOVES);
 };
 
 const flyTo = (target: WarehouseFlyTarget) => {
