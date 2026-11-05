@@ -4,7 +4,10 @@ import { Check, Copy, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
+import { USES_BACKEND } from '@bjk/api/client';
 import { APPROVAL_ACTIONS } from '@bjk/api/domain/review';
+import { getPurchaseOrderMessage } from '@bjk/api/reports';
+import { openReviewPdf } from '@bjk/api/reviews';
 import type { PurchaseOrder } from '@bjk/api/types/report';
 import Button from '@bjk/ui/components/Button';
 
@@ -33,15 +36,35 @@ const CopyButton = ({ po }: { po: PurchaseOrder }) => {
   return (
     <Button
       variant="secondary"
+      // 백엔드는 희망 납기까지 넣은 문구를 준다(PO-02). 없으면(목업) 화면이 만든다
       onClick={() =>
-        navigator.clipboard.writeText(orderMessage(po)).then(
-          () => setState('copied'),
-          () => setState('failed'),
-        )
+        getPurchaseOrderMessage(po.id)
+          .then((message) => navigator.clipboard.writeText(message ?? orderMessage(po)))
+          .then(
+            () => setState('copied'),
+            () => setState('failed'),
+          )
       }
     >
       {state === 'copied' ? <Check size={16} aria-hidden /> : <Copy size={16} aria-hidden />}
       {state === 'copied' ? '복사했어요' : state === 'failed' ? '복사 실패' : '발주 문구 복사'}
+    </Button>
+  );
+};
+
+const PdfButton = ({ reviewId }: { reviewId: string }) => {
+  const [failed, setFailed] = useState(false);
+  return (
+    <Button
+      onClick={() =>
+        openReviewPdf(reviewId).then(
+          () => setFailed(false),
+          () => setFailed(true),
+        )
+      }
+    >
+      <FileText size={16} aria-hidden />
+      {failed ? 'PDF 다시 받기' : 'PDF'}
     </Button>
   );
 };
@@ -90,15 +113,19 @@ const PurchaseOrderList = () => {
                 {formatComputedAt(po.approved_at)}
               </td>
               <td className={TD}>
-                <Link
-                  href={`/reviews/${po.review_id}`}
-                  className="flex flex-col text-label-md text-text-heading hover:text-text-brand"
-                >
-                  {po.part.name}
-                  {po.part.spec ? (
-                    <span className="text-label-sm text-text-secondary">{po.part.spec}</span>
-                  ) : null}
-                </Link>
+                {po.review_id ? (
+                  <Link
+                    href={`/reviews/${po.review_id}`}
+                    className="flex flex-col text-label-md text-text-heading hover:text-text-brand"
+                  >
+                    {po.part.name}
+                    {po.part.spec ? (
+                      <span className="text-label-sm text-text-secondary">{po.part.spec}</span>
+                    ) : null}
+                  </Link>
+                ) : (
+                  <span className="text-label-md text-text-heading">{po.part.name}</span>
+                )}
               </td>
               <td className={`${TD} text-right text-text-heading tabular-nums`}>
                 {formatQty(po.qty, po.part.unit)}
@@ -108,7 +135,8 @@ const PurchaseOrderList = () => {
                 {po.total === null ? EMPTY : formatWon(po.total)}
               </td>
               <td className={`${TD} text-text-body`}>
-                {APPROVAL_ACTIONS[po.action]} · {po.approved_by}
+                {po.action ? `${APPROVAL_ACTIONS[po.action]} · ` : ''}
+                {po.approved_by || EMPTY}
               </td>
               <td className={TD}>
                 <div className="flex justify-end gap-2">
@@ -123,6 +151,9 @@ const PurchaseOrderList = () => {
                       <FileText size={16} aria-hidden />
                       PDF
                     </a>
+                  ) : USES_BACKEND && po.review_id ? (
+                    // 백엔드 PDF 는 로그인 토큰이 필요해 링크 대신 받아서 연다 (REV-07)
+                    <PdfButton reviewId={po.review_id} />
                   ) : (
                     <Button disabled title="PDF를 만드는 중이에요">
                       <FileText size={16} aria-hidden />
