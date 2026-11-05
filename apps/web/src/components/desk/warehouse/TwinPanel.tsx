@@ -108,7 +108,7 @@ export const BinPanel = ({
       </InfoSection>
     ) : null}
     {bin.audit ? (
-      <InfoSection title="장부 의심">
+      <InfoSection title="재고 확인 필요">
         <p className="text-body-sm text-text-body">{bin.audit.reason}</p>
       </InfoSection>
     ) : null}
