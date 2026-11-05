@@ -6,6 +6,7 @@ import Card from '@bjk/ui/components/Card';
 import Input from '@bjk/ui/components/Input';
 import StatusChip, { type OrderStatus } from '@bjk/ui/components/StatusChip';
 
+import ToastPreview from './_components/ToastPreview';
 import TokenSwatch from './_components/TokenSwatch';
 
 // Figma(sJfs73BOfgYtBrAB3Xx8si)와 눈으로 대조하기 위한 임시 페이지. 디자인 시스템이 안정되면 삭제한다.
@@ -284,6 +285,10 @@ const DesignTokensPage = () => {
             요청한 50개 중 12개는 이미 있어요.
           </Card>
         </div>
+      </Section>
+
+      <Section title="Toast">
+        <ToastPreview />
       </Section>
     </main>
   );

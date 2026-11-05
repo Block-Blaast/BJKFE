@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 
 import { pretendard } from '@bjk/ui/fonts';
 
+import Toaster from '@/components/ui/feedback/Toaster';
 import MockProvider from '@/providers/mock-provider';
 import QueryProvider from '@/providers/query-provider';
 
@@ -23,6 +24,7 @@ const RootLayout = ({ children }: LayoutProps<'/'>) => {
       <body className="flex min-h-full flex-col">
         <MockProvider>
           <QueryProvider>{children}</QueryProvider>
+          <Toaster />
         </MockProvider>
       </body>
     </html>
