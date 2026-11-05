@@ -6,7 +6,8 @@ import { NextResponse, userAgent, type NextRequest } from 'next/server';
 
 const isPhone = (request: NextRequest) => userAgent(request).device.type === 'mobile';
 
-const DESK_ONLY = /^\/warehouse(?:\/|$)/;
+// PC 채팅(/chat)은 폰에서 열면 폰 채팅(/m/chat)으로 보낸다
+const DESK_ONLY = /^\/(?:warehouse|chat)(?:\/|$)/;
 
 const redirectTo = (request: NextRequest, pathname: string) => {
   const url = request.nextUrl.clone();
