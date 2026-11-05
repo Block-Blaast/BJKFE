@@ -1,6 +1,8 @@
 import { ArrowLeft, ChevronRight, Folder, FolderOpen } from 'lucide-react';
 import Link from 'next/link';
 
+import { NAV_BACK } from '@/constants/transitions';
+
 type BreadcrumbProps = {
   parent: { href: string; label: string };
   current: string;
@@ -11,6 +13,7 @@ const Breadcrumb = ({ parent, current }: BreadcrumbProps) => (
   <nav aria-label="현재 위치" className="flex items-center gap-3 text-label-md">
     <Link
       href={parent.href}
+      transitionTypes={NAV_BACK}
       aria-label={`${parent.label}(으)로 돌아가기`}
       className="flex size-10 items-center justify-center rounded-full bg-bg-surface text-text-secondary shadow-card hover:bg-bg-brand-subtle hover:text-text-brand"
     >
@@ -21,6 +24,7 @@ const Breadcrumb = ({ parent, current }: BreadcrumbProps) => (
       <li>
         <Link
           href={parent.href}
+          transitionTypes={NAV_BACK}
           className="flex items-center gap-2 text-text-secondary hover:text-text-heading"
         >
           <Folder size={16} aria-hidden />

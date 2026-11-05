@@ -31,6 +31,7 @@ import { useParts } from '@/hooks/part/useParts';
 import { useReviews } from '@/hooks/review/useReviews';
 import { formatDate, formatQty, formatWon } from '@/utils/format';
 import { TABLE, TD, TH, TR } from '@/components/ui/table';
+import { NAV_FORWARD } from '@/constants/transitions';
 
 const EMPTY = '—';
 const TOP = 5;
@@ -264,6 +265,7 @@ const Dashboard = () => {
                         <td className={TD}>
                           <Link
                             href={`/parts/${p.id}`}
+                            transitionTypes={NAV_FORWARD}
                             className="flex items-center gap-3 text-label-md text-text-heading hover:text-text-brand"
                           >
                             <span className="flex size-9 items-center justify-center rounded-full bg-bg-subtle text-text-secondary">
@@ -349,6 +351,7 @@ const Dashboard = () => {
                   <li key={r.id} className={ROW}>
                     <Link
                       href={`/reviews/${r.id}`}
+                      transitionTypes={NAV_FORWARD}
                       className="flex items-center justify-between gap-3 py-3 hover:text-text-brand"
                     >
                       <span className="flex flex-col">

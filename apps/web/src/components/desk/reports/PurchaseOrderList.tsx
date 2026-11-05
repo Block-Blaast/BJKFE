@@ -16,6 +16,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import { usePurchaseOrders } from '@/hooks/report/useReports';
 import { formatComputedAt, formatDate, formatQty, formatWon } from '@/utils/format';
 import { TABLE, TABLE_CARD, TD, TH, TR } from '@/components/ui/table';
+import { NAV_FORWARD } from '@/constants/transitions';
 
 const EMPTY = '—';
 
@@ -116,6 +117,7 @@ const PurchaseOrderList = () => {
                 {po.review_id ? (
                   <Link
                     href={`/reviews/${po.review_id}`}
+                    transitionTypes={NAV_FORWARD}
                     className="flex flex-col text-label-md text-text-heading hover:text-text-brand"
                   >
                     {po.part.name}

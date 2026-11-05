@@ -6,6 +6,104 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/*
+ * 화면 전환 (React <ViewTransition>, PC 화면)
+ * - 3D 창고 → 상세 페이지: 3D 가 카메라를 밀고 들어가듯 커지며 흐려지고, 패널이 아래에서 떠오른다
+ * - 상세 페이지 → 3D 창고: 패널이 가라앉고, 3D 가 살짝 큰 데서 제자리로 내려앉는다
+ * - 목록 ↔ 상세(같은 (pages) 레이아웃 안): Link transitionTypes(constants/transitions.ts)로 좌우 방향을 준다
+ * 나가는 쪽은 짧게, 들어오는 쪽은 나가는 쪽이 거의 사라진 뒤 천천히 — 둘이 겹쳐 보이는 시간을 줄인다.
+ */
+:root {
+  --vt-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --vt-ease-in: cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* 전환 중에도 클릭이 화면에 닿게 한다 (기본은 전환 오버레이가 포인터를 먹는다) */
+::view-transition {
+  pointer-events: none;
+}
+
+::view-transition-old(.desk-warehouse-out) {
+  animation: 320ms var(--vt-ease-in) both vt-dive-out;
+}
+::view-transition-new(.desk-panel-in) {
+  animation: 420ms var(--vt-ease-out) 120ms both vt-rise-in;
+}
+::view-transition-old(.desk-panel-out) {
+  animation: 200ms var(--vt-ease-in) both vt-sink-out;
+}
+::view-transition-new(.desk-warehouse-in) {
+  animation: 520ms var(--vt-ease-out) 80ms both vt-settle-in;
+}
+
+::view-transition-old(.nav-forward) {
+  --vt-slide: -48px;
+  animation: 180ms var(--vt-ease-in) both vt-slide-out;
+}
+::view-transition-new(.nav-forward) {
+  --vt-slide: 48px;
+  animation: 360ms var(--vt-ease-out) 100ms both vt-slide-in;
+}
+::view-transition-old(.nav-back) {
+  --vt-slide: 48px;
+  animation: 180ms var(--vt-ease-in) both vt-slide-out;
+}
+::view-transition-new(.nav-back) {
+  --vt-slide: -48px;
+  animation: 360ms var(--vt-ease-out) 100ms both vt-slide-in;
+}
+
+@keyframes vt-dive-out {
+  to {
+    opacity: 0;
+    scale: 1.08;
+    filter: blur(6px);
+  }
+}
+@keyframes vt-rise-in {
+  from {
+    opacity: 0;
+    scale: 0.96;
+    translate: 0 24px;
+  }
+}
+@keyframes vt-sink-out {
+  to {
+    opacity: 0;
+    scale: 0.97;
+    translate: 0 16px;
+  }
+}
+@keyframes vt-settle-in {
+  from {
+    opacity: 0;
+    scale: 1.06;
+    filter: blur(4px);
+  }
+}
+@keyframes vt-slide-out {
+  to {
+    opacity: 0;
+    translate: var(--vt-slide) 0;
+  }
+}
+@keyframes vt-slide-in {
+  from {
+    opacity: 0;
+    translate: var(--vt-slide) 0;
+  }
+}
+
+/* 움직임 줄이기: 위치·크기 변화 없이 바로 바뀐다 */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}
+
 /* 3D 위에 뜬 패널처럼 좁은 스크롤 영역 — 굵은 기본 스크롤바가 카드를 가리지 않게 얇고 투명한 바탕으로 */
 @utility scrollbar-thin {
   scrollbar-width: thin;

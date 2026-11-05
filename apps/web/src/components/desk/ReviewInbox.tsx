@@ -19,6 +19,7 @@ import { useReviews } from '@/hooks/review/useReviews';
 import { formatComputedAt, formatWon } from '@/utils/format';
 import { MIN_TOTAL_OPTIONS, parseReviewFilters, toReviewSearch } from '@/utils/reviewFilters';
 import { TABLE, TABLE_CARD, TD, TH, TR } from '@/components/ui/table';
+import { NAV_FORWARD } from '@/constants/transitions';
 
 // 사장님이 먼저 볼 순서: 고칠 게 있는 것 → 막힌 것 → 그대로 괜찮은 것
 const VERDICT_FOLDERS: Verdict[] = ['수정 권고', '보류', '적정'];
@@ -156,6 +157,7 @@ const ReviewInbox = () => {
                   <td className={TD}>
                     <Link
                       href={`/reviews/${review.id}`}
+                      transitionTypes={NAV_FORWARD}
                       className="text-label-md text-text-heading hover:text-text-brand"
                     >
                       {review.part.name}

@@ -679,16 +679,24 @@ function goHome(dur = 1100) { idleHome = true; ui.topView = false; flyTo(HOME.po
 /* 첫 진입 인트로 — 창고 바로 위 높은 곳(안개 속)에서 내려다보다가 90° 돌며 내려와 기본 시점에 앉는다.
    카메라는 기본 시점의 중심(HOME.target)을 바라보는 구면 좌표로 움직여 내내 창고가 화면 가운데 있다.
    시작 거리는 OrbitControls 의 maxDistance 를 넘지 않게 한다 (넘으면 controls.update 가 잘라 튄다) */
-const INTRO_MS = 1700;
+// 상세 페이지에서 돌아오면 iframe 이 새로 떠서 인트로가 다시 돈다. 매번 1.7초를 기다리지 않게,
+// 이 탭에서 이미 봤으면 가까이에서 뒤로 물러나며 자리 잡는 짧은 동작(바깥 화면 전환 "3D 로 돌아옴"과 짝)만 한다
+const INTRO_MS = 1700, RETURN_MS = 900;
+const INTRO_KEY = 'warehouse-3d:intro-seen';
+const introSeen = () => { try { return sessionStorage.getItem(INTRO_KEY) === '1'; } catch { return false; } };
 function playIntro() {
   idleHome = true; ui.topView = false;
   const end = new THREE.Spherical().setFromVector3(HOME.pos.clone().sub(HOME.target));
   if (reduced) { camera.position.copy(HOME.pos); controls.target.copy(HOME.target); return; }
-  const start = new THREE.Spherical(Math.min(end.radius * 1.9, controls.maxDistance - 1), 0.02, end.theta + Math.PI / 2);
+  const back = introSeen();
+  try { sessionStorage.setItem(INTRO_KEY, '1'); } catch {}
+  const start = back
+    ? new THREE.Spherical(Math.max(end.radius * 0.62, controls.minDistance + 1), end.phi * 0.92, end.theta + 0.25)
+    : new THREE.Spherical(Math.min(end.radius * 1.9, controls.maxDistance - 1), 0.02, end.theta + Math.PI / 2);
   camera.position.copy(HOME.target).add(new THREE.Vector3().setFromSpherical(start));
   controls.target.copy(HOME.target);
   controls.autoRotate = false;
-  fly = { orbit: { start, end }, t1: HOME.target.clone(), start: performance.now(), dur: INTRO_MS };
+  fly = { orbit: { start, end }, t1: HOME.target.clone(), start: performance.now(), dur: back ? RETURN_MS : INTRO_MS };
 }
 function goTop() { idleHome = false; ui.topView = true; flyTo(new THREE.Vector3(CENTER.x, topHeight, CENTER.z + 0.01), new THREE.Vector3(CENTER.x, 0, CENTER.z)); }
 const slotWorld = loc => { const s = slotByLoc.get(loc); if (!s) return null; const p = s.local.clone(); p.y += LEVEL_H * 0.35; return s.group.localToWorld(p); };

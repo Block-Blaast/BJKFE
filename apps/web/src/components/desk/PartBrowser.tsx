@@ -26,6 +26,7 @@ import FolderCard from '@/components/ui/FolderCard';
 import { useParts } from '@/hooks/part/useParts';
 import { formatComputedAt, formatDate, formatQty } from '@/utils/format';
 import { TABLE, TABLE_CARD, TD, TH, TR } from '@/components/ui/table';
+import { NAV_FORWARD } from '@/constants/transitions';
 
 const pick = <T extends string>(value: string | null, allowed: readonly T[]) =>
   value !== null && (allowed as readonly string[]).includes(value) ? (value as T) : undefined;
@@ -216,6 +217,7 @@ const PartBrowser = () => {
                     <th scope="row" className={`${TD} ${ALIGN.left} ${STICKY_TD} font-normal`}>
                       <Link
                         href={`/parts/${part.id}`}
+                        transitionTypes={NAV_FORWARD}
                         className="flex flex-col text-label-md text-text-heading hover:text-text-brand"
                       >
                         <span className="truncate">{part.name}</span>
