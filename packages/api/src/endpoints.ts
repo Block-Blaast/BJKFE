@@ -2,8 +2,8 @@
 // 호출은 client.ts 에서 `${NEXT_PUBLIC_API_URL}${path}` 로 조립한다. 운영에서는
 // NEXT_PUBLIC_API_URL=/api 이고 Caddy 가 /api/* 를 server 로 넘긴다. server 의 실제
 // 경로가 /api/v1/... 이라, 백엔드에 있는 경로는 /v1/... 로 두어 /api + /v1/... 로 맞춘다.
-// /api/... 로 남은 경로는 백엔드에 없거나(3D 창고) 형식이 정해지지 않은(엑셀 이관) 목업 전용이다.
-// 배포 빌드는 3D 창고·엑셀 이관만 목업으로, 나머지는 실제 백엔드로 보낸다(mock-provider.tsx MOCK_ONLY).
+// /api/... 로 남은 경로는 형식이 정해지지 않은(엑셀 이관) 목업 전용이다.
+// 배포 빌드는 엑셀 이관만 목업으로, 나머지는 실제 백엔드로 보낸다(mock-provider.tsx MOCK_ONLY).
 // 그 밖의 /api/... 경로는 백엔드가 없는 로컬 개발(USES_BACKEND=false)에서만 부른다.
 export const ENDPOINTS = {
   signup: '/v1/auth/owner/signup',
@@ -68,9 +68,9 @@ export const ENDPOINTS = {
   purchaseOrders: '/v1/purchase-orders',
   purchaseOrder: (id: string) => `/v1/purchase-orders/${id}`,
   simReports: '/v1/sim-reports',
-  // [추가] 디지털 트윈 — 명세서에 없는 화면
-  twinLayout: '/api/twin/layout',
-  twinProjection: '/api/twin/projection',
+  // 3D 창고 배치·예측 — 백엔드 #281 (명세 밖, 프론트 제안 형식 types/twin.ts 그대로)
+  twinLayout: '/v1/twin/layout',
+  twinProjection: '/v1/twin/projection',
   // 외부 요인 현황 (DSH-03) — 환율·해상운임 위험도
   externalStatus: '/v1/external/status',
 } as const;
