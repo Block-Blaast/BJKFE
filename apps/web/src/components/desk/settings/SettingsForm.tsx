@@ -24,6 +24,7 @@ type Field = {
 };
 
 // 명세서에서 "회사별 설정값"으로 정한 숫자들. 설명은 그 숫자가 판정에 어떻게 쓰이는지다.
+// min·max 는 백엔드가 받는 범위(SYS-01)다 — 벗어나면 400 이라 입력 칸에서 먼저 막는다.
 const GROUPS: { title: string; fields: Field[] }[] = [
   {
     title: '발주 검토 체크',
@@ -35,6 +36,7 @@ const GROUPS: { title: string; fields: Field[] }[] = [
         spec: 'C-08',
         step: 1,
         min: 1,
+        max: 14,
         help: '발주 마감까지 이 일수 이하로 남으면 긴급으로 표시해요.',
       },
       {
@@ -43,7 +45,8 @@ const GROUPS: { title: string; fields: Field[] }[] = [
         unit: 'σ',
         spec: 'C-05',
         step: 0.5,
-        min: 0.5,
+        min: 1,
+        max: 3,
         help: '구매 3건 이상: 최근 평균 + 이 배수의 표준편차를 넘으면 경고해요.',
       },
       {
@@ -71,7 +74,7 @@ const GROUPS: { title: string; fields: Field[] }[] = [
         spec: 'C-06',
         step: 0.01,
         min: 0.5,
-        max: 0.99,
+        max: 0.95,
         help: '다른 공급사 단가가 요청 단가의 이 배율 이하이면 알려요.',
       },
     ],
@@ -104,6 +107,7 @@ const GROUPS: { title: string; fields: Field[] }[] = [
         spec: 'F-REVIEW-02',
         step: 1,
         min: 1,
+        max: 8,
         help: '대비 기간 = 늦을 때 납기 + 이 기간. 길수록 권장 발주량이 늘어요.',
       },
     ],
@@ -208,8 +212,8 @@ const SettingsForm = ({ initial }: SettingsFormProps) => {
             type="number"
             inputMode="decimal"
             step={0.5}
-            min={50}
-            max={99.9}
+            min={80}
+            max={99.5}
             value={Number.isNaN(review.service_level[grade]) ? '' : review.service_level[grade]}
             onChange={(e) =>
               setReview((prev) => ({

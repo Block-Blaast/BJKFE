@@ -53,6 +53,8 @@ const INTENT_LABEL: Record<BackendIntent, ChatIntent> = {
 
 const DEFAULT_UNIT = '개';
 
+const NO_DIFF_REPLY = '장부와 같아요.';
+
 const toCard = (c: BackendCard): ChatCard | undefined => {
   const base = {
     pending_id: c.entry_id,
@@ -98,10 +100,13 @@ const isBackendMessage = (raw: unknown): raw is BackendMessage =>
 
 // 카드가 여러 장(품목 여러 개)이면 첫 장만 보이고, 나머지는 답변 문장으로 알린다. TODO: 여러 카드 그리기
 const toTurn = (raw: BackendMessage): ChatTurn => {
+  // 실사 응답에는 차이 여부가 없다. 차이가 0이면 서버가 요청을 바로 닫고 이 문장으로 답한다
+  // (BJK-AI-BE audit/counts.py _diff_reply). 문장이 바뀌어도 사유 카드가 뜰 뿐이고, 보내면 409 안내로 끝난다
   if (raw.count_request_id) {
+    const matched = raw.reply.startsWith(NO_DIFF_REPLY);
     return {
       reply: raw.reply,
-      card: { type: 'count_reason', count_request_id: raw.count_request_id },
+      card: matched ? undefined : { type: 'count_reason', count_request_id: raw.count_request_id },
     };
   }
   const [first, ...rest] = raw.cards;

@@ -35,6 +35,7 @@ type BackendDetail = {
   metrics: {
     abc: Part['metrics']['abc'];
     demand_class: DemandPattern | null;
+    data_mode: 'statistical' | 'estimated';
     m: number | null;
     default_supplier: { id: string; name: string; LT50: number | null; LT90: number | null } | null;
     D95: number | null;
@@ -161,8 +162,8 @@ const fromDetail = (p: BackendDetail): Part => {
           t_deadline: m.t_deadline,
           p_out: m.p_out,
           loss: m.loss?.L ?? null,
-          // 사용 기록이 8주 미만이면 백엔드가 월 사용 추정치로 계산한다 (F-SETUP-04)
-          estimated: m.demand_class === 'insufficient',
+          // 사용 기록이 모자라면 백엔드가 월 사용 추정치로 계산한다 (F-SETUP-04)
+          estimated: m.data_mode === 'estimated',
         }
       : EMPTY_METRICS,
   };
