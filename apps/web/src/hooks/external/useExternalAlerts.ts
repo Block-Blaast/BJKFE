@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { externalQueries } from '@bjk/api/external';
+import { alertsFromStatus, externalQueries } from '@bjk/api/external';
 
-// 외부 요인 알림 (F-EXT, [추가]). SSE 연동 전까지 몇 초마다 다시 받는다 — externalQueries 참고
-export const useExternalAlerts = () => useQuery(externalQueries.alerts());
+// 외부 요인 현황(DSH-03)에서 주의·높음인 지표를 알림으로. 권한이 없거나(worker) 실패하면 빈 목록이다
+export const useExternalAlerts = () =>
+  useQuery({ ...externalQueries.status(), select: alertsFromStatus });
