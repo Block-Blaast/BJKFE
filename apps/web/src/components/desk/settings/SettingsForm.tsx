@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import type { CompanySettings, ReviewSettings } from '@bjk/api/types/company';
+import type { CompanySettings, ReviewSettings, SystemSettings } from '@bjk/api/types/company';
 import Button from '@bjk/ui/components/Button';
 import Input from '@bjk/ui/components/Input';
 
@@ -20,59 +20,53 @@ type Field = {
   spec: string;
   step: number;
   min: number;
-  max?: number;
+  max: number;
 };
 
-// 명세서에서 "회사별 설정값"으로 정한 숫자들. 설명은 그 숫자가 판정에 어떻게 쓰이는지다.
+// 사장님이 바꿀 수 있는 검토 기준값 (SYS-01 review). 범위는 서버 허용 범위와 같다.
 const GROUPS: { title: string; fields: Field[] }[] = [
   {
     title: '발주 검토 체크',
     fields: [
       {
-        key: 'deadline_days',
+        key: 'c08_days',
         label: '마감 임박',
         unit: '일',
         spec: 'C-08',
         step: 1,
         min: 1,
+        max: 14,
         help: '발주 마감까지 이 일수 이하로 남으면 긴급으로 표시해요.',
       },
       {
-        key: 'price_sigma',
+        key: 'c05_sigma',
         label: '단가 이상 — 변동폭',
         unit: 'σ',
         spec: 'C-05',
         step: 0.5,
-        min: 0.5,
+        min: 1,
+        max: 3,
         help: '구매 3건 이상: 최근 평균 + 이 배수의 표준편차를 넘으면 경고해요.',
       },
       {
-        key: 'price_min_ratio',
-        label: '단가 이상 — 최소 상승',
-        unit: '배',
-        spec: 'C-05',
-        step: 0.01,
-        min: 1,
-        help: '구매 3건 이상: 평균의 이 배율도 함께 넘어야 경고해요. 소폭 변동은 넘어가요.',
-      },
-      {
-        key: 'price_few_ratio',
-        label: '단가 이상 — 기록 적을 때',
-        unit: '배',
-        spec: 'C-05',
-        step: 0.01,
-        min: 1,
-        help: '구매 1~2건: 평균의 이 배율을 넘으면 경고해요.',
-      },
-      {
-        key: 'cheaper_ratio',
+        key: 'c06_ratio',
         label: '더 싼 공급사',
         unit: '배',
         spec: 'C-06',
         step: 0.01,
         min: 0.5,
-        max: 0.99,
+        max: 0.95,
         help: '다른 공급사 단가가 요청 단가의 이 배율 이하이면 알려요.',
+      },
+      {
+        key: 'c02_months',
+        label: '장기 재고화',
+        unit: '개월',
+        spec: 'C-02',
+        step: 1,
+        min: 3,
+        max: 24,
+        help: '발주하면 재고가 이 개월 수보다 오래 쓸 양이 되면 경고해요.',
       },
     ],
   },
@@ -80,59 +74,40 @@ const GROUPS: { title: string; fields: Field[] }[] = [
     title: '수정안',
     fields: [
       {
-        key: 'supplier_keep_pct',
-        label: '요청 공급사 유지',
-        unit: '%',
-        spec: 'F-REVIEW-05',
-        step: 1,
-        min: 0,
-        help: '요청한 공급사가 최저가와 이 비율 이내면 공급사를 바꾸지 않아요.',
-      },
-      {
-        key: 'tier_increase_pct',
-        label: '단가 구간 대안',
-        unit: '%',
-        spec: 'F-REVIEW-05',
-        step: 1,
-        min: 0,
-        help: '다음 단가 구간까지 늘려도 총액이 이 비율 이내로 늘면 대안으로 보여줘요.',
-      },
-      {
         key: 'next_order_weeks',
         label: '다음 발주까지',
         unit: '주',
         spec: 'F-REVIEW-02',
         step: 1,
         min: 1,
+        max: 8,
         help: '대비 기간 = 늦을 때 납기 + 이 기간. 길수록 권장 발주량이 늘어요.',
       },
     ],
   },
+];
+
+// 시뮬레이션 결과로만 조정하는 값 — 화면에서는 읽기만 한다
+const SYSTEM_FIELDS: { label: string; spec: string; value: (s: SystemSettings) => string }[] = [
   {
-    title: '놓친 발주 찾기 (매일 07:00)',
-    fields: [
-      {
-        key: 'missed_p_out_pct',
-        label: '결품 확률',
-        unit: '%',
-        spec: 'F-MISSED-01',
-        step: 5,
-        min: 5,
-        max: 100,
-        help: '결품 확률이 이 값 이상인 부품을 찾아요.',
-      },
-      {
-        key: 'missed_deadline_days',
-        label: '마감 여유',
-        unit: '일',
-        spec: 'F-MISSED-01',
-        step: 1,
-        min: 0,
-        help: '발주 마감이 오늘부터 이 일수 안에 오는 부품만 초안을 만들어요.',
-      },
-    ],
+    label: '단가 이상 — 최소 상승',
+    spec: 'C-05',
+    value: (s) => `평균 × ${s.c05_min_ratio}`,
+  },
+  {
+    label: '단가 이상 — 기록 적을 때',
+    spec: 'C-05',
+    value: (s) => `평균 × ${s.c05_small_n_ratio}`,
+  },
+  {
+    label: '놓친 발주 — 결품 확률',
+    spec: 'F-MISSED-01',
+    value: (s) => `${Math.round(s.missed_p_out_min * 100)}% 이상`,
   },
 ];
+
+// 서비스 수준은 서버에 0~1 비율로 저장된다. 화면은 % 로 보여준다
+const toPercent = (ratio: number) => Math.round(ratio * 1000) / 10;
 
 const ABC = ['A', 'B', 'C'] as const;
 
@@ -152,10 +127,10 @@ type SettingsFormProps = {
 const SettingsForm = ({ initial }: SettingsFormProps) => {
   const save = useUpdateCompanySettings();
   const [review, setReview] = useState(initial.review);
-  const [notifications, setNotifications] = useState(initial.notifications);
+  const [notify, setNotify] = useState(initial.notify);
   const dirty =
     JSON.stringify(review) !== JSON.stringify(initial.review) ||
-    JSON.stringify(notifications) !== JSON.stringify(initial.notifications);
+    JSON.stringify(notify) !== JSON.stringify(initial.notify);
 
   const setNumber = (key: NumericKey, raw: string) =>
     setReview((prev) => ({ ...prev, [key]: raw === '' ? Number.NaN : Number(raw) }));
@@ -165,7 +140,7 @@ const SettingsForm = ({ initial }: SettingsFormProps) => {
       className="flex flex-col gap-8"
       onSubmit={(e) => {
         e.preventDefault();
-        save.mutate({ review, notifications });
+        save.mutate({ review, notify });
       }}
     >
       {GROUPS.map((group) => (
@@ -196,15 +171,19 @@ const SettingsForm = ({ initial }: SettingsFormProps) => {
             type="number"
             inputMode="decimal"
             step={0.5}
-            min={50}
-            max={99.9}
-            value={Number.isNaN(review.service_level[grade]) ? '' : review.service_level[grade]}
+            min={80}
+            max={99.5}
+            value={
+              Number.isNaN(review.service_level[grade])
+                ? ''
+                : toPercent(review.service_level[grade])
+            }
             onChange={(e) =>
               setReview((prev) => ({
                 ...prev,
                 service_level: {
                   ...prev.service_level,
-                  [grade]: e.target.value === '' ? Number.NaN : Number(e.target.value),
+                  [grade]: e.target.value === '' ? Number.NaN : Number(e.target.value) / 100,
                 },
               }))
             }
@@ -214,24 +193,63 @@ const SettingsForm = ({ initial }: SettingsFormProps) => {
         ))}
       </Group>
 
-      <Group title="조용한 시간 (F-NOTI-03)">
+      <Group title="알림 (F-NOTI-03)">
         <Input
-          label="시작"
+          label="조용한 시간 시작"
           type="time"
-          value={notifications.quiet_start}
-          onChange={(e) => setNotifications((prev) => ({ ...prev, quiet_start: e.target.value }))}
+          value={notify.quiet_hours.start}
+          onChange={(e) =>
+            setNotify((prev) => ({
+              ...prev,
+              quiet_hours: { ...prev.quiet_hours, start: e.target.value },
+            }))
+          }
           helperText="이 시간부터는 긴급 알림도 모아서 아침에 보내요."
           required
         />
         <Input
-          label="끝"
+          label="조용한 시간 끝"
           type="time"
-          value={notifications.quiet_end}
-          onChange={(e) => setNotifications((prev) => ({ ...prev, quiet_end: e.target.value }))}
+          value={notify.quiet_hours.end}
+          onChange={(e) =>
+            setNotify((prev) => ({
+              ...prev,
+              quiet_hours: { ...prev.quiet_hours, end: e.target.value },
+            }))
+          }
           helperText="이 시간에 모아 둔 알림을 보내요."
           required
         />
+        <Input
+          label="아침 브리핑"
+          type="time"
+          min="06:00"
+          max="10:00"
+          value={notify.briefing_time}
+          onChange={(e) => setNotify((prev) => ({ ...prev, briefing_time: e.target.value }))}
+          helperText="06:00~10:00 사이에 오늘 할 일 브리핑을 보내요."
+          required
+        />
       </Group>
+
+      <section className="flex flex-col gap-2">
+        <h3 className="text-label-lg text-text-heading">시스템 기준값</h3>
+        <p className="text-body-sm text-text-secondary">
+          검증 시뮬레이션 결과로만 바뀌는 값이라 여기서는 볼 수만 있어요.
+        </p>
+        <dl className="grid grid-cols-3 gap-4">
+          {SYSTEM_FIELDS.map((f) => (
+            <div key={f.label} className="flex flex-col gap-1 rounded-md bg-bg-page p-3">
+              <dt className="text-label-sm text-text-secondary">
+                {f.label} · {f.spec}
+              </dt>
+              <dd className="text-label-md text-text-heading tabular-nums">
+                {f.value(initial.system)}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
 
       <div className="flex items-center gap-3 border-t border-border-default pt-6">
         <Button type="submit" size="lg" disabled={!dirty || save.isPending}>
@@ -242,7 +260,7 @@ const SettingsForm = ({ initial }: SettingsFormProps) => {
           disabled={!dirty || save.isPending}
           onClick={() => {
             setReview(initial.review);
-            setNotifications(initial.notifications);
+            setNotify(initial.notify);
             save.reset();
           }}
         >
