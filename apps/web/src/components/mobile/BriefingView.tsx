@@ -1,19 +1,25 @@
 'use client';
 
-import { ChevronRight, ClipboardCheck, Inbox, TriangleAlert } from 'lucide-react';
+import {
+  ChevronRight,
+  ClipboardCheck,
+  Inbox,
+  PackageSearch,
+  TriangleAlert,
+  Wrench,
+} from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import type { Review } from '@bjk/api/types/review';
+import type { MissedOrder } from '@bjk/api/types/briefing';
 
 import ErrorState from '@/components/ui/ErrorState';
 import SpotlightIllustration from '@/components/illustration/SpotlightIllustration';
-import { entryLabelOf } from '@/components/review/labels';
 import VerdictTags from '@/components/review/VerdictTags';
 import ComputedAt from '@/components/ui/ComputedAt';
 import IconCircle from '@/components/ui/IconCircle';
 import { useBriefing } from '@/hooks/briefing/useBriefing';
-import { formatDate, formatQty, formatWon } from '@/utils/format';
+import { formatDate, formatWon } from '@/utils/format';
 
 const Group = ({ title, children }: { title: string; children: ReactNode }) => (
   <section className="flex flex-col gap-3">
@@ -22,21 +28,21 @@ const Group = ({ title, children }: { title: string; children: ReactNode }) => (
   </section>
 );
 
-const ReviewItem = ({ review }: { review: Review }) => (
+const MissedItem = ({ item }: { item: MissedOrder }) => (
   <li>
     <Link
-      href={`/m/reviews/${review.id}`}
+      href={`/m/reviews/${item.review_id}`}
       className="flex items-center gap-3 rounded-xl bg-bg-surface p-5 shadow-card active:bg-bg-subtle"
     >
       <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <span className="text-label-sm text-text-secondary">{entryLabelOf(review)}</span>
-        <span className="truncate text-label-lg text-text-heading">{review.part.name}</span>
-        <VerdictTags verdict={review.verdict} flags={review.flags} />
-        {review.risk_if_not_ordered.stockout_date ? (
-          <span className="text-body-sm text-text-body tabular-nums">
-            소진 예상 {formatDate(review.risk_if_not_ordered.stockout_date)}
-          </span>
-        ) : null}
+        <span className="truncate text-label-lg text-text-heading">
+          {item.part ?? '부품 확인 중'}
+        </span>
+        {item.verdict ? <VerdictTags verdict={item.verdict} flags={item.flags} /> : null}
+        <span className="text-body-sm text-text-body tabular-nums">
+          {item.t_deadline ? `발주 마감 ${formatDate(item.t_deadline)} · ` : ''}
+          예상 손실 {formatWon(item.expected_loss)}
+        </span>
       </div>
       <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-bg-subtle text-text-secondary">
         <ChevronRight size={18} aria-hidden />
@@ -45,7 +51,7 @@ const ReviewItem = ({ review }: { review: Review }) => (
   </li>
 );
 
-// 아침 브리핑 (M-04, F-NOTI-02). 놓친 발주 → 검토 대기 → 실사 필요 순, 각각 예상 손실·긴급 순.
+// 아침 브리핑 (M-04, F-NOTI-02). 놓친 발주(예상 손실 큰 순) → 확인할 일 건수.
 // 머리는 큰 굵은 제목 한 줄 + 브랜드 일러스트 (2026-11-05 개편, design-system.md "화면 인상").
 const BriefingView = () => {
   const { data: briefing, isPending, isError, refetch } = useBriefing();
@@ -57,8 +63,15 @@ const BriefingView = () => {
     return <ErrorState title="브리핑을 불러오지 못했어요" onRetry={() => refetch()} />;
   }
 
-  const { missed, pending_reviews: pending, audits } = briefing;
-  const total = missed.items.length + pending.items.length + audits.items.length;
+  const { missed } = briefing;
+  // 놓친 발주만 항목이 오고 나머지는 건수만 온다 (DSH-01)
+  const counts = [
+    ['검토 대기', briefing.pending_reviews, Inbox, 'brand'],
+    ['실사 필요', briefing.count_needed, ClipboardCheck, 'inverse'],
+    ['주문·입고 확인', briefing.order_check_needed, PackageSearch, 'gradient'],
+    ['정비 완료 확인', briefing.maintenance_check_needed, Wrench, 'brand'],
+  ] as const;
+  const total = missed.count + counts.reduce((sum, [, count]) => sum + count, 0);
 
   return (
     <div className="flex flex-col gap-8">
@@ -76,7 +89,7 @@ const BriefingView = () => {
 
       {total === 0 ? (
         <p className="rounded-xl bg-bg-surface p-6 text-center text-body-md text-text-secondary shadow-card">
-          놓친 발주도, 결정할 검토도, 실사할 부품도 없어요.
+          놓친 발주도, 결정할 검토도, 확인할 일도 없어요.
         </p>
       ) : (
         <>
@@ -86,22 +99,17 @@ const BriefingView = () => {
             <div className="flex items-center gap-4 rounded-xl bg-bg-brand bg-linear-to-br from-brand-600 via-brand-500 to-brand-300 p-5 text-text-on-brand shadow-raised print:text-text-heading">
               <div className="flex flex-1 flex-col gap-1">
                 <span className="text-label-md">놓친 발주</span>
-                <span className="text-display">{missed.items.length}건</span>
+                <span className="text-display">{missed.count}건</span>
                 <span className="text-label-sm">
                   {missed.loss_total
                     ? `예상 손실 ${formatWon(missed.loss_total)}`
-                    : '손실액 미등록 부품 포함'}
+                    : '예상 손실 계산 전'}
                 </span>
               </div>
               <IconCircle icon={TriangleAlert} tone="onHero" />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {(
-                [
-                  ['검토 대기', pending.items.length, Inbox, 'brand'],
-                  ['실사 필요', audits.items.length, ClipboardCheck, 'inverse'],
-                ] as const
-              ).map(([label, count, icon, tone]) => (
+              {counts.map(([label, count, icon, tone]) => (
                 <div
                   key={label}
                   className="flex flex-col gap-3 rounded-xl bg-bg-surface p-5 shadow-card"
@@ -118,33 +126,8 @@ const BriefingView = () => {
 
           {missed.items.length > 0 ? (
             <Group title="놓친 발주">
-              {missed.items.map((review) => (
-                <ReviewItem key={review.id} review={review} />
-              ))}
-            </Group>
-          ) : null}
-
-          {pending.items.length > 0 ? (
-            <Group title="검토 대기">
-              {pending.items.map((review) => (
-                <ReviewItem key={review.id} review={review} />
-              ))}
-            </Group>
-          ) : null}
-
-          {audits.items.length > 0 ? (
-            <Group title="실사 필요">
-              {audits.items.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex flex-col gap-1 rounded-xl bg-bg-surface p-5 shadow-card"
-                >
-                  <span className="text-label-lg text-text-heading">{item.part.name}</span>
-                  <span className="text-body-sm text-text-body">{item.reason}</span>
-                  <span className="text-body-sm text-text-secondary tabular-nums">
-                    기록상 {formatQty(item.ledger_qty, item.part.unit)} · 우선순위 {item.grade}
-                  </span>
-                </li>
+              {missed.items.map((item) => (
+                <MissedItem key={item.review_id} item={item} />
               ))}
             </Group>
           ) : null}
