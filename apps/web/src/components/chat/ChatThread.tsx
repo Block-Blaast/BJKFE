@@ -238,6 +238,7 @@ const ChatThread = () => {
     }
     // 확정 뒤에는 캐시가 새 재고로 바뀌므로 바뀌기 전 값으로 미리 계산해 둔다
     const notice = stockNoticeOf(card, input.partId, stockChanged.cachedStock);
+    if (notice) stockChanged.begin(notice);
     confirm.mutate(
       { pendingId: card.pending_id, ...input },
       {
@@ -247,6 +248,7 @@ const ChatThread = () => {
           if (notice) stockChanged.notify(notice);
         },
         onError: (error) => {
+          if (notice) stockChanged.cancel(notice);
           // 410: 10분이 지나 서버에서 만료됨 — 카드를 닫고 다시 입력하게 한다
           if (error instanceof ApiError && error.status === 410) resolveCard(messageId);
           appendBotTurn({ reply: errorText(error) });

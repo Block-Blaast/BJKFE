@@ -11,13 +11,35 @@ import { formatQty } from '@/utils/format';
 
 // 재고가 바뀐 순간의 알림 — 토스트 + 3D 창고 지게차 입출고 동작.
 // 두 입구가 있다.
-// - notify: 이 브라우저에서 채팅 확인 카드를 확정했을 때. 카드에 부품·수량·종류가 있어 그대로 쓴다.
+// - begin → notify: 이 브라우저에서 채팅 확인 카드를 확정할 때. 카드에 부품·수량·종류가 있어 그대로 쓴다.
 // - onEvent: SSE stock.changed (NOT-03, 아직 연결 전). 이벤트에는 바뀐 뒤 재고만 있어 캐시의 이전 재고와 비교한다.
 //   SSE 처리기는 parts·twin 쿼리를 무효화하기 **전에** 불러야 한다(무효화 뒤엔 이전 값이 없다).
 
-// 내가 방금 기록한 것도 SSE 로 다시 온다. 그때 두 번 알리지 않도록 잠깐 기억해 둔다
+// 내가 기록한 것도 SSE 로 다시 온다. 응답보다 SSE 가 먼저 올 수도 있어, 요청을 보내기 **전에**(begin)
+// "이 부품이 이 재고가 될 것"을 적어 두고, 맞는 이벤트 하나만 지운다. 값이 다르면 남이 바꾼 것이라 알린다.
 const ECHO_MS = 15_000;
-const recentLocal = new Map<string, number>();
+type Expected = { stock: number | null; at: number }; // stock 을 모르면(캐시에 없음) 그 부품의 첫 이벤트를 내 것으로 본다
+const expected = new Map<string, Expected[]>();
+
+const prune = (now: number) => {
+  for (const [partId, list] of expected) {
+    const live = list.filter((e) => now - e.at < ECHO_MS);
+    if (live.length) expected.set(partId, live);
+    else expected.delete(partId);
+  }
+};
+
+// 내 기록의 메아리면 그 기대값을 지우고 true
+const consumeEcho = (event: StockChangedEvent) => {
+  const now = Date.now();
+  prune(now);
+  const list = expected.get(event.part_id);
+  const i = list?.findIndex((e) => e.stock === null || e.stock === event.stock) ?? -1;
+  if (!list || i < 0) return false;
+  list.splice(i, 1);
+  if (!list.length) expected.delete(event.part_id);
+  return true;
+};
 
 // parts.all 아래에는 목록·상세 말고 원장·예측도 있어, 부품 모양인 것만 고른다
 const isPart = (value: unknown): value is Part =>
@@ -70,14 +92,29 @@ export const useStockChanged = () => {
     // 기록하기 직전에 불러 둔다. 확정 뒤에는 캐시가 새 값으로 바뀌어 있다
     cachedStock: (partId: string) => findCachedPart(queryClient, partId)?.stock ?? null,
 
-    notify: (notice: StockChangeNotice) => {
-      recentLocal.set(notice.partId, Date.now());
-      show(notice);
+    // 확정 요청을 보내기 직전에 — 이 기록의 SSE 메아리를 알아보게 적어 둔다
+    begin: (notice: StockChangeNotice) => {
+      const now = Date.now();
+      prune(now);
+      expected.set(notice.partId, [
+        ...(expected.get(notice.partId) ?? []),
+        { stock: notice.stock, at: now },
+      ]);
     },
 
+    // 요청이 실패하면 메아리가 오지 않으니 적어 둔 것을 지운다
+    cancel: (notice: StockChangeNotice) => {
+      const list = expected.get(notice.partId);
+      const i = list?.findIndex((e) => e.stock === notice.stock) ?? -1;
+      if (!list || i < 0) return;
+      list.splice(i, 1);
+      if (!list.length) expected.delete(notice.partId);
+    },
+
+    notify: show,
+
     onEvent: (event: StockChangedEvent) => {
-      const mine = recentLocal.get(event.part_id);
-      if (mine && Date.now() - mine < ECHO_MS) return;
+      if (consumeEcho(event)) return;
       // 이 부품을 캐시에 받아 둔 적이 없으면(폰 채팅 화면 등) 이름을 몰라 알리지 않는다
       const part = findCachedPart(queryClient, event.part_id);
       if (!part) return;

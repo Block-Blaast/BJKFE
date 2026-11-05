@@ -11,6 +11,9 @@ export type Toast = {
   detail: string | null;
 };
 
+// crypto.randomUUID 는 https·localhost 에서만 있다. 폰을 http + 사내 IP 로 열어 시험할 때도 동작하게 숫자로 센다
+let nextId = 0;
+
 // 한꺼번에 기록이 몰려도 화면을 덮지 않게 최근 것만 남긴다
 const MAX_TOASTS = 3;
 
@@ -24,7 +27,7 @@ export const useToastStore = create<ToastState>()((set) => ({
   toasts: [],
   push: (toast) =>
     set((state) => ({
-      toasts: [...state.toasts, { ...toast, id: crypto.randomUUID() }].slice(-MAX_TOASTS),
+      toasts: [...state.toasts, { ...toast, id: `toast-${++nextId}` }].slice(-MAX_TOASTS),
     })),
   dismiss: (id) => set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) })),
 }));

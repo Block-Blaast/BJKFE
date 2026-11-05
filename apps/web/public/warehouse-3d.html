@@ -708,10 +708,10 @@ function planMove(kind, loc) {
   const work = center.clone().addScaledVector(front, FORK_REACH + 0.1);
   const near = center.clone().addScaledVector(front, FORK_REACH + APPROACH);
   const up = Math.max(-0.2, s.local.y - PALLET_Y + 0.1); // 칸 바닥보다 살짝 높게 들고 들어간다
-  const steps = [];
+  // 시작할 때 실을 화물을 정한다 — 입고는 싣고, 출고는 빈 포크. 돌아가던 길을 끊고 왔어도 맞게 시작한다
+  const steps = [{ type: 'act', fn: () => { lift.userData.palShow = kind === 'in' ? 1 : 0; } }];
   for (const [x, z] of route(lift.position, near)) steps.push({ type: 'drive', x, z, speed: DRIVE });
   steps.push({ type: 'face', a: Math.atan2(-front.x, -front.z) });
-  if (kind === 'out') steps.push({ type: 'act', fn: () => { lift.userData.palShow = 0; } });
   steps.push({ type: 'raise', h: up });
   steps.push({ type: 'drive', x: work.x, z: work.z, speed: CREEP });
   if (kind === 'in') {
