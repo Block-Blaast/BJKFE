@@ -102,7 +102,9 @@ const ReviewInfoPanel = ({ review }: { review: Review }) => {
               { label: '환율 (단가)', value: riskValue(review.external.price) },
               {
                 label: '납기 구간 연휴',
-                value: review.external.holidays.length ? review.external.holidays.join(', ') : '없음',
+                value: review.external.holidays.length
+                  ? review.external.holidays.join(', ')
+                  : '없음',
               },
             ]}
           />
