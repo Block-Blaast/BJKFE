@@ -119,7 +119,7 @@ export const requestBlob = async (path: string): Promise<Blob> => {
 };
 
 // 백엔드 목록은 { items, next_cursor }, 목업 목록은 배열이다. 둘 다 받아 배열로 돌려준다.
-// 화면에 "더 보기"가 없어 첫 페이지(limit=100)만 쓴다.
+// 화면에 "더 보기"가 없어 첫 페이지(limit=100)만 쓴다. 전체가 필요하면 requestAll 을 쓴다.
 export const itemsOf = <T>(raw: T[] | { items: T[] }): T[] =>
   Array.isArray(raw) ? raw : raw.items;
 
@@ -133,4 +133,24 @@ export const request = async <T>(path: string, init?: RequestInit): Promise<T> =
     throw new ApiError(res.status, res.statusText || `HTTP ${res.status}`, body);
   }
   return body as T;
+};
+
+// 커서 목록을 next_cursor 가 없을 때까지 이어 받는다. 목업은 배열 한 번으로 끝난다.
+// 부품처럼 화면이 전체 목록을 써야 하는 곳(3D 창고의 부품 이름, 부품 목록)만 쓴다.
+const MAX_PAGES = 20;
+
+export const requestAll = async <T>(path: string): Promise<T[]> => {
+  const items: T[] = [];
+  let cursor: string | null = null;
+  for (let page = 0; page < MAX_PAGES; page += 1) {
+    const sep = path.includes('?') ? '&' : '?';
+    const raw: T[] | { items: T[]; next_cursor: string | null } = await request(
+      cursor ? `${path}${sep}cursor=${encodeURIComponent(cursor)}` : path,
+    );
+    if (Array.isArray(raw)) return raw;
+    items.push(...raw.items);
+    cursor = raw.next_cursor;
+    if (!cursor) break;
+  }
+  return items;
 };
