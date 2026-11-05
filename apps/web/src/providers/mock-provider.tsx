@@ -4,9 +4,9 @@ import type { ReactNode } from 'react';
 
 import { setRequestGate } from '@bjk/api/client';
 
-// 목업을 켠 배포 빌드에서도 실제 백엔드로 보내는 경로 — 로그인(토큰 발급·갱신·직원 목록·내 정보), 채팅 해석·확정, 외부 요인 현황, 발주 검토(AI 의견서·결정·PDF)
-const REAL_BACKEND =
-  /^\/v1\/(auth\/|me$|chat\/messages$|chat\/entries\/|external\/status$|reviews(?:\/|$))/;
+// 목업을 켠 배포 빌드에서도 실제 백엔드로 보내는 경로 — 백엔드에 있는 API 는 모두 /v1/... 이다(endpoints.ts).
+// 목업으로 남는 것은 /api/... 경로(3D 창고, 엑셀 이관)뿐이다.
+const REAL_BACKEND = /^\/v1\//;
 
 // MSW 목업으로 API 를 대신하는 조건.
 // - 개발 모드에서 백엔드 주소(NEXT_PUBLIC_API_URL)가 없을 때
@@ -33,8 +33,8 @@ if (SHOULD_MOCK && typeof window !== 'undefined') {
     // `${NEXT_PUBLIC_API_URL}${path}` 로 부르므로, 주소가 있는 빌드(배포: /api)에서는 요청이
     // /api/v1/parts · /api/api/twin/layout 처럼 앞에 주소가 붙어 나가 핸들러에 안 걸린다.
     // 그 앞부분을 떼고 같은 출처 경로로 바꿔 핸들러 목록에 다시 물어본다. 못 잡으면 실제 서버로 흘려보낸다.
-    // 백엔드가 있는 빌드에서도 로그인·채팅 AI 해석·외부 요인 현황·발주 검토는 실제 백엔드(BJK-AI-BE)로 보낸다.
-    // 3D 창고·검토·리포트 등 나머지 화면은 프론트 목업 데이터로 그린다.
+    // 백엔드가 있는 빌드에서는 /v1/... 을 모두 실제 백엔드(BJK-AI-BE)로 보낸다.
+    // 3D 창고(/api/twin/...)와 엑셀 이관(/api/setup/part-imports)만 프론트 목업 데이터로 그린다.
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     if (apiUrl) {
       const prefix = new URL(apiUrl, window.location.origin).href.replace(/\/$/, '');
