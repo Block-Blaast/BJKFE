@@ -1,5 +1,9 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
+// 백엔드 주소가 있는 빌드(배포: /api)인지. 백엔드로 보내는 기능은 요청 형식(쿼리·본문)을 백엔드에 맞춘다.
+// 주소가 없으면(로컬 개발) 모든 요청을 목업이 받는다.
+export const USES_BACKEND = Boolean(process.env.NEXT_PUBLIC_API_URL);
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -94,13 +98,28 @@ const send = (path: string, init: RequestInit | undefined) => {
   });
 };
 
+const sendWithRefresh = async (path: string, init: RequestInit | undefined) => {
+  if (requestGate) await requestGate;
+  const res = await send(path, init);
+  if (res.status === 401 && path !== REFRESH_PATH && (await refreshTokens())) {
+    return send(path, init);
+  }
+  return res;
+};
+
+// 파일(결재용 PDF 등)을 받는다. 로그인 토큰이 필요해 링크로 바로 열지 못하고 이렇게 받아 연다
+export const requestBlob = async (path: string): Promise<Blob> => {
+  const res = await sendWithRefresh(path, undefined);
+  if (!res.ok) {
+    const body: unknown = await res.json().catch(() => undefined);
+    throw new ApiError(res.status, res.statusText || `HTTP ${res.status}`, body);
+  }
+  return res.blob();
+};
+
 // 응답 래퍼 형식은 백엔드가 정해지면 여기서 벗긴다. 지금은 JSON 바디를 그대로 돌려준다.
 export const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
-  if (requestGate) await requestGate;
-  let res = await send(path, init);
-  if (res.status === 401 && path !== REFRESH_PATH && (await refreshTokens())) {
-    res = await send(path, init);
-  }
+  const res = await sendWithRefresh(path, init);
 
   const body: unknown = res.status === 204 ? undefined : await res.json().catch(() => undefined);
 
