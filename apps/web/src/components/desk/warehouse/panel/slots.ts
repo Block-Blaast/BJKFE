@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 
+import ExternalAlertCard from '@/components/desk/warehouse/ExternalAlertCard';
 import WarehouseSearch from '@/components/desk/warehouse/WarehouseSearch';
 
 import ArrivalSection, { ArrivalOverviewSection } from './ArrivalSection';
@@ -31,5 +32,5 @@ export const OVERVIEW_SECTIONS: ComponentType<OverviewSectionProps>[] = [
   HiddenStockOverview,
 ];
 
-// 화면 오른쪽 아래 (지금은 비어 있다). 열리는 서랍은 absolute 로 띄우면 오버레이 전체 기준이다
-export const FLOATING_SLOTS: ComponentType[] = [];
+// 화면 오른쪽 아래 (외부 요인 알림: ExternalAlertCard). 열리는 서랍은 absolute 로 띄우면 오버레이 전체 기준이다
+export const FLOATING_SLOTS: ComponentType[] = [ExternalAlertCard];

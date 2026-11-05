@@ -41,6 +41,7 @@ import { REVIEW_FIXTURES } from './fixtures/reviews';
 import { BASE_DATE, COMPUTED_AT, EQUIPMENT_FIXTURES } from './fixtures/factory';
 import { currentMaintenance, moqOf, recordPurchaseOrder, setupHandlers } from './setup';
 import { addDays, daysBetween } from './fixtures/simulate';
+import { createExternalHandlers } from './external';
 import { createTwinHandlers } from './twin';
 
 const NETWORK_DELAY = 400;
@@ -556,6 +557,10 @@ const todayActivity = (): Activity[] => {
 
 export const handlers = [
   ...setupHandlers,
+  ...createExternalHandlers({
+    parts: () => PART_FIXTURES.filter((p) => !mergedInto.has(p.part_id)).map(partView),
+    reviews: () => [...reviews.values()],
+  }),
   ...createTwinHandlers({
     parts: () => PART_FIXTURES.filter((p) => !mergedInto.has(p.part_id)).map(partView),
     reviews: () => [...reviews.values()],

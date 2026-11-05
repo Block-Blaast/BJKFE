@@ -10,7 +10,7 @@
 | `PANEL_TOP_SLOTS`   | 오른쪽 패널 맨 위 (항상)                   | 없음                   | `WarehouseSearch`                                                       |
 | `BIN_SECTIONS`      | 칸을 골랐을 때, 기본 정보 아래             | `BinSectionProps`      | `ReviewSection`, `ArrivalSection`, `AuditSection`, `HiddenStockSection` |
 | `OVERVIEW_SECTIONS` | 아무것도 안 골랐을 때, 주의할 칸 목록 아래 | `OverviewSectionProps` | 전체 입고 예정 목록 등                                                  |
-| `FLOATING_SLOTS`    | 화면 오른쪽 아래                           | 없음                   | (지금은 없음)                                                           |
+| `FLOATING_SLOTS`    | 화면 오른쪽 아래                           | 없음                   | `ExternalAlertCard` (외부 요인 알림)                                    |
 
 - 섹션 파일: `panel/<이름>Section.tsx` 하나. 검색처럼 섹션이 아닌 것은 `components/desk/warehouse/<이름>.tsx`.
 - 섹션은 `InfoSection`(`@/components/ui/InfoPanel`)으로 감싸 패널 안 다른 섹션과 모양을 맞춥니다. 섹션이 보여줄 것이 없으면 `null` 을 돌려줍니다.

@@ -18,6 +18,7 @@ const setupAll = ['setup'] as const;
 // 재고·검토·의심 항목이 바뀌면 twin.all 도 무효화한다 (예측 경로가 바뀐다)
 const twinAll = ['twin'] as const;
 const reportsAll = ['reports'] as const;
+const externalAll = ['external'] as const;
 
 export const queryKeys = {
   reviews: {
@@ -71,6 +72,11 @@ export const queryKeys = {
     all: reportsAll,
     purchaseOrders: () => [...reportsAll, 'purchase-orders'] as const,
     sim: () => [...reportsAll, 'sim'] as const,
+  },
+  // 외부 요인 알림 — SSE(external.alert) 연동 전까지는 폴링으로 받는다
+  external: {
+    all: externalAll,
+    alerts: () => [...externalAll, 'alerts'] as const,
   },
   twin: {
     all: twinAll,
