@@ -1,8 +1,5 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
-
-// 백엔드 주소가 있는 빌드(배포: /api)인지. 백엔드로 보내는 기능은 요청 형식(쿼리·본문)을 백엔드에 맞춘다.
-// 주소가 없으면(로컬 개발) 모든 요청을 목업이 받는다.
-export const USES_BACKEND = Boolean(process.env.NEXT_PUBLIC_API_URL);
+// 모든 요청은 같은 출처의 /api 로 보낸다. 운영은 Caddy, 로컬 개발은 next.config.ts rewrites 가 백엔드로 넘긴다.
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export class ApiError extends Error {
   constructor(
@@ -14,13 +11,6 @@ export class ApiError extends Error {
     this.name = 'ApiError';
   }
 }
-
-// 모든 요청이 보내기 전에 기다릴 준비 작업. 개발용 목업 워커가 뜨기 전에 나간 요청이 목업을 건너뛰지 않게 한다.
-let requestGate: Promise<unknown> | null = null;
-
-export const setRequestGate = (gate: Promise<unknown>) => {
-  requestGate = gate;
-};
 
 // ---- 로그인 토큰 (백엔드 docs/api-spec/common.md: Bearer, 액세스 15분·리프레시 14일) ----
 // 기기(localStorage)에 둔다. TODO(auth): httpOnly 쿠키로 옮길지 백엔드와 정한다.
@@ -99,7 +89,6 @@ const send = (path: string, init: RequestInit | undefined) => {
 };
 
 const sendWithRefresh = async (path: string, init: RequestInit | undefined) => {
-  if (requestGate) await requestGate;
   const res = await send(path, init);
   if (res.status === 401 && path !== REFRESH_PATH && (await refreshTokens())) {
     return send(path, init);
