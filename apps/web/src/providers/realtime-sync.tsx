@@ -1,9 +1,9 @@
 'use client';
 
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
-import { USES_BACKEND } from '@bjk/api/client';
+import { hasAuthTokens, subscribeAuth, USES_BACKEND } from '@bjk/api/client';
 import { listenServerEvents } from '@bjk/api/events';
 import { queryKeys } from '@bjk/api/queryKeys';
 import type { ServerEvent, StockChangedEvent } from '@bjk/api/types/events';
@@ -19,9 +19,12 @@ const STOCK_BATCH_MS = 400;
 
 const RealtimeSync = () => {
   const queryClient = useQueryClient();
+  // 로그인·로그아웃·사용자 전환 때마다 연결을 새로 연다. 로그인 전에는 열지 않는다(401 만 반복된다)
+  const [session, setSession] = useState(0);
+  useEffect(() => subscribeAuth(() => setSession((n) => n + 1)), []);
 
   useEffect(() => {
-    if (!USES_BACKEND) return;
+    if (!USES_BACKEND || !hasAuthTokens()) return;
     const controller = new AbortController();
     let pending: StockChangedEvent[] = [];
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -78,7 +81,7 @@ const RealtimeSync = () => {
       controller.abort();
       if (timer) clearTimeout(timer);
     };
-  }, [queryClient]);
+  }, [queryClient, session]);
 
   return null;
 };

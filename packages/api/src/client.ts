@@ -41,7 +41,7 @@ const readTokens = (): StoredTokens | null => {
   }
 };
 
-export const setAuthTokens = (tokens: StoredTokens | null) => {
+const writeTokens = (tokens: StoredTokens | null) => {
   if (typeof window === 'undefined') return;
   try {
     if (tokens) {
@@ -55,6 +55,30 @@ export const setAuthTokens = (tokens: StoredTokens | null) => {
   } catch {
     // 저장하지 못해도 이번 요청은 진행한다 — 다음 요청이 401 이면 다시 로그인하게 된다
   }
+};
+
+// 로그인·로그아웃(사용자 전환 포함)을 알 필요가 있는 곳(실시간 연결)이 구독한다.
+// 액세스 토큰 갱신은 같은 사용자라 알리지 않는다. 다른 탭의 로그인·로그아웃은 storage 이벤트로 온다.
+const authListeners = new Set<() => void>();
+
+export const subscribeAuth = (listener: () => void) => {
+  authListeners.add(listener);
+  const onStorage = (e: StorageEvent) => {
+    // 다른 탭의 토큰 갱신(15분마다)은 건너뛰고, 토큰이 생기거나 없어질 때만 알린다
+    if (e.key === TOKEN_KEY && !e.oldValue !== !e.newValue) listener();
+  };
+  if (typeof window !== 'undefined') window.addEventListener('storage', onStorage);
+  return () => {
+    authListeners.delete(listener);
+    if (typeof window !== 'undefined') window.removeEventListener('storage', onStorage);
+  };
+};
+
+export const hasAuthTokens = () => Boolean(readTokens()?.access_token);
+
+export const setAuthTokens = (tokens: StoredTokens | null) => {
+  writeTokens(tokens);
+  authListeners.forEach((listener) => listener());
 };
 
 // 액세스 토큰이 만료되면(401) 리프레시 토큰으로 한 번만 새로 받는다. 동시에 여러 요청이 401 을 받아도 갱신은 한 번이다.
@@ -74,7 +98,7 @@ const refreshTokens = () => {
         setAuthTokens(null);
         return false;
       }
-      setAuthTokens((await res.json()) as StoredTokens);
+      writeTokens((await res.json()) as StoredTokens);
       return true;
     } catch {
       return false;

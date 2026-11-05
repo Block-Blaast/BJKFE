@@ -18,13 +18,16 @@ const KNOWN = new Set<ServerEvent['type']>([
   'audit.flagged',
 ]);
 
+// 재연결 대기. 끊으면(abort) 바로 끝나고, 대기마다 붙인 리스너는 끝날 때 뗀다 (오래 열린 탭에서 쌓이지 않게)
 const sleep = (ms: number, signal: AbortSignal) =>
   new Promise<void>((resolve) => {
-    const timer = setTimeout(resolve, ms);
-    signal.addEventListener('abort', () => {
+    const done = () => {
       clearTimeout(timer);
+      signal.removeEventListener('abort', done);
       resolve();
-    });
+    };
+    const timer = setTimeout(done, ms);
+    signal.addEventListener('abort', done, { once: true });
   });
 
 type Frame = { id: string | null; event: string; data: string; retry: number | null };

@@ -51,7 +51,15 @@ const ToastItem = ({ toast }: ToastItemProps) => {
     });
     timing.current = animation;
     animation.onfinish = () => dismiss(toast.id);
-    return () => animation.cancel();
+    // 다른 탭을 보는 동안 온 알림(다른 탭·SSE)은 돌아왔을 때부터 5초를 센다.
+    // 숨은 탭에서는 시간이 멈췄다가 돌아오는 순간 한꺼번에 흘러 바로 닫혀 버린다
+    const onVisibility = () => (document.hidden ? animation.pause() : animation.play());
+    if (document.hidden) animation.pause();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      animation.cancel();
+    };
   }, [dismiss, toast.id]);
 
   return (

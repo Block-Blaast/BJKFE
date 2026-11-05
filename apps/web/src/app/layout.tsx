@@ -30,10 +30,10 @@ const RootLayout = ({ children }: LayoutProps<'/'>) => {
             <QueryProvider>
               {children}
               <RealtimeSync />
+              <StockChangeSync />
             </QueryProvider>
           </DemoAuthProvider>
           <Toaster />
-          <StockChangeSync />
         </MockProvider>
       </body>
     </html>
