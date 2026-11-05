@@ -28,7 +28,7 @@
 
 ## 명령어 (루트에서 실행)
 
-- 개발: `pnpm dev` — `apps/web/.env.local`에 `NEXT_PUBLIC_API_URL`이 없으면 **MSW 목업 모드**로 뜹니다(백엔드 없이 화면 개발). 목업 데이터는 `packages/api/src/mocks/`.
+- 개발: `pnpm dev` — 목업은 없습니다. 모든 데이터는 백엔드(BJK-AI-BE) DB에서 옵니다. `apps/web/.env.local`의 `API_PROXY_TARGET`에 백엔드 주소(배포 서버 또는 로컬 백엔드)를 넣으면 개발 서버가 `/api/*`를 그쪽으로 넘깁니다.
 - 검증: `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm format:check`
 - `pnpm lint`에는 `pnpm lint:design`(디자인 금지 패턴 검사 + `tokens.css`와 Figma 표 대조)이 포함됩니다.
 - 특정 패키지만: `pnpm --filter @bjk/web <script>`
