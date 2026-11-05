@@ -1,27 +1,30 @@
-// 리포트 (W-09) — 임시 계약. 발주 기록은 F-APPROVAL-03·04, 검증 리포트는 F-SIM 을 따랐고 HTTP 형식은 명세서에 없다.
-// 백엔드 OpenAPI 가 나오면 생성된 타입으로 교체하고, 이 파일을 지운다.
-import type { ApprovalAction } from '../domain/review';
+// 리포트 (W-09) — 발주 기록. 백엔드 PO-01~04(BJK-AI-BE docs/api-spec/purchase-orders.md) 형식을 reports.ts 가 바꾼다.
+
+// approved(승인, 주문 전) → ordered(전화·문자로 주문함) → partially_received → received. 취소는 approved 에서만
+export type PurchaseOrderStatus =
+  'approved' | 'ordered' | 'partially_received' | 'received' | 'cancelled';
 
 export type PurchaseOrder = {
   id: string;
-  review_id: string;
-  part: { id: string; name: string; spec: string | null; unit: string };
+  // 검토 없이 들어온 발주는 null — 결재용 PDF 는 검토 단위라 이때는 없다
+  review_id: string | null;
+  part: { id: string; name: string };
   qty: number;
-  supplier: string | null;
-  unit_price: number | null;
-  total: number | null;
-  desired_date: string | null; // 납기 희망일 YYYY-MM-DD — 발주 문구에 들어간다
-  action: ApprovalAction;
-  approved_by: string;
+  supplier: string;
+  unit_price: number;
+  total: number;
+  status: PurchaseOrderStatus;
+  approved_by: string | null;
   approved_at: string;
-  // 승인 직후 서버가 만든다(WeasyPrint). 만드는 중이면 null
-  pdf_url: string | null;
+  ordered_at: string | null;
+  received_qty: number;
 };
 
-// 검증 하네스 결과 (F-SIM: 합성 데이터, 시나리오 주입, 평가, 정책 재생, 외부 충격 시나리오)
+// 검증 리포트 (F-SIM-03·04, 백엔드 PR #274). sample: 시연 시드, harness: 검증 하네스 실행 결과
 export type SimReport = {
   id: string;
   title: string;
+  source: 'sample' | 'harness';
   created_at: string;
   pdf_url: string | null;
 };
