@@ -38,12 +38,6 @@ type Message =
       reviewId?: string;
     };
 
-const QUICK_PHRASES = [
-  { label: '출고', text: '출고 ' },
-  { label: '입고', text: '입고 ' },
-  { label: '몇 개 있어?', text: ' 몇 개 있어?' },
-];
-
 const GREETING: Message = {
   id: 'greeting',
   role: 'bot',
@@ -223,11 +217,6 @@ const ChatThread = () => {
     inputRef.current?.focus();
   };
 
-  const insertPhrase = (text: string) => {
-    setDraft((prev) => (text.startsWith(' ') ? `${prev.trimEnd()}${text}` : `${text}${prev}`));
-    inputRef.current?.focus();
-  };
-
   const busy = confirm.isPending || cancel.isPending || raise.isPending;
 
   return (
@@ -302,30 +291,22 @@ const ChatThread = () => {
             ))}
           </div>
         ) : null}
-        <div className="flex gap-2 overflow-x-auto">
-          {picked
-            ? picked.parts.map((part) => (
-                <button
-                  key={part.part_id}
-                  type="button"
-                  className="h-11 shrink-0 rounded-full bg-bg-brand-subtle px-4 text-label-md text-text-brand active:bg-bg-brand-subtle-hover"
-                  onClick={() => insertPart(part.part_name, part.qty, part.unit)}
-                >
-                  {part.part_name} {part.qty}
-                  {part.unit}
-                </button>
-              ))
-            : QUICK_PHRASES.map(({ label, text }) => (
-                <button
-                  key={label}
-                  type="button"
-                  className="h-11 shrink-0 rounded-full bg-bg-brand-subtle px-4 text-label-md text-text-brand active:bg-bg-brand-subtle-hover"
-                  onClick={() => insertPhrase(text)}
-                >
-                  {label}
-                </button>
-              ))}
-        </div>
+        {/* 설비를 고르면 그 설비의 정비 부품을 버튼으로 보여 준다. 고르지 않았을 때는 버튼 줄을 두지 않는다 */}
+        {picked ? (
+          <div className="flex gap-2 overflow-x-auto">
+            {picked.parts.map((part) => (
+              <button
+                key={part.part_id}
+                type="button"
+                className="h-11 shrink-0 rounded-full bg-bg-brand-subtle px-4 text-label-md text-text-brand active:bg-bg-brand-subtle-hover"
+                onClick={() => insertPart(part.part_name, part.qty, part.unit)}
+              >
+                {part.part_name} {part.qty}
+                {part.unit}
+              </button>
+            ))}
+          </div>
+        ) : null}
         <form
           className="flex items-center gap-2"
           onSubmit={(e) => {
