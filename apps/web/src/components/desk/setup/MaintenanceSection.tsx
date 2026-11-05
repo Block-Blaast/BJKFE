@@ -45,7 +45,7 @@ const MaintenanceForm = () => {
       onSubmit={(e) => {
         e.preventDefault();
         const input = toPartQtyInput(parts);
-        if (!input || input.length === 0) {
+        if (!input) {
           setInvalid(true);
           return;
         }
@@ -87,9 +87,12 @@ const MaintenanceForm = () => {
         />
       </div>
       <PartQtyFields legend="필요 부품" rows={parts} onChange={setParts} />
+      <p className="text-body-sm text-text-secondary">
+        비워 두면 설비에 등록한 정비 1회당 부품·수량을 써요.
+      </p>
       {invalid ? (
         <p role="alert" className="text-body-sm text-text-danger">
-          필요 부품을 하나 이상, 수량(1 이상)과 함께 골라 주세요.
+          부품과 수량(1 이상)을 함께 골라 주세요.
         </p>
       ) : null}
       {create.isError ? (
@@ -149,6 +152,11 @@ const MaintenanceSection = () => {
                         {item.parts
                           .map((p) => `${p.part_name} ${formatQty(p.qty, p.unit)}`)
                           .join(', ')}
+                        {item.parts_from_equipment ? (
+                          <span className="block text-label-sm text-text-secondary">
+                            설비 기준 부품
+                          </span>
+                        ) : null}
                       </td>
                       <td className={TD}>
                         {item.completed_at ? (
