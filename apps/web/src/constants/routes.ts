@@ -6,7 +6,8 @@ export const MOBILE_TABS = [
   { href: '/m/briefing', label: '브리핑', specId: 'M-04' },
 ] as const;
 
-// PC 주 메뉴 (v2) — 화면 묶음이 아니라 발주 흐름 5단계가 곧 메뉴다. 대시보드(오늘)는 로고가 입구다.
+// PC 주 메뉴 (v2) — 화면 묶음이 아니라 발주 흐름 5단계가 곧 메뉴다. PC 첫 화면은 ①의 3D 창고(/warehouse,
+// proxy.ts)이고, 대시보드(오늘)는 메뉴에 없이 로고로만 들어간다.
 // match 의 경로 중 하나에 있으면 그 단계가 활성이다. ②자동 검토와 ③사장님 결정은 같은 /reviews 라
 // status 로 가른다(?status=all 이면 ②, 아니면 ③ — reviewFilters 의 기본값이 결정 대기다).
 // 하위 화면은 DESK_SUB_NAV 의 탭으로 고른다.
