@@ -14,7 +14,6 @@ import type {
 
 // ---- 백엔드 채팅 응답 (BJK-AI-BE docs/api-spec/chat.md CHAT-01·03·04) ----
 // 백엔드는 AI(LLM)로 문장을 해석해 카드 여러 장(cards[])을 돌려준다. 화면은 한 턴에 카드 한 장(ChatTurn.card)을 그린다.
-// 목업은 지금 화면 형식(ChatTurn)을 그대로 준다 — 응답에 cards 배열이 있으면 백엔드 형식으로 보고 바꾼다.
 type BackendIntent =
   'OUT' | 'IN' | 'QUERY' | 'OTHER' | 'MAINTENANCE_DONE' | 'COUNT' | 'PURCHASE_REQUEST';
 
@@ -89,9 +88,6 @@ const toCard = (c: BackendCard): ChatCard | undefined => {
   }
 };
 
-const isBackendMessage = (raw: unknown): raw is BackendMessage =>
-  typeof raw === 'object' && raw !== null && Array.isArray((raw as { cards?: unknown }).cards);
-
 // 카드가 여러 장(품목 여러 개)이면 첫 장만 보이고, 나머지는 답변 문장으로 알린다. TODO: 여러 카드 그리기
 const toTurn = (raw: BackendMessage): ChatTurn => {
   const [first, ...rest] = raw.cards;
@@ -103,11 +99,11 @@ const toTurn = (raw: BackendMessage): ChatTurn => {
 };
 
 export const sendChatMessage = async (input: SendChatInput): Promise<ChatTurn> => {
-  const raw = await request<ChatTurn | BackendMessage>(ENDPOINTS.chatMessages, {
+  const raw = await request<BackendMessage>(ENDPOINTS.chatMessages, {
     method: 'POST',
     body: JSON.stringify(input),
   });
-  return isBackendMessage(raw) ? toTurn(raw) : raw;
+  return toTurn(raw);
 };
 
 // 백엔드 확정 응답은 reply(+ 발주 요청이면 review_id)에 원장 정보가 붙어 온다. 화면은 답변·검토 id만 쓴다
@@ -130,16 +126,15 @@ export const cancelPending = async (pendingId: string): Promise<ChatTurn> => {
   return { reply: raw.reply ?? '취소했어요.', card: raw.card, review_id: raw.review_id };
 };
 
-// 재고 부족 제안을 검토로 올린다 (F-NOTI-01 stock_draft). 수량은 서버가 부품 지표로 정한다.
-export const createStockDraft = (draftId: string) =>
-  request<ChatTurn>(ENDPOINTS.chatStockDraft(draftId), { method: 'POST' });
-
-export const getChatInbox = () => request<ChatInboxItem[]>(ENDPOINTS.chatInbox);
+// 시스템이 먼저 보낸 메시지 (명세 밖, 백엔드 PR #278) — 응답을 기다리는 내 실사 요청. 블라인드 실사라 장부 수량은 없다
+export const getChatInbox = async () =>
+  (await request<{ items: ChatInboxItem[] }>(ENDPOINTS.chatInbox)).items;
 
 export const chatQueries = {
   inbox: () =>
     queryOptions({
       queryKey: queryKeys.chat.inbox(),
       queryFn: getChatInbox,
+      retry: false,
     }),
 };
