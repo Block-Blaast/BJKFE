@@ -8,6 +8,8 @@ export const ENDPOINTS = {
   signup: '/api/auth/signup',
   emailLogin: '/v1/auth/login',
   pinLogin: '/v1/auth/pin-login',
+  authRefresh: '/v1/auth/refresh',
+  me: '/v1/me',
   companyMembers: (companyCode: string) => `/v1/auth/companies/${companyCode}/members`,
   invite: (token: string) => `/api/invites/${token}`,
   acceptInvite: (token: string) => `/api/invites/${token}/accept`,
@@ -33,8 +35,9 @@ export const ENDPOINTS = {
   reviewForecast: (id: string) => `/api/reviews/${id}/forecast`,
   chatMessages: '/v1/chat/messages',
   chatInbox: '/api/chat/inbox',
-  chatPendingConfirm: (pendingId: string) => `/api/chat/pending/${pendingId}/confirm`,
-  chatPendingCancel: (pendingId: string) => `/api/chat/pending/${pendingId}/cancel`,
+  // 확인 카드 확정·취소 — 백엔드 CHAT-03·04 (카드 id = entry_id)
+  chatPendingConfirm: (pendingId: string) => `/v1/chat/entries/${pendingId}/confirm`,
+  chatPendingCancel: (pendingId: string) => `/v1/chat/entries/${pendingId}/cancel`,
   // [추가] 기록 중 재고 부족 초안 (F-NOTI-01) — 작업자가 제안을 누르면 검토를 만든다
   chatStockDraft: (draftId: string) => `/api/chat/drafts/${draftId}`,
   // 기준 정보 (W-08, F-SETUP)
