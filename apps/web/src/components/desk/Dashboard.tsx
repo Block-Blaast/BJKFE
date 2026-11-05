@@ -25,7 +25,6 @@ import VerdictTags from '@/components/review/VerdictTags';
 import ComputedAt from '@/components/ui/ComputedAt';
 import IconCircle, { type IconCircleTone } from '@/components/ui/IconCircle';
 import Tag, { type TagTone } from '@/components/ui/Tag';
-import FlowBand from '@/components/desk/FlowBand';
 import { useTodayActivity } from '@/hooks/activity/useTodayActivity';
 import { useAudits } from '@/hooks/audit/useAudits';
 import { useParts } from '@/hooks/part/useParts';
@@ -201,8 +200,6 @@ const Dashboard = () => {
           </span>
         ) : null}
       </header>
-
-      <FlowBand />
 
       <div className="flex gap-5">
         <Stat
