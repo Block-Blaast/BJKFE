@@ -159,6 +159,8 @@ const SettingsForm = ({ initial }: SettingsFormProps) => {
 
   const setNumber = (key: NumericKey, raw: string) =>
     setReview((prev) => ({ ...prev, [key]: raw === '' ? Number.NaN : Number(raw) }));
+  // 백엔드 시스템 값은 보여 주기만 한다. 백엔드에 없는 항목(null)은 칸을 두지 않는다
+  const locked = initial.locked ?? [];
 
   return (
     <form
@@ -168,25 +170,35 @@ const SettingsForm = ({ initial }: SettingsFormProps) => {
         save.mutate({ review, notifications });
       }}
     >
-      {GROUPS.map((group) => (
-        <Group key={group.title} title={group.title}>
-          {group.fields.map((f) => (
-            <Input
-              key={f.key}
-              label={`${f.label} (${f.unit}) · ${f.spec}`}
-              type="number"
-              inputMode="decimal"
-              step={f.step}
-              min={f.min}
-              max={f.max}
-              value={Number.isNaN(review[f.key]) ? '' : review[f.key]}
-              onChange={(e) => setNumber(f.key, e.target.value)}
-              helperText={f.help}
-              required
-            />
-          ))}
-        </Group>
-      ))}
+      {GROUPS.map((group) => {
+        const fields = group.fields.filter((f) => review[f.key] !== null);
+        return fields.length ? (
+          <Group key={group.title} title={group.title}>
+            {fields.map((f) => {
+              const value = review[f.key] ?? Number.NaN;
+              const isLocked = locked.includes(f.key);
+              return (
+                <Input
+                  key={f.key}
+                  label={`${f.label} (${f.unit}) · ${f.spec}`}
+                  type="number"
+                  inputMode="decimal"
+                  step={f.step}
+                  min={f.min}
+                  max={f.max}
+                  value={Number.isNaN(value) ? '' : value}
+                  onChange={(e) => setNumber(f.key, e.target.value)}
+                  helperText={
+                    isLocked ? `${f.help} 검증 결과로만 조정하는 시스템 값이에요.` : f.help
+                  }
+                  disabled={isLocked}
+                  required
+                />
+              );
+            })}
+          </Group>
+        ) : null;
+      })}
 
       <Group title="재주문점 서비스 수준 (F-ANAL-06)">
         {ABC.map((grade) => (
