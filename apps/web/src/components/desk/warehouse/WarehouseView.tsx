@@ -76,11 +76,6 @@ const WarehouseView = () => {
                 />
               ) : null}
             </div>
-            {projection.data?.is_mock ? (
-              <span className="w-fit rounded-full bg-bg-surface px-3 py-1 text-label-sm text-text-secondary shadow-card">
-                목업 데이터
-              </span>
-            ) : null}
           </div>
           <div className={`${FLOAT} flex shrink-0 items-center gap-2`}>
             {view === '3d' ? (
