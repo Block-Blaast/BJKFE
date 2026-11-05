@@ -40,7 +40,7 @@ const CheckList = ({ checks, unit }: CheckListProps) => {
             <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
               {Object.entries(facts).map(([key, value]) => (
                 <div key={key} className="contents">
-                  <dt className="text-body-sm text-text-secondary">{factLabel(key)}</dt>
+                  <dt className="text-body-sm text-text-secondary">{factLabel(key, code)}</dt>
                   <dd className="text-right text-body-sm text-text-body tabular-nums">
                     {formatFact(key, value, unit)}
                   </dd>
