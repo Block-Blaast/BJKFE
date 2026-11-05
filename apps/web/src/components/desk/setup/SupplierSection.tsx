@@ -11,7 +11,7 @@ import Select from '@/components/ui/Select';
 import { FIELD } from '@/components/ui/controls';
 import IconCircle from '@/components/ui/IconCircle';
 import { useParts } from '@/hooks/part/useParts';
-import { useAddSupplierPrice, useCreateSupplier, useSuppliers } from '@/hooks/setup/useSetup';
+import { useCreateSupplier, useSaveSupplierPrice, useSuppliers } from '@/hooks/setup/useSetup';
 import { apiErrorMessage } from '@/utils/apiError';
 import { formatDate, formatNumber, formatWon } from '@/utils/format';
 import { TABLE, TD, TH, TR } from '@/components/ui/table';
@@ -70,9 +70,10 @@ const SupplierForm = () => {
       <Input
         label="기본 납기 (일)"
         type="number"
-        min={0}
+        min={1}
+        max={365}
         inputMode="numeric"
-        helperText="실제 납기 기록이 쌓일 때까지 이 값을 써요."
+        helperText="실제 납기 기록이 쌓일 때까지 이 값을 써요. 비우면 7일로 계산해요."
         value={leadDays}
         onChange={(e) => setLeadDays(e.target.value)}
       />
@@ -98,7 +99,7 @@ const SupplierForm = () => {
 
 const PriceForm = ({ supplier }: { supplier: Supplier }) => {
   const { data: parts } = useParts({});
-  const add = useAddSupplierPrice();
+  const add = useSaveSupplierPrice();
   const [partId, setPartId] = useState('');
   const [price, setPrice] = useState('');
   const [moq, setMoq] = useState('');
@@ -108,6 +109,8 @@ const PriceForm = ({ supplier }: { supplier: Supplier }) => {
       className="flex flex-col gap-2"
       onSubmit={(e) => {
         e.preventDefault();
+        // 거래 조건은 통째로 바뀐다 — 이미 있는 단가 구간·배송비는 그대로 다시 보낸다
+        const existing = supplier.prices.find((p) => p.part_id === partId);
         add.mutate(
           {
             id: supplier.id,
@@ -115,6 +118,8 @@ const PriceForm = ({ supplier }: { supplier: Supplier }) => {
               part_id: partId,
               unit_price: Number(price),
               moq: moq.trim() === '' ? null : Number(moq),
+              tiers: existing?.tiers ?? [],
+              shipping_fee: existing?.shipping_fee ?? 0,
             },
           },
           {
@@ -216,7 +221,7 @@ const SupplierCard = ({ supplier }: { supplier: Supplier }) => (
                 {formatWon(p.unit_price)}
               </td>
               <td className={`${TD} text-right text-text-body tabular-nums`}>
-                {p.moq === null ? EMPTY : formatNumber(p.moq)}
+                {formatNumber(p.moq)}
               </td>
               <td className={`${TD} text-text-body tabular-nums`}>
                 {p.tiers.length === 0
