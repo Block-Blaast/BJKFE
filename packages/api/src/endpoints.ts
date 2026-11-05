@@ -54,6 +54,6 @@ export const ENDPOINTS = {
   // [추가] 디지털 트윈 — 명세서에 없는 화면
   twinLayout: '/api/twin/layout',
   twinProjection: '/api/twin/projection',
-  // [추가] 외부 요인 알림 (F-EXT) — 환율·해상운임 급변
-  externalAlerts: '/api/external/alerts',
+  // 외부 요인 현황 (DSH-03) — 환율·해상운임 위험도
+  externalStatus: '/v1/external/status',
 } as const;
