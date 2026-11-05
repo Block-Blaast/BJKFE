@@ -15,7 +15,7 @@ export const BIN_LOOK_LABEL: Record<BinLook, string> = {
   low: '재주문점 이하',
   risk: '결품 위험',
   out: '비어 있음',
-  suspect: '장부 의심',
+  suspect: '확인 필요',
 };
 
 export const EQUIPMENT_STATUS_LABEL: Record<TwinEquipmentStatus, string> = {
@@ -80,7 +80,7 @@ export type TwinSummaryKey = 'pending' | 'risk' | 'suspect' | 'arriving';
 export const TWIN_SUMMARY_LABEL: Record<TwinSummaryKey, string> = {
   pending: '결정 대기',
   risk: '결품 위험',
-  suspect: '장부 의심',
+  suspect: '확인 필요',
   arriving: '도착 예정',
 };
 
