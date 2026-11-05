@@ -44,6 +44,10 @@ jobs:
           load: true
           tags: bjk-web:ci
           cache-from: type=gha,scope=web
+          # 시연 서버처럼 MSW 목업을 켠 이미지를 확인하려면 저장소 변수 USE_MOCKS 를 1 로 둔다
+          # (Settings → Secrets and variables → Actions → Variables). 비어 있으면 꺼진 채로 빌드한다.
+          build-args: |
+            NEXT_PUBLIC_USE_MOCKS=${{ vars.USE_MOCKS }}
       # 배포 이미지가 실제로 뜨고 응답하는지 확인
       - name: 컨테이너 기동 확인
         run: |
