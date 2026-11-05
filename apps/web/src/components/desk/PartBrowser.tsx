@@ -50,6 +50,27 @@ const toSearch = (filters: PartListFilters) => {
 
 const EMPTY = '—';
 
+// 이름·분류는 왼쪽, 수량은 오른쪽(자릿수 맞춤), 날짜·등급·상태는 가운데. 머리줄과 본문이 같은 값을 쓴다.
+const ALIGN = { left: 'text-left', right: 'text-right', center: 'text-center' } as const;
+
+// 표 이름은 백엔드 필드명과 다르게 쉬운 말로 보여준다 (abc → 재고 중요도, demand_pattern → 사용 패턴)
+const COLUMNS = [
+  { label: '부품', align: ALIGN.left, width: '' },
+  { label: '카테고리', align: ALIGN.left, width: 'w-28' },
+  { label: '현재 재고', align: ALIGN.right, width: 'w-28' },
+  { label: '입고 예정', align: ALIGN.right, width: 'w-28' },
+  { label: '숨은 재고', align: ALIGN.right, width: 'w-28' },
+  { label: '소진 예상', align: ALIGN.center, width: 'w-28' },
+  { label: '재고 중요도', align: ALIGN.center, width: 'w-28' },
+  { label: '사용 패턴', align: ALIGN.center, width: 'w-24' },
+  { label: '위험도', align: ALIGN.center, width: 'w-20' },
+  { label: '분석 기준', align: ALIGN.center, width: 'w-32' },
+] as const;
+
+// 가로로 밀 때 고정되는 첫 칸. 뒤 칸이 비쳐 보이지 않게 줄무늬·hover 색을 그대로 칠한다
+const STICKY_TH = 'sticky left-0 z-10';
+const STICKY_TD = 'sticky left-0 z-10 bg-bg-surface group-even:bg-bg-page group-hover:bg-bg-subtle';
+
 // 부품 목록 (W-04). 검색·필터는 URL 에 둔다. 지표는 새벽 배치 값이라 계산 기준 시각을 함께 보여준다.
 // usePathname·useSearchParams 를 쓰므로 페이지에서 <Suspense> 로 감싼다.
 const PartBrowser = () => {
@@ -141,12 +162,12 @@ const PartBrowser = () => {
           />
         </div>
         {select(
-          'ABC',
+          '재고 중요도',
           'abc',
           ABC_CLASSES.map((c) => ({ value: c, label: c })),
         )}
         {select(
-          '수요 유형',
+          '사용 패턴',
           'pattern',
           (Object.entries(DEMAND_PATTERNS) as [DemandPattern, string][]).map(([value, label]) => ({
             value,
@@ -168,74 +189,79 @@ const PartBrowser = () => {
         <EmptyState title="조건에 맞는 부품이 없어요">검색어나 필터를 바꿔 보세요.</EmptyState>
       ) : (
         <div className={TABLE_CARD}>
-          <table className={TABLE}>
-            <thead>
-              <tr>
-                {[
-                  '부품',
-                  '카테고리',
-                  '현재 재고',
-                  '입고 예정',
-                  '숨은 재고',
-                  '소진 예상',
-                  'ABC',
-                  '수요 유형',
-                  '위험도',
-                  '계산 기준',
-                ].map((h, i) => (
-                  <th
-                    key={h}
-                    scope="col"
-                    className={`${TH} ${i >= 2 && i <= 4 ? 'text-right' : 'text-left'}`}
-                  >
-                    {h}
-                  </th>
+          {/* 좁은 화면에서는 표만 가로로 밀고, 부품명 칸은 왼쪽에 붙여 둬서 어느 줄인지 놓치지 않게 한다 */}
+          <div className="overflow-x-auto">
+            <table className={`${TABLE} min-w-5xl table-fixed`}>
+              <colgroup>
+                {COLUMNS.map((c) => (
+                  <col key={c.label} className={c.width} />
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {parts.map((part) => (
-                <tr key={part.id} className={TR}>
-                  <td className={TD}>
-                    <Link
-                      href={`/parts/${part.id}`}
-                      className="flex flex-col text-label-md text-text-heading hover:text-text-brand"
+              </colgroup>
+              <thead>
+                <tr>
+                  {COLUMNS.map((c, i) => (
+                    <th
+                      key={c.label}
+                      scope="col"
+                      className={`${TH} whitespace-nowrap ${c.align} ${i === 0 ? STICKY_TH : ''}`}
                     >
-                      {part.name}
-                      {part.spec ? (
-                        <span className="text-label-sm text-text-secondary">{part.spec}</span>
-                      ) : null}
-                    </Link>
-                  </td>
-                  <td className={`${TD} text-text-body`}>{part.category ?? EMPTY}</td>
-                  <td className={`${TD} text-right text-text-heading tabular-nums`}>
-                    {formatQty(part.stock, part.unit)}
-                  </td>
-                  <td className={`${TD} text-right text-text-body tabular-nums`}>
-                    {part.incoming ? formatQty(part.incoming.qty, part.unit) : EMPTY}
-                  </td>
-                  <td
-                    className={`${TD} text-right tabular-nums ${part.hidden_stock > 0 ? 'text-text-warning' : 'text-text-body'}`}
-                  >
-                    {part.hidden_stock > 0 ? formatQty(part.hidden_stock, part.unit) : EMPTY}
-                  </td>
-                  <td className={`${TD} text-text-body tabular-nums`}>
-                    {part.metrics.t_out ? formatDate(part.metrics.t_out) : EMPTY}
-                  </td>
-                  <td className={`${TD} text-text-body`}>{part.metrics.abc ?? EMPTY}</td>
-                  <td className={`${TD} text-text-body`}>
-                    {part.metrics.demand_pattern
-                      ? DEMAND_PATTERNS[part.metrics.demand_pattern]
-                      : EMPTY}
-                  </td>
-                  <td className={`${TD} text-text-body`}>{part.risk ?? EMPTY}</td>
-                  <td className={`${TD} text-text-secondary tabular-nums`}>
-                    {part.metrics.computed_at ? formatComputedAt(part.metrics.computed_at) : EMPTY}
-                  </td>
+                      {c.label}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {parts.map((part) => (
+                  <tr key={part.id} className={`${TR} group h-16`}>
+                    <th scope="row" className={`${TD} ${ALIGN.left} ${STICKY_TD} font-normal`}>
+                      <Link
+                        href={`/parts/${part.id}`}
+                        className="flex flex-col text-label-md text-text-heading hover:text-text-brand"
+                      >
+                        <span className="truncate">{part.name}</span>
+                        {part.spec ? (
+                          <span className="truncate text-label-sm text-text-secondary">
+                            {part.spec}
+                          </span>
+                        ) : null}
+                      </Link>
+                    </th>
+                    <td className={`${TD} ${ALIGN.left} truncate text-text-body`}>
+                      {part.category ?? EMPTY}
+                    </td>
+                    <td className={`${TD} ${ALIGN.right} text-text-heading tabular-nums`}>
+                      {formatQty(part.stock, part.unit)}
+                    </td>
+                    <td className={`${TD} ${ALIGN.right} text-text-body tabular-nums`}>
+                      {part.incoming ? formatQty(part.incoming.qty, part.unit) : EMPTY}
+                    </td>
+                    <td
+                      className={`${TD} ${ALIGN.right} tabular-nums ${part.hidden_stock > 0 ? 'text-text-warning' : 'text-text-body'}`}
+                    >
+                      {part.hidden_stock > 0 ? formatQty(part.hidden_stock, part.unit) : EMPTY}
+                    </td>
+                    <td className={`${TD} ${ALIGN.center} text-text-body tabular-nums`}>
+                      {part.metrics.t_out ? formatDate(part.metrics.t_out) : EMPTY}
+                    </td>
+                    <td className={`${TD} ${ALIGN.center} text-text-body`}>
+                      {part.metrics.abc ?? EMPTY}
+                    </td>
+                    <td className={`${TD} ${ALIGN.center} text-text-body`}>
+                      {part.metrics.demand_pattern
+                        ? DEMAND_PATTERNS[part.metrics.demand_pattern]
+                        : EMPTY}
+                    </td>
+                    <td className={`${TD} ${ALIGN.center} text-text-body`}>{part.risk ?? EMPTY}</td>
+                    <td className={`${TD} ${ALIGN.center} text-text-secondary tabular-nums`}>
+                      {part.metrics.computed_at
+                        ? formatComputedAt(part.metrics.computed_at)
+                        : EMPTY}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
