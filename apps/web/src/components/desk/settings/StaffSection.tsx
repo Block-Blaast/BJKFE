@@ -4,8 +4,8 @@ import { ROLE_LABEL } from '@bjk/api/domain/auth';
 import type { StaffRole } from '@bjk/api/types/company';
 import Button from '@bjk/ui/components/Button';
 
+import Select from '@/components/ui/Select';
 import { useCompanyStaff } from '@/hooks/audit/useAudits';
-import { PILL_SELECT } from '@/components/ui/controls';
 import { useUpdateMemberRole } from '@/hooks/company/useCompany';
 import { apiErrorMessage } from '@/utils/apiError';
 
@@ -40,8 +40,8 @@ const StaffSection = () => {
               <label className="flex items-center gap-2 text-label-sm text-text-secondary">
                 <span className="sr-only">{member.name} 역할</span>
                 {saving ? '저장 중…' : null}
-                <select
-                  className={PILL_SELECT}
+                <Select
+                  variant="pill"
                   value={member.role}
                   disabled={saving || member.role === 'owner'}
                   onChange={(e) =>
@@ -53,7 +53,7 @@ const StaffSection = () => {
                       {ROLE_LABEL[role]}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
             </li>
           );

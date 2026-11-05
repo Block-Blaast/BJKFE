@@ -6,7 +6,7 @@ import { useState } from 'react';
 import Button from '@bjk/ui/components/Button';
 import Input from '@bjk/ui/components/Input';
 
-import { FIELD } from '@/components/ui/controls';
+import Select from '@/components/ui/Select';
 import IconCircle from '@/components/ui/IconCircle';
 import Tag from '@/components/ui/Tag';
 import {
@@ -64,8 +64,8 @@ const MaintenanceForm = () => {
       <div className="grid grid-cols-2 gap-4">
         <label className="flex flex-col gap-2 text-label-md text-text-heading">
           설비
-          <select
-            className={FIELD}
+          <Select
+            variant="field"
             value={equipmentId}
             onChange={(e) => setEquipmentId(e.target.value)}
             required
@@ -76,7 +76,7 @@ const MaintenanceForm = () => {
                 {item.name}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <Input
           label="예정일"

@@ -8,8 +8,8 @@ import { AUDIT_RULES, type AuditGrade } from '@bjk/api/domain/audit';
 import type { AuditItem } from '@bjk/api/types/audit';
 import Button from '@bjk/ui/components/Button';
 
+import Select from '@/components/ui/Select';
 import Tag, { type TagTone } from '@/components/ui/Tag';
-import { PILL_SELECT } from '@/components/ui/controls';
 import EmptyState from '@/components/ui/EmptyState';
 import Segmented from '@/components/ui/Segmented';
 import { useAudits, useCompanyStaff, useRequestAudit } from '@/hooks/audit/useAudits';
@@ -40,9 +40,9 @@ const RequestForm = ({ audit }: { audit: AuditItem }) => {
       <label className="sr-only" htmlFor={`assignee-${audit.id}`}>
         담당 작업자
       </label>
-      <select
+      <Select
         id={`assignee-${audit.id}`}
-        className={PILL_SELECT}
+        variant="pill"
         value={assigneeId}
         onChange={(e) => setAssigneeId(e.target.value)}
         disabled={staff.isPending}
@@ -53,7 +53,7 @@ const RequestForm = ({ audit }: { audit: AuditItem }) => {
             {m.name}
           </option>
         ))}
-      </select>
+      </Select>
       <Button type="submit" disabled={!assigneeId || request.isPending}>
         <Send size={16} aria-hidden />
         {request.isPending ? '요청 중…' : '실사 요청'}

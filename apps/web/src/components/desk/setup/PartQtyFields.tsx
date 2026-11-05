@@ -4,6 +4,7 @@ import { Plus, X } from 'lucide-react';
 
 import Button from '@bjk/ui/components/Button';
 
+import Select from '@/components/ui/Select';
 import { FIELD } from '@/components/ui/controls';
 import { useParts } from '@/hooks/part/useParts';
 
@@ -35,9 +36,10 @@ const PartQtyFields = ({ legend, rows, onChange }: PartQtyFieldsProps) => {
       <legend className="mb-2 text-label-md text-text-heading">{legend}</legend>
       {rows.map((row, index) => (
         <div key={index} className="flex items-center gap-2">
-          <select
+          <Select
             aria-label={`${legend} ${index + 1} 부품`}
-            className={`${FIELD} flex-1`}
+            variant="field"
+            className="flex-1"
             value={row.part_id}
             onChange={(e) => set(index, { part_id: e.target.value })}
           >
@@ -48,7 +50,7 @@ const PartQtyFields = ({ legend, rows, onChange }: PartQtyFieldsProps) => {
                 {p.spec ? ` (${p.spec})` : ''}
               </option>
             ))}
-          </select>
+          </Select>
           <input
             aria-label={`${legend} ${index + 1} 수량`}
             type="number"

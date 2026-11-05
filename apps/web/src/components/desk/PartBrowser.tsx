@@ -19,7 +19,8 @@ import {
 import type { PartListFilters } from '@bjk/api/types/part';
 import Button from '@bjk/ui/components/Button';
 
-import { PILL_SEARCH, PILL_SELECT } from '@/components/ui/controls';
+import Select from '@/components/ui/Select';
+import { PILL_SEARCH } from '@/components/ui/controls';
 import EmptyState from '@/components/ui/EmptyState';
 import FolderCard from '@/components/ui/FolderCard';
 import { useParts } from '@/hooks/part/useParts';
@@ -75,8 +76,8 @@ const PartBrowser = () => {
   ) => (
     <label className="flex items-center gap-2 text-label-md text-text-body">
       {label}
-      <select
-        className={PILL_SELECT}
+      <Select
+        variant="pill"
         value={filters[key] ?? ''}
         onChange={(e) => update({ [key]: e.target.value || undefined })}
       >
@@ -86,7 +87,7 @@ const PartBrowser = () => {
             {o.label}
           </option>
         ))}
-      </select>
+      </Select>
     </label>
   );
 

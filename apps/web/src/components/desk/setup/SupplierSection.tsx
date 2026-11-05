@@ -7,6 +7,7 @@ import type { Supplier } from '@bjk/api/types/setup';
 import Button from '@bjk/ui/components/Button';
 import Input from '@bjk/ui/components/Input';
 
+import Select from '@/components/ui/Select';
 import { FIELD } from '@/components/ui/controls';
 import IconCircle from '@/components/ui/IconCircle';
 import { useParts } from '@/hooks/part/useParts';
@@ -127,9 +128,10 @@ const PriceForm = ({ supplier }: { supplier: Supplier }) => {
       }}
     >
       <div className="flex items-center gap-2">
-        <select
+        <Select
           aria-label={`${supplier.name} 단가 부품`}
-          className={`${FIELD} flex-1`}
+          variant="field"
+          className="flex-1"
           value={partId}
           onChange={(e) => setPartId(e.target.value)}
           required
@@ -140,7 +142,7 @@ const PriceForm = ({ supplier }: { supplier: Supplier }) => {
               {p.name}
             </option>
           ))}
-        </select>
+        </Select>
         <input
           aria-label={`${supplier.name} 단가`}
           type="number"

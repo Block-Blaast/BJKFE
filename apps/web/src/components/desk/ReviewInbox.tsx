@@ -1,5 +1,6 @@
 'use client';
 
+import { TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
@@ -7,10 +8,10 @@ import { VERDICTS } from '@bjk/api/domain/review';
 import type { ReviewListFilters } from '@bjk/api/types/review';
 import Button from '@bjk/ui/components/Button';
 
+import Select from '@/components/ui/Select';
 import { entryLabelOf } from '@/components/review/labels';
 import ReviewStatusTag from '@/components/review/ReviewStatusTag';
 import VerdictTags from '@/components/review/VerdictTags';
-import { PILL_SELECT } from '@/components/ui/controls';
 import EmptyState from '@/components/ui/EmptyState';
 import Segmented from '@/components/ui/Segmented';
 import { useReviews } from '@/hooks/review/useReviews';
@@ -47,8 +48,8 @@ const ReviewInbox = () => {
 
         <label className="flex items-center gap-2 text-label-md text-text-body">
           판정
-          <select
-            className={PILL_SELECT}
+          <Select
+            variant="pill"
             value={filters.verdict ?? ''}
             onChange={(e) =>
               update({ verdict: (e.target.value || undefined) as ReviewListFilters['verdict'] })
@@ -60,13 +61,13 @@ const ReviewInbox = () => {
                 {verdict}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
 
         <label className="flex items-center gap-2 text-label-md text-text-body">
           금액
-          <select
-            className={PILL_SELECT}
+          <Select
+            variant="pill"
             value={filters.minTotal}
             onChange={(e) => update({ minTotal: Number(e.target.value) })}
           >
@@ -75,18 +76,23 @@ const ReviewInbox = () => {
                 {label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
 
-        <label className="flex h-11 cursor-pointer items-center gap-2 rounded-full bg-bg-surface px-4 text-label-md text-text-body shadow-card">
-          <input
-            type="checkbox"
-            className="size-4 accent-bg-brand"
-            checked={filters.urgent}
-            onChange={(e) => update({ urgent: e.target.checked })}
-          />
+        {/* 켜고 끄는 필터 — 켜지면 선택된 탭처럼 검정 알약 (design-system.md "알약 컨트롤") */}
+        <button
+          type="button"
+          aria-pressed={filters.urgent}
+          onClick={() => update({ urgent: !filters.urgent })}
+          className={`flex h-11 items-center gap-2 rounded-full px-5 text-label-md shadow-card transition-colors ${
+            filters.urgent
+              ? 'bg-bg-inverse text-text-on-inverse'
+              : 'bg-bg-surface text-text-body hover:bg-bg-subtle'
+          }`}
+        >
+          <TriangleAlert size={16} aria-hidden />
           긴급만
-        </label>
+        </button>
       </div>
 
       {isPending ? (

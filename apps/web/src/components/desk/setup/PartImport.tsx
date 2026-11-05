@@ -8,6 +8,7 @@ import { CATEGORIES, type Category } from '@bjk/api/domain/part';
 import type { ImportPreview, ImportResult, ImportRow } from '@bjk/api/types/setup';
 import Button from '@bjk/ui/components/Button';
 
+import Select from '@/components/ui/Select';
 import { FIELD } from '@/components/ui/controls';
 import IconCircle from '@/components/ui/IconCircle';
 import Tag from '@/components/ui/Tag';
@@ -271,9 +272,10 @@ const PartImport = () => {
                         </div>
                       </td>
                       <td className={TD}>
-                        <select
+                        <Select
                           aria-label={`${row.name} 카테고리`}
-                          className={`${FIELD} w-full`}
+                          variant="field"
+                          className="w-full"
                           value={edit.category}
                           onChange={(e) => setEdit({ category: e.target.value as Category | '' })}
                         >
@@ -283,7 +285,7 @@ const PartImport = () => {
                               {c}
                             </option>
                           ))}
-                        </select>
+                        </Select>
                       </td>
                       <td className={TD}>
                         {low ? (
