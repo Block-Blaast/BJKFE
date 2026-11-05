@@ -184,7 +184,6 @@ const ROW = 'border-t border-border-default first:border-t-0';
 // 대시보드 (W-01). 다른 화면과 같은 쿼리를 써서, 승인·실사·기록이 생기면 함께 갱신된다.
 // 카드마다 따로 불러와서 하나가 실패해도 나머지는 보인다.
 // 왼쪽(결품 위험·오늘 활동)과 오른쪽(검토·의심·외부 요인)을 독립 열로 쌓아, 카드 높이가 달라도 빈틈이 생기지 않게 한다.
-// TODO(W-01): SSE(stock.changed, review.created, review.decided, audit.flagged)로 실시간 갱신
 const Dashboard = () => {
   const reviews = useReviews({ status: 'pending' });
   const audits = useAudits({ status: 'active' });

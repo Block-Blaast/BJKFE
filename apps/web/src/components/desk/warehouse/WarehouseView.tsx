@@ -29,7 +29,6 @@ const PANEL_ID = 'warehouse-panel';
 // 이 컴포넌트는 그 위에 겹치는 React 레이어다. 씬은 useWarehouseBridge 로만 조작한다.
 // 색·숫자는 모두 /twin/projection 의 오늘 값에서 온다 — 여기서 계산하지 않는다.
 // 오버레이 바깥 래퍼는 pointer-events-none 이라 빈 곳을 끌면 iframe 이 카메라를 돌린다.
-// TODO(W-11): SSE(stock.changed, audit.flagged)로 twin 쿼리 무효화
 const WarehouseView = () => {
   const view = useWarehouseStore((s) => s.view);
   const panelOpen = useWarehouseStore((s) => s.panelOpen);

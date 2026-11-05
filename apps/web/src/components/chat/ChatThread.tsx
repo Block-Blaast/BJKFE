@@ -18,9 +18,36 @@ import type { AdjustReason } from '@bjk/api/domain/audit';
 import { queryKeys } from '@bjk/api/queryKeys';
 import type { ChatCard, ChatTurn } from '@bjk/api/types/chat';
 
+import { useStockChanged, type StockChangeNotice } from '@/hooks/part/useStockChanged';
 import { useEquipment } from '@/hooks/setup/useSetup';
 
 import ChatCardView from './ChatCardView';
+
+// 확정하면 재고가 바뀌는 카드만 알린다(입고·출고·실사). 조회·발주 요청은 원장을 건드리지 않는다.
+// 바뀐 뒤 재고는 실사면 센 수량, 입출고면 확정 직전 캐시 재고 ± 수량(캐시에 없으면 모름).
+const stockNoticeOf = (
+  card: ChatCard,
+  partId: string | undefined,
+  before: (partId: string) => number | null,
+): StockChangeNotice | null => {
+  // count_reason: 블라인드 실사 사유라 카드에 부품·수량이 없다 — 알릴 수 있는 게 없다
+  if (card.type === 'unregistered' || card.type === 'reorder' || card.type === 'count_reason') {
+    return null;
+  }
+  const part =
+    card.type === 'select' ? card.candidates.find((c) => c.part_id === partId) : card.part;
+  if (!part) return null;
+  const base = { partId: part.part_id, name: part.part_name, unit: card.unit };
+  if (card.type === 'count') {
+    // 장부와 같으면 재고가 그대로라 알릴 것이 없다
+    const delta = card.qty - card.ledger_qty;
+    return delta === 0 ? null : { ...base, delta, stock: card.qty, adjust: true };
+  }
+  const delta = card.intent === '입고' ? card.qty : card.intent === '출고' ? -card.qty : 0;
+  if (delta === 0) return null;
+  const prev = before(part.part_id);
+  return { ...base, delta, stock: prev === null ? null : prev + delta };
+};
 
 type Message =
   | {
@@ -101,6 +128,7 @@ const ChatThread = () => {
       prev.map((m) => (m.id === messageId && m.role === 'bot' ? { ...m, cardResolved: true } : m)),
     );
 
+  const stockChanged = useStockChanged();
   const send = useMutation({ mutationFn: sendChatMessage });
   // 재고 부족 제안 → 검토 생성. 원장은 건드리지 않으므로 재고 쿼리는 무효화하지 않는다.
   // 결정 대기 검토의 수정안은 3D 창고의 "발주하면" 예측에 들어가므로 twin 은 무효화한다.
@@ -210,12 +238,15 @@ const ChatThread = () => {
       });
       return;
     }
+    // 확정 뒤에는 캐시가 새 재고로 바뀌므로 바뀌기 전 값으로 미리 계산해 둔다
+    const notice = stockNoticeOf(card, input.partId, stockChanged.cachedStock);
     confirm.mutate(
       { pendingId: card.pending_id, ...input },
       {
         onSuccess: (turn) => {
           resolveCard(messageId);
           appendBotTurn(turn);
+          if (notice) stockChanged.notify(notice);
         },
         onError: (error) => {
           // 410: 10분이 지나 서버에서 만료됨 — 카드를 닫고 다시 입력하게 한다

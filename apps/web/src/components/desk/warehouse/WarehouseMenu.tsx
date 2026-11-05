@@ -1,9 +1,10 @@
 'use client';
 
-import { Menu, Target, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
+import ForkliftMark from '@/components/illustration/ForkliftMark';
 import PendingReviewBadge from '@/components/layout/PendingReviewBadge';
 import { DESK_MENU } from '@/constants/routes';
 import { useReviews } from '@/hooks/review/useReviews';
@@ -44,9 +45,7 @@ const WarehouseMenu = () => {
         onClick={() => setOpen((v) => !v)}
         className="flex h-10 items-center gap-2 rounded-full bg-bg-surface py-1 pr-4 pl-1 text-label-md text-text-heading shadow-card transition-colors hover:bg-bg-subtle"
       >
-        <span className="flex size-8 items-center justify-center rounded-full bg-bg-brand text-text-on-brand">
-          <Target size={16} aria-hidden />
-        </span>
+        <ForkliftMark className="size-8" />
         발주콕
         {open ? <X size={16} aria-hidden /> : <Menu size={16} aria-hidden />}
       </button>

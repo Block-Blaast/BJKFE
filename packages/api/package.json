@@ -23,7 +23,8 @@
     "./setup": "./src/setup.ts",
     "./reports": "./src/reports.ts",
     "./twin": "./src/twin.ts",
-    "./external": "./src/external.ts"
+    "./external": "./src/external.ts",
+    "./events": "./src/events.ts"
   },
   "scripts": {
     "lint": "eslint .",

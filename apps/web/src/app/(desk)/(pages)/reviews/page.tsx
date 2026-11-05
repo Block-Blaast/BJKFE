@@ -5,7 +5,6 @@ import ReviewInbox from '@/components/desk/ReviewInbox';
 
 export const metadata: Metadata = { title: '검토함' };
 
-// TODO(W-02): SSE(review.created, review.decided)로 목록 실시간 갱신
 const ReviewsPage = () => {
   return (
     <div className="flex flex-col gap-6">

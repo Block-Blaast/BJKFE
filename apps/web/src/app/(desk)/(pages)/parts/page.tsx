@@ -5,7 +5,6 @@ import PartBrowser from '@/components/desk/PartBrowser';
 
 export const metadata: Metadata = { title: '부품' };
 
-// TODO(W-04): SSE(stock.changed)로 재고 실시간 갱신
 const PartsPage = () => {
   return (
     <div className="flex flex-col gap-6">

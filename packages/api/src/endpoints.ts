@@ -71,6 +71,8 @@ export const ENDPOINTS = {
   // 3D 창고 배치·예측 — 백엔드 #281 (명세 밖, 프론트 제안 형식 types/twin.ts 그대로)
   twinLayout: '/v1/twin/layout',
   twinProjection: '/v1/twin/projection',
+  // 실시간 이벤트 (NOT-03, SSE)
+  events: '/v1/events',
   // 외부 요인 현황 (DSH-03) — 환율·해상운임 위험도
   externalStatus: '/v1/external/status',
 } as const;
