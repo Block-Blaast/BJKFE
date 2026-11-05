@@ -153,7 +153,7 @@ const WarehousePanel = ({ layout, projection, parts }: WarehousePanelProps) => {
               })}
             </ul>
           ) : (
-            <p className="text-body-sm text-text-secondary">이 날짜에는 주의할 칸이 없어요.</p>
+            <p className="text-body-sm text-text-secondary">지금은 주의할 칸이 없어요.</p>
           )}
         </InfoSection>
         {troubled.length ? (
@@ -163,14 +163,7 @@ const WarehousePanel = ({ layout, projection, parts }: WarehousePanelProps) => {
                 const status = equipmentOf.get(e.id)?.status[TODAY] ?? 'normal';
                 return (
                   <li key={e.id}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        selectEquipment(e.id);
-                        bridge.flyTo({ equipmentId: e.id });
-                      }}
-                      className={ROW}
-                    >
+                    <button type="button" onClick={() => selectEquipment(e.id)} className={ROW}>
                       <span className="truncate text-label-md text-text-heading">{e.name}</span>
                       <span className="flex items-center gap-1">
                         <DotTag as="span" tone={status === 'down' ? 'danger' : 'warning'}>
