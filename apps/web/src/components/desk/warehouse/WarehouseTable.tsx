@@ -11,16 +11,7 @@ import { useTwinLayout, useTwinProjection } from '@/hooks/twin/useTwinLayout';
 import { useWarehouseBridge } from '@/hooks/twin/useWarehouseBridge';
 import { useWarehouseStore, type WarehouseView } from '@/stores/warehouseStore';
 import { formatQty } from '@/utils/format';
-import { BIN_LOOK_LABEL, binLook, LOOK_TONE, TODAY, type TwinLayers } from '@/utils/twin';
-
-// 표는 층 토글과 무관하게 칸의 실제 상태를 모두 보여준다
-const ALL_LAYERS: TwinLayers = {
-  status: true,
-  hidden: true,
-  suspect: true,
-  impact: true,
-  dock: true,
-};
+import { BIN_LOOK_LABEL, binLook, LOOK_TONE, TODAY } from '@/utils/twin';
 
 const VIEW_OPTIONS = [
   ['3d', '3D'],
@@ -132,7 +123,7 @@ const WarehouseTable = () => {
           {projection.data.bins.map((b) => {
             const part = partOf.get(b.part_id);
             const unit = part?.unit ?? '';
-            const look = binLook(b, ALL_LAYERS);
+            const look = binLook(b);
             const placements = placementsOf.get(b.part_id) ?? [];
             return (
               <tr key={b.part_id} className={TR}>

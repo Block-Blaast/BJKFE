@@ -1,7 +1,7 @@
 'use client';
 
-import { Map as MapIcon, PanelRightClose, PanelRightOpen, Scan } from 'lucide-react';
-import { useEffect } from 'react';
+import { Layers, Map as MapIcon, PanelRightClose, PanelRightOpen, Scan } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 import Button from '@bjk/ui/components/Button';
 
@@ -14,9 +14,9 @@ import {
   useWarehouseBridge,
 } from '@/hooks/twin/useWarehouseBridge';
 import { useWarehouseStore } from '@/stores/warehouseStore';
+import { locsByPart } from '@/utils/twin';
 
 import { FLOATING_SLOTS } from './panel/slots';
-import WarehouseLegend from './WarehouseLegend';
 import WarehouseMenu from './WarehouseMenu';
 import WarehousePanel from './WarehousePanel';
 import WarehouseSummary from './WarehouseSummary';
@@ -48,6 +48,7 @@ const WarehouseView = () => {
   }, [layout.data, projection.data]);
 
   const failed = layout.isError || projection.isError || parts.isError;
+  const [errorClosed, setErrorClosed] = useState(false);
   const ready = layout.data && projection.data && parts.data;
 
   return (
@@ -83,6 +84,24 @@ const WarehouseView = () => {
           <div className={`${FLOAT} flex shrink-0 items-center gap-2`}>
             {view === '3d' ? (
               <>
+                {layout.data && projection.data ? (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      // 원본 3D 의 "숨은 재고 찾기" — 이름이 달라도 같은 규격인 칸(same_spec_group)을 모두 비춘다
+                      const locsOf = locsByPart(layout.data.placements);
+                      bridge.focus(
+                        projection.data.bins
+                          .filter((b) => b.same_spec_group)
+                          .flatMap((b) => locsOf.get(b.part_id) ?? []),
+                        '숨은 재고',
+                      );
+                    }}
+                  >
+                    <Layers size={16} aria-hidden />
+                    숨은 재고 찾기
+                  </Button>
+                ) : null}
                 <Button variant="secondary" onClick={bridge.reset}>
                   <Scan size={16} aria-hidden />
                   전체 보기
@@ -99,11 +118,13 @@ const WarehouseView = () => {
 
         <div className="flex min-h-0 flex-1 gap-4">
           <div className="flex min-w-0 flex-1 flex-col justify-end">
-            {failed ? (
+            {failed && errorClosed ? null : failed ? (
               <div className={`${FLOAT} m-auto w-full max-w-md`}>
                 <ErrorState
                   title="창고 정보를 불러오지 못했어요"
+                  onClose={() => setErrorClosed(true)}
                   onRetry={() => {
+                    setErrorClosed(false);
                     void layout.refetch();
                     void projection.refetch();
                     void parts.refetch();
@@ -121,11 +142,7 @@ const WarehouseView = () => {
               <div className={`${FLOAT} min-h-0 flex-1 overflow-y-auto`}>
                 <WarehouseTable />
               </div>
-            ) : (
-              <div className={FLOAT}>
-                <WarehouseLegend />
-              </div>
-            )}
+            ) : null}
           </div>
 
           {ready ? (

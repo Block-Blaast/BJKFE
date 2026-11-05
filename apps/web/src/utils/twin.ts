@@ -7,18 +7,7 @@ import type {
   TwinProjection,
 } from '@bjk/api/types/twin';
 
-export type TwinLayerKey = 'status' | 'hidden' | 'suspect' | 'impact' | 'dock';
-export type TwinLayers = Record<TwinLayerKey, boolean>;
-
-export const TWIN_LAYERS: { key: TwinLayerKey; label: string }[] = [
-  { key: 'status', label: '재고 상태' },
-  { key: 'hidden', label: '숨은 재고' },
-  { key: 'suspect', label: '장부 의심' },
-  { key: 'impact', label: '설비 영향' },
-  { key: 'dock', label: '입고 흐름' },
-];
-
-// 칸에 실제로 칠할 표시 — 층을 끄면 그 의미의 색을 빼고 정상으로 그린다
+// 칸 상태 표시(패널·표의 태그). 3D 는 원본처럼 칸 앞 LED 로만 상태를 보여 준다
 export type BinLook = TwinBinStatus | 'suspect';
 
 export const BIN_LOOK_LABEL: Record<BinLook, string> = {
@@ -39,11 +28,11 @@ export const EQUIPMENT_STATUS_LABEL: Record<TwinEquipmentStatus, string> = {
 export const TODAY = 0;
 
 // 우선순위: 비어 있음·결품 위험 > 장부 의심 > 재주문점 이하 > 정상
-export const binLook = (bin: TwinBin, layers: TwinLayers): BinLook => {
+export const binLook = (bin: TwinBin): BinLook => {
   const s = bin.status[TODAY];
-  if (layers.status && (s === 'out' || s === 'risk')) return s;
-  if (layers.suspect && bin.audit) return 'suspect';
-  if (layers.status && s === 'low') return 'low';
+  if (s === 'out' || s === 'risk') return s;
+  if (bin.audit) return 'suspect';
+  if (s === 'low') return 'low';
   return 'normal';
 };
 

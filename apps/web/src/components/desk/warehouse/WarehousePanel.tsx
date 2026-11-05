@@ -38,7 +38,6 @@ const WarehousePanel = ({ layout, projection, parts }: WarehousePanelProps) => {
   const selectedEquipmentId = useWarehouseStore((s) => s.selectedEquipmentId);
   const highlighted = useWarehouseStore((s) => s.highlighted);
   const highlightLabel = useWarehouseStore((s) => s.highlightLabel);
-  const layers = useWarehouseStore((s) => s.layers);
   const selectEquipment = useWarehouseStore((s) => s.selectEquipment);
   const bridge = useWarehouseBridge();
 
@@ -62,7 +61,7 @@ const WarehousePanel = ({ layout, projection, parts }: WarehousePanelProps) => {
         <BinPanel
           part={part}
           bin={bin}
-          look={binLook(bin, layers)}
+          look={binLook(bin)}
           equipmentNames={layout.equipment
             .filter((e) => e.part_ids.includes(part.id))
             .map((e) => e.name)}
@@ -111,11 +110,9 @@ const WarehousePanel = ({ layout, projection, parts }: WarehousePanelProps) => {
     ...new Set(highlighted.flatMap((loc) => partAt.get(loc) ?? [])),
   ].flatMap((id) => binOf.get(id) ?? []);
   const rows = (
-    highlighted.length
-      ? highlightedParts
-      : projection.bins.filter((b) => binLook(b, layers) !== 'normal')
+    highlighted.length ? highlightedParts : projection.bins.filter((b) => binLook(b) !== 'normal')
   )
-    .map((b) => ({ b, look: binLook(b, layers) }))
+    .map((b) => ({ b, look: binLook(b) }))
     .sort((a, b) => LOOK_ORDER[a.look] - LOOK_ORDER[b.look]);
 
   const troubled = layout.equipment.filter(

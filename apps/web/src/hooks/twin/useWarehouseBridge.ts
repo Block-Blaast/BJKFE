@@ -1,15 +1,15 @@
 import type { TwinLayout, TwinProjection } from '@bjk/api/types/twin';
 
 import { useWarehouseStore } from '@/stores/warehouseStore';
-import { TODAY, type TwinLayers } from '@/utils/twin';
+import { TODAY } from '@/utils/twin';
 
 // 3D 창고(W-11) 브릿지 — React 오버레이 ↔ public/warehouse-3d.html(iframe).
 // 계약(반대편 warehouse-3d.html 과 같이 정했다. 바꾸면 양쪽을 함께 바꾼다):
-//   iframe.contentWindow.warehouse = { setData, setDay, setLayers, select, highlight, flyTo }
+//   iframe.contentWindow.warehouse = { setData, select, highlight, flyTo }
 //   iframe → 부모 postMessage: { source: 'warehouse-3d', type: 'ready' | 'select' | 'hover', ...payload }
 // 칸 id(loc)는 `${rack_id}-${level}-${slot}` (TwinPlacement 와 1:1).
 //
-// 흐름은 한 방향이다: 명령(select·highlight·setLayers)은 store 만 바꾸고,
+// 흐름은 한 방향이다: 명령(select·highlight)은 store 만 바꾸고,
 // iframe 반영은 registerWarehouseFrame 이 store 를 구독해서 한 곳에서 한다.
 // 그래서 iframe 클릭도 store 를 거쳐 다시 select() 로 돌아간다 — 씬과 패널이 어긋나지 않는다.
 
@@ -23,8 +23,6 @@ export type WarehouseDataPayload = {
 
 type WarehouseApi = {
   setData: (payload: WarehouseDataPayload) => void;
-  setDay: (day: number) => void;
-  setLayers: (layers: TwinLayers) => void;
   select: (loc: string | null) => void;
   highlight: (locs: string[]) => void;
   flyTo: (target: WarehouseFlyTarget) => void;
@@ -38,7 +36,7 @@ type WarehouseMessage =
 // 패널 섹션·표·칩이 모두 같은 iframe 을 써야 해서 모듈에 하나만 둔다
 let frame: HTMLIFrameElement | null = null;
 let lastData: WarehouseDataPayload | null = null;
-// ready 전에 온 카메라 이동은 마지막 것만 의미가 있다. 상태(data·layers·선택·강조)는 ready 때 store 에서 다시 보낸다
+// ready 전에 온 카메라 이동은 마지막 것만 의미가 있다. 상태(data·선택·강조)는 ready 때 store 에서 다시 보낸다
 let pendingFly: WarehouseFlyTarget | null = null;
 
 const api = (): WarehouseApi | null => {
@@ -51,7 +49,6 @@ const api = (): WarehouseApi | null => {
 const replay = (w: WarehouseApi) => {
   const s = useWarehouseStore.getState();
   if (lastData) w.setData(lastData);
-  w.setLayers(s.layers);
   w.highlight(s.highlighted);
   w.select(s.selectedLoc);
   if (pendingFly) {
@@ -78,7 +75,9 @@ const onMessage = (event: MessageEvent) => {
     const w = api();
     if (w) replay(w);
   } else if (msg.type === 'select') {
+    // 원본처럼 칸을 누르면 그 칸으로 카메라가 날아간다. 빈 곳을 누르면 선택만 푼다
     store.setSelectedLoc(msg.loc ?? null);
+    if (msg.loc) flyTo({ locs: [msg.loc] });
   } else if (msg.type === 'hover') {
     store.setHoveredLoc(msg.loc ?? null);
   }
@@ -98,7 +97,6 @@ export const registerWarehouseFrame = (el: HTMLIFrameElement | null) => {
     const w = api();
     if (!w) return;
     if (s.frameReady !== prev.frameReady) return; // ready 직후는 replay 가 보냈다
-    if (s.layers !== prev.layers) w.setLayers(s.layers);
     if (s.highlighted !== prev.highlighted) w.highlight(s.highlighted);
     if (s.selectedLoc !== prev.selectedLoc) w.select(s.selectedLoc);
   });
@@ -131,7 +129,6 @@ const commands = {
   select: (loc: string | null) => useWarehouseStore.getState().setSelectedLoc(loc),
   highlight: (locs: string[], label?: string) =>
     useWarehouseStore.getState().setHighlight(locs, label),
-  setLayers: (layers: Partial<TwinLayers>) => useWarehouseStore.getState().setLayers(layers),
   flyTo,
   // 칩·검색 결과: 여러 칸을 강조하고 그쪽으로 날아가 패널을 연다
   focus: (locs: string[], label?: string) => {
