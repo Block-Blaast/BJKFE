@@ -10,6 +10,7 @@ import { formatDate, formatQty, formatWon } from '@/utils/format';
 const EMPTY = '—';
 
 // 부품 정보 패널 (W-05). 재고 막대·속성·별칭을 한눈에 보여준다.
+// 백엔드 상세(SET-04)에 보관 위치가 없고 입고 예정은 발주 기능 전이라 비어 있어 두 항목은 두지 않는다.
 const PartInfoPanel = ({ part }: { part: Part }) => {
   const { metrics } = part;
   const belowReorder = metrics.reorder_point !== null && part.stock <= metrics.reorder_point;
@@ -54,7 +55,6 @@ const PartInfoPanel = ({ part }: { part: Part }) => {
           items={[
             { label: '규격', value: part.spec ?? EMPTY },
             { label: '카테고리', value: part.category ?? EMPTY },
-            { label: '보관 위치', value: part.location ?? EMPTY },
             { label: '기본 공급사', value: part.supplier?.name ?? EMPTY },
             {
               label: '단가',
@@ -62,12 +62,6 @@ const PartInfoPanel = ({ part }: { part: Part }) => {
                 part.supplier?.unit_price === null || part.supplier?.unit_price === undefined
                   ? EMPTY
                   : formatWon(part.supplier.unit_price),
-            },
-            {
-              label: '입고 예정',
-              value: part.incoming
-                ? `${formatQty(part.incoming.qty, part.unit)} · ${formatDate(part.incoming.eta)}`
-                : EMPTY,
             },
             { label: '소진 예상', value: metrics.t_out ? formatDate(metrics.t_out) : EMPTY },
             {
