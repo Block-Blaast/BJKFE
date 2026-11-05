@@ -163,10 +163,11 @@ const WarehouseView = () => {
           </div>
 
           {ready && panelOpen ? (
+            // 스크롤 영역 자체를 둥글게 잘라, 긴 패널이 화면 아래에서 직각으로 잘려 보이지 않게 한다
             <div
               id={PANEL_ID}
               aria-live="polite"
-              className={`${FLOAT} flex w-96 shrink-0 scrollbar-thin flex-col gap-4 overflow-y-auto`}
+              className={`${FLOAT} flex w-96 shrink-0 scrollbar-thin flex-col gap-4 overflow-y-auto overscroll-contain rounded-xl`}
             >
               <WarehousePanel
                 layout={layout.data}
