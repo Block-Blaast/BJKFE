@@ -23,6 +23,12 @@ export const proxy = (request: NextRequest) => {
     return redirectTo(request, phone ? '/m/chat' : '/warehouse');
   }
 
+  // 백엔드가 만드는 초대 링크(join_url)는 /join/{token} 이다 — 초대 수락 화면(/invite/{token})으로 보낸다
+  const join = pathname.match(/^\/join\/([^/]+)$/);
+  if (join) {
+    return redirectTo(request, `/invite/${join[1]}`);
+  }
+
   const deskReview = pathname.match(/^\/reviews\/([^/]+)$/);
   if (deskReview && phone) {
     return redirectTo(request, `/m/reviews/${deskReview[1]}`);
@@ -42,5 +48,5 @@ export const proxy = (request: NextRequest) => {
 };
 
 export const config = {
-  matcher: ['/', '/reviews/:id', '/m/reviews/:id', '/warehouse'],
+  matcher: ['/', '/reviews/:id', '/m/reviews/:id', '/warehouse', '/chat', '/join/:token'],
 };
