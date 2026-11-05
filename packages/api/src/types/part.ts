@@ -1,5 +1,6 @@
-// 부품 — 임시 계약. 명세서 W-04·W-05 화면 요소와 F-REVIEW-02 기호를 따랐고 HTTP 형식은 명세서에 없다.
-// 백엔드 OpenAPI 가 나오면 생성된 타입으로 교체하고, 이 파일을 지운다.
+// 부품 — 화면용 형식. 명세서 W-04·W-05 화면 요소와 F-REVIEW-02 기호를 따랐다.
+// 백엔드 응답(SET-03·SET-04·LED-01)은 parts.ts 에서 이 형식으로 바꾼다. 백엔드가 주지 않는 칸은 null·0·빈 목록이다
+// (목록: 규격·공급사·숨은 재고·별칭·지표 일부, 목록·상세 모두: 보관 위치·입고 예정).
 import type { AdjustReason } from '../domain/audit';
 import type { AbcClass, Category, DemandPattern, MovementType, RiskLevel } from '../domain/part';
 
